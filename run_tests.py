@@ -35,6 +35,7 @@ sys.setdefaultencoding('utf8')
 del sys.setdefaultencoding
 
 import tests
+from tests.jcl.jabber.test_component import *
 from tests.jcl.jabber.test_feeder import *
 
 import jcl
@@ -44,12 +45,19 @@ if __name__ == '__main__':
     logger.addHandler(logging.StreamHandler())
     logger.setLevel(logging.INFO)
     
+    component_suite = unittest.makeSuite(JCLComponent_TestCase, "test")
+    feeder_component_suite = unittest.makeSuite(FeederComponent_TestCase, "test")
     feeder_suite = unittest.makeSuite(Feeder_TestCase, "test")
+    sender_suite = unittest.makeSuite(Sender_TestCase, "test")
 
-    jcl_suite = unittest.TestSuite((feeder_suite))
+    jcl_suite = unittest.TestSuite((component_suite,
+                                    feeder_component_suite,
+                                    feeder_suite,
+                                    sender_suite))
     test_support.run_suite(jcl_suite)
 
 coverage.stop()
 coverage.analysis(jcl.jabber.component)
-coverage.report([jcl.jabber.component])
+coverage.analysis(jcl.jabber.feeder)
+coverage.report([jcl.jabber.component, jcl.jabber.feeder])
 

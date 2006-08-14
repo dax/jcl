@@ -24,15 +24,40 @@
 import unittest
 from sqlobject import *
 
-from jcl.jabber.component import Feeder
+from tests.jcl.jabber.test_component import JCLComponent_TestCase
+
+from jcl.jabber.feeder import Feeder, Sender
 from jcl.model.account import Account
 
+class FeederComponent_TestCase(JCLComponent_TestCase):
+    pass
+    
 class Feeder_TestCase(unittest.TestCase):
     def setUp(self):
         connection = sqlhub.processConnection = connectionForURI('sqlite:/:memory:')
         Account.createTable()
+
+    def tearDown(self):
+        Account.dropTable(ifExists = True)
         
     def test_feed_exist(self):
         feeder = Feeder()
-        feeder.feed(Account(jid="test@jid.com", name="test"))
+        feeder.feed(Account(user_jid = "test@test.com", \
+                            name = "test"))
+        self.assertTrue(True)
+
+class Sender_TestCase(unittest.TestCase):
+    def setUp(self):
+        connection = sqlhub.processConnection = connectionForURI('sqlite:/:memory:')
+        Account.createTable()
+
+    def tearDown(self):
+        Account.dropTable(ifExists = True)
+
+    def test_send_exist(self):
+        sender = Sender()
+        account = Account(user_jid = "test@test.com", \
+                          name = "test")
+        sender.send(to_account = account, \
+                    message = "Hello World")
         self.assertTrue(True)
