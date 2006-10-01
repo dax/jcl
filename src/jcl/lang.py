@@ -21,12 +21,27 @@
 ## Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 ##
 
-# TODO delete not JCL translation
+"""lang -- contains translations
+"""
+
+# TODO get help to generate revision
+__revision__ = "$Id: lang.py dax $"
+
+# TODO delete JMC translation
 class Lang:
+    """Lang.
+    """
+    # TODO get help on docstring
+    # pylint: disable-msg=W0232, R0903, C0103, C0111
     def __init__(self, default_lang = "en"):
         self.default_lang = default_lang
 
     def get_lang_from_node(self, node):
+        """Extract lang contain in a XML node.
+
+        :Parameters:
+           - `node`: XML node.
+        """
         lang = node.getLang()
         if lang is None:
             print "Using default lang " + self.default_lang
@@ -34,9 +49,19 @@ class Lang:
         return lang
 
     def get_lang_class(self, lang):
-        return getattr(Lang, lang)
+        """Return lang class from lang code.
+
+        :Parameters:
+           - `lang`: lang code.
+        """
+        return getattr(self, lang)
 
     def get_lang_class_from_node(self, node):
+        """Return lang class from XML node.
+
+        :Parameters:
+           - `node`: XML node.
+        """
         return self.get_lang_class(self.get_lang_from_node(node))
 
     class en:
@@ -57,7 +82,8 @@ class Lang:
         account_dnd_action = u"Action when state is 'Do not Disturb'"
         account_offline_action = u"Action when state is 'Offline'"
         account_check_interval = u"Mail check interval (in minutes)"
-        account_live_email_only = u"Reports only emails received while connected to Jabber"
+        account_live_email_only = u"Reports only emails received while " \
+                                  u"connected to Jabber"
         action_nothing = u"Do nothing"
         action_retrieve = u"Retrieve mail"
         action_digest = u"Send mail digest"
@@ -66,7 +92,7 @@ class Lang:
         connection_label = u"%s connection '%s'"
         update_account_message_subject = u"Updated %s connection '%s'"
         update_account_message_body = u"Registered with username '%s' and " \
-                                      "password '%s' on '%s'"
+                                      u"password '%s' on '%s'"
         new_account_message_subject = u"New %s connection '%s' created"
         new_account_message_body = u"Registered with " \
                                    "username '%s' and password '%s' on '%s'"
@@ -75,19 +101,22 @@ class Lang:
                             "for the following account: \n" \
                             "\thost = %s\n" \
                             "\tlogin = %s\n"
-        password_saved_for_session = u"Password will be kept during your Jabber session"
+        password_saved_for_session = u"Password will be kept during your " \
+                                     u"Jabber session"
         check_error_subject = u"Error while checking emails."
         check_error_body = u"An error appears while checking emails:\n\t%s"
         new_mail_subject = u"New email from %s"
         new_digest_subject = u"%i new email(s)"
 
     class fr:
-        register_title = u"Enregistrement d'une nouvelle connexion à un serveur email."
+        register_title = u"Enregistrement d'une nouvelle connexion à un " \
+                         u"serveur email."
         register_instructions = u"Entrer les paramètres de connexion"
         account_name = u"Nom de la connexion"
         account_login = u"Nom d'utilisateur"
         account_password = u"Mot de passe"
-        account_password_store = u"Sauvegarder le mot de passe sur le serveur Jabber ?"
+        account_password_store = u"Sauvegarder le mot de passe sur le " \
+                                 u"serveur Jabber ?"
         account_host = u"Adresse du serveur email"
         account_port = u"Port du serveur email"
         account_type = u"Type du serveur email"
@@ -98,7 +127,8 @@ class Lang:
         account_xa_action = u"Action lorsque l'état est 'Not Available'"
         account_dnd_action = u"Action lorsque l'état est 'Do not Disturb'"
         account_offline_action = u"Action lorsque l'état est 'Offline'"
-        account_check_interval = u"Interval de vérification de nouveaux emails (en minutes)"
+        account_check_interval = u"Interval de vérification de nouveaux " \
+                                 u"emails (en minutes)"
         account_live_email_only = u"Vérifier les nouveaux emails seulement " \
                                   "lorsqu'une session Jabber est ouverte"
         action_nothing = u"Ne rien faire"
@@ -107,20 +137,23 @@ class Lang:
         update_title = u"Mise à jour du compte JMC"
         update_instructions = u"Modification de la connexion '%s'"
         connection_label = u"Connexion %s '%s'"
-        update_account_message_subject = u"La connexion %s '%s' a été mise à jour"
-        update_account_message_body = u"Nom d'utilisateur : '%s'\nMot de passe : '%s'\nsur : '%s'"
+        update_account_message_subject = u"La connexion %s '%s' a été mise " \
+                                         u"à jour"
+        update_account_message_body = u"Nom d'utilisateur : '%s'\nMot de " \
+                                      u"passe : '%s'\nsur : '%s'"
         new_account_message_subject = u"La connexion %s '%s' a été créée"
-        new_account_message_body = u"Nom d'utilisateur : '%s'\nMot de passe : '%s'\nsur : '%s'"
+        new_account_message_body = u"Nom d'utilisateur : '%s'\nMot de passe " \
+                                   u": '%s'\nsur : '%s'"
         ask_password_subject = u"Demande de mot de passe"
-        ask_password_body = u"Répondre à ce message avec le mot de passe du " \
-                            "compte suivant : \n" \
-                            "\thost = %s\n" \
-                            "\tlogin = %s\n"
+        ask_password_body = u"Répondre à ce message avec le mot de passe " \
+                            u"du compte suivant : \n" \
+                            u"\thost = %s\n" \
+                            u"\tlogin = %s\n"
         password_saved_for_session = u"Le mot de passe sera garder tout au " \
-                                     "long de la session Jabber."
+                                     u"long de la session Jabber."
         check_error_subject = u"Erreur lors de la vérification des emails."
-        check_error_body = u"Une erreur est survenue lors de la vérification " \
-                           "des emails :\n\t%s"
+        check_error_body = u"Une erreur est survenue lors de la " \
+                           u"vérification des emails :\n\t%s"
         new_mail_subject = u"Nouvel email de %s"
         new_digest_subject = u"%i nouveau(x) email(s)"
 
@@ -152,16 +185,18 @@ class Lang:
         connection_label = u"%s verbinding '%s'"
         update_account_message_subject = u"Verbinding %s '%s' werd bijgewerkt"
         update_account_message_body = u"Geregistreerd met gebruikersnaam '%s'"\
-                                      "en wachtwoord '%s' op '%s'"
+                                      u"en wachtwoord '%s' op '%s'"
         new_account_message_subject = u"Nieuwe %s verbinding '%s' aangemaakt"
         new_account_message_body = u"Geregistreerd met " \
-                                   "gebruikersnaam '%s' en wachtwoord '%s' op '%s'"
+                                   u"gebruikersnaam '%s' en wachtwoord " \
+                                   u"'%s' op '%s'"
         ask_password_subject = u"Wachtwoordaanvraag"
-        ask_password_body = u"Antwoord dit bericht met het volgende wachtwoord" \
-                            "voor de volgende account: \n" \
-                            "\thost = %s\n" \
-                            "\tlogin = %s\n"
-        password_saved_for_session = u"Het wachtwoord zal worden bewaard tijdens uw Jabber-sessie"
+        ask_password_body = u"Antwoord dit bericht met het volgende " \
+                            u"wachtwoord voor de volgende account: \n" \
+                            u"\thost = %s\n" \
+                            u"\tlogin = %s\n"
+        password_saved_for_session = u"Het wachtwoord zal worden bewaard " \
+                                     u"tijdens uw Jabber-sessie"
         check_error_subject = u"Fout tijdens controle op e-mails."
         check_error_body = u"Fout tijdens controle op e-mails:\n\t%s"
         new_mail_subject = u"Nieuwe e-mail van %s"
@@ -173,19 +208,24 @@ class Lang:
         account_name = u"Nombre para la cuenta"
         account_login = u"Usuario (login)"
         account_password = u"Contraseña"
-        account_password_store = u"¿Guardar la contraseña en el servidor Jabber?"
+        account_password_store = u"¿Guardar la contraseña en el servidor " \
+                                 u"Jabber?"
         account_host = u"Host"
         account_port = u"Puerto"
         account_type = u"Tipo de servidor Mail"
         account_mailbox = u"Ruta del mailbox (solo para IMAP)"
-        account_ffc_action = u"Acción para cuando tu estado sea 'Listopara hablar'"
+        account_ffc_action = u"Acción para cuando tu estado sea " \
+                             u"'Listopara hablar'"
         account_online_action = u"Acción para cuando tu estado sea 'Conectado'"
         account_away_action = u"Acción para cuando tu estado sea 'Ausente'"
         account_xa_action = u"Acción para cuando tu estado sea 'No disponible'"
         account_dnd_action = u"Acción para cuando tu estado sea 'No molestar'"
-        account_offline_action = u"Acción para cuando tu estado sea 'Desconectado'"
-        account_check_interval = u"Intervalo para comprobar emails nuevos (en minutos)"
-        account_live_email_only = u"Avisarme de emails nuevos solo cuando esté conectado"
+        account_offline_action = u"Acción para cuando tu estado sea " \
+                                 u"'Desconectado'"
+        account_check_interval = u"Intervalo para comprobar emails nuevos " \
+                                 u"(en minutos)"
+        account_live_email_only = u"Avisarme de emails nuevos solo cuando " \
+                                  u"esté conectado"
         action_nothing = u"No hacer nada"
         action_retrieve = u"Mostrarme el email"
         action_digest = u"Enviar resúmen"
@@ -193,15 +233,19 @@ class Lang:
         update_instructions = u"Modifica los datos de la cuenta '%s'"
         connection_label = u"%s conexión '%s'"
         update_account_message_subject = u"Actualizada %s conexión '%s'"
-        update_account_message_body = u"Registrado con el usuario '%s' y contraseña '%s' en '%s'"
+        update_account_message_body = u"Registrado con el usuario '%s' y " \
+                                      u"contraseña '%s' en '%s'"
         new_account_message_subject = u"Nueva %s conexión '%s' creada"
-        new_account_message_body = u"Registrado con usuario '%s' y contraseña '%s' en '%s'"
+        new_account_message_body = u"Registrado con usuario '%s' y " \
+                                   u"contraseña '%s' en '%s'"
         ask_password_subject = u"Petición de contraseña"
-        ask_password_body = u"Para avisarte de emails nuevos, contesta a este mensaje con la contraseña " \
-                            "de la cuenta: \n" \
-                            "\tHost = %s\n" \
-                            "\tUsuario = %s\n"
-        password_saved_for_session = u"La contraseña será guardada para esta sesión únicamente."
+        ask_password_body = u"Para avisarte de emails nuevos, contesta a " \
+                            u"este mensaje con la contraseña " \
+                            u"de la cuenta: \n" \
+                            u"\tHost = %s\n" \
+                            u"\tUsuario = %s\n"
+        password_saved_for_session = u"La contraseña será guardada para " \
+                                     u"esta sesión únicamente."
         check_error_subject = u"Error al revisar los emails."
         check_error_body = u"Un error apareció al revisar los emails:\n\t%s"
         new_mail_subject = u"Nuevo email en %s"
@@ -225,7 +269,8 @@ class Lang:
         account_dnd_action = u"Akcja gdy status to 'Nie przeszkadzać'"
         account_offline_action = u"Akcja gdy status to 'Rozłączony'"
         account_check_interval = u"Sprawdzaj email co (w minutach)"
-        account_live_email_only = u"Raportuj otrzymane emaile tylko\n gdy podłączony do Jabbera"
+        account_live_email_only = u"Raportuj otrzymane emaile tylko\n gdy " \
+                                  u"podłączony do Jabbera"
         action_nothing = u"Nic nie rób"
         action_retrieve = u"Pobierz emaila"
         action_digest = u"Wyślij zarys emaila"
@@ -233,15 +278,20 @@ class Lang:
         update_instructions = u"Modyfikacja połączenia '%s'"
         connection_label = u"%s połączenie '%s'"
         update_account_message_subject = u"Zmodyfikowane %s połączenie '%s'"
-        update_account_message_body = u"Zarejestrowany z nazwą użytkownika '%s' i hasłem '%s' na '%s'"
+        update_account_message_body = u"Zarejestrowany z nazwą użytkownika " \
+                                      u"'%s' i hasłem '%s' na '%s'"
         new_account_message_subject = u"Nowe %s połączenie '%s' utworzone"
-        new_account_message_body = u"Zarejestrowany z nazwą użytkownika '%s' i hasłem '%s' na '%s'"
+        new_account_message_body = u"Zarejestrowany z nazwą użytkownika " \
+                                   u"'%s' i hasłem '%s' na '%s'"
         ask_password_subject = u"Żądanie hasła"
-        ask_password_body = u"Odpowiedz na ta wiadomosc z hasłem dla podanego konta: \n" \
-                            "\tnazwa hosta = %s\n" \
-                            "\tnazwa uzytkownika = %s\n"
-        password_saved_for_session = u"Hasło będzie przechowywane podczas Twojej sesji Jabbera"
+        ask_password_body = u"Odpowiedz na ta wiadomosc z hasłem dla " \
+                            u"podanego konta: \n" \
+                            u"\tnazwa hosta = %s\n" \
+                            u"\tnazwa uzytkownika = %s\n"
+        password_saved_for_session = u"Hasło będzie przechowywane podczas " \
+                                     u"Twojej sesji Jabbera"
         check_error_subject = u"Błąd podczas sprawdzania emaili."
-        check_error_body = u"Pojawił się błąd podczas sprawdzania emaili:\n\t%s"
+        check_error_body = u"Pojawił się błąd podczas sprawdzania " \
+                           u"emaili:\n\t%s"
         new_mail_subject = u"Nowy email od %s"
         new_digest_subject = u"%i nowy(ch) email(i)"

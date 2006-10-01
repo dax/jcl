@@ -20,110 +20,134 @@
 ## Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 ##
 
-import sys
+"""X -- X data handling
+"""
+
+__revision__ = ""
+
 from pyxmpp.stanza import common_doc
 
 class Option(object):
+    """Option value for list field
+    """
     def __init__(self, label, value):
-	self.__label = label
-	self.__value = value
-	
+        self.__label = label
+        self.__value = value
+    
     def get_xml(self, parent):
-	if parent is None:
-	    option = common_doc.newChild(None, "option", None)
-	else:
-	    option = parent.newChild(None, "option", None)
-	option.setProp("label", self.__label)
-	option.newChild(None, "value", self.__value)
-	return option
+        """Return XML Option representation from
+        self.__label and self.__value and attach it to parent
+        """
+        if parent is None:
+            option = common_doc.newChild(None, "option", None)
+        else:
+            option = parent.newChild(None, "option", None)
+        option.setProp("label", self.__label)
+        option.newChild(None, "value", self.__value)
+        return option
 
 class Field(object):
-    def __init__(self, type, label, var, value):
-	self.__type = type
-	self.__label = label
-	self.__var = var
-	self.value = value
-	self.__options = []
+    """Jabber Xdata form Field
+    """
+    def __init__(self, field_type, label, var, value):
+        self.__type = field_type
+        self.__label = label
+        self.__var = var
+        self.value = value
+        self.__options = []
 
     def add_option(self, label, value):
-	option = Option(label, value)
-	self.__options.append(option)
-	return option
+        """Add an Option to this field
+        """
+        option = Option(label, value)
+        self.__options.append(option)
+        return option
 
     def get_xml(self, parent):
-	if parent is None:
-	    raise Exception, "parent field should not be None"
-	else:
-	    field = parent.newChild(None, "field", None)
-	field.setProp("type", self.__type)
-	if not self.__label is None:
-	    field.setProp("label", self.__label)
-	if not self.__var is None:
-	    field.setProp("var", self.__var)
-	if self.value:
-	    field.newChild(None, "value", self.value)
-	for option in self.__options:
-	    option.get_xml(field)
-	return field
+        """Return XML Field representation
+        and attach it to parent
+        """
+        if parent is None:
+            raise Exception, "parent field should not be None"
+        else:
+            field = parent.newChild(None, "field", None)
+        field.setProp("type", self.__type)
+        if not self.__label is None:
+            field.setProp("label", self.__label)
+        if not self.__var is None:
+            field.setProp("var", self.__var)
+        if self.value:
+            field.newChild(None, "value", self.value)
+        for option in self.__options:
+            option.get_xml(field)
+        return field
 
 class X(object):
+    """Jabber Xdata form
+    """
     def __init__(self):
-	self.fields = {}
-	self.fields_tab = []
-	self.title = None
-	self.instructions = None
-        self.type = None
+        self.fields = {}
+        self.fields_tab = []
+        self.title = None
+        self.instructions = None
+        self.x_type = None
         self.xmlns = None
         
-    def add_field(self, type = "fixed", label = None, var = None, value = ""):
-	field = Field(type, label, var, value)
-	self.fields[var] = field
-	# fields_tab exist to keep added fields order
-	self.fields_tab.append(field)
-	return field
+    def add_field(self, field_type = "fixed", label = None, var = None, value = ""):
+        """Add a Field to this Xdata form
+        """
+        field = Field(field_type, label, var, value)
+        self.fields[var] = field
+        # fields_tab exist to keep added fields order
+        self.fields_tab.append(field)
+        return field
 
     def attach_xml(self, iq):
-	node = iq.newChild(None, "x", None)
-	_ns = node.newNs(self.xmlns, None)
-	node.setNs(_ns)
-	if not self.title is None:
-	    node.newTextChild(None, "title", self.title)
-	if not self.instructions is None:
-	    node.newTextChild(None, "instructions", self.instructions)
-	for field in self.fields_tab:
-	    field.get_xml(node)
-	return node
+        """Attach this Xdata form to iq node
+        """
+        node = iq.newChild(None, "x", None)
+        _ns = node.newNs(self.xmlns, None)
+        node.setNs(_ns)
+        if not self.title is None:
+            node.newTextChild(None, "title", self.title)
+        if not self.instructions is None:
+            node.newTextChild(None, "instructions", self.instructions)
+        for field in self.fields_tab:
+            field.get_xml(node)
+        return node
 
     def from_xml(self, node):
-	## TODO : test node type and ns and clean that loop !!!!
-	while node and node.type != "element":
-	    node = node.next
-	child = node.children
-	while child:
-	    ## TODO : test child type (element) and ns (jabber:x:data)
-	    if child.type == "element" and child.name == "field":
-		if child.hasProp("type"): 
-		    type = child.prop("type")
-		else:
-		    type = ""
+        """Populate this X object from an XML representation
+        """
+## TODO : test node type and ns and clean that loop !!!!
+        while node and node.type != "element":
+            node = node.next
+        child = node.children
+        while child:
+## TODO : test child type (element) and ns (jabber:x:data)
+            if child.type == "element" and child.name == "field":
+                if child.hasProp("type"): 
+                    field_type = child.prop("type")
+                else:
+                    field_type = ""
 
-		if child.hasProp("label"): 
-		    label = child.prop("label")
-		else:
-		    label = ""
+                if child.hasProp("label"): 
+                    label = child.prop("label")
+                else:
+                    label = ""
 
-		if child.hasProp("var"): 
-		    var = child.prop("var")
-		else:
-		    var = ""
-		
-		xval = child.children
-		while xval and xval.name != "value":
-		    xval = xval.next
-		if xval:
-		    value = xval.getContent()
-		else:
-		    value = ""
-		field = Field(type, label, var, value)
-		self.fields[var] = field
-	    child = child.next
+                if child.hasProp("var"): 
+                    var = child.prop("var")
+                else:
+                    var = ""
+
+                xval = child.children
+                while xval and xval.name != "value":
+                    xval = xval.next
+                if xval:
+                    value = xval.getContent()
+                else:
+                    value = ""
+                field = Field(field_type, label, var, value)
+                self.fields[var] = field
+            child = child.next

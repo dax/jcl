@@ -21,13 +21,26 @@
 ## Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 ##
 
+"""JCL base component
+"""
+
+__revision__ = ""
+
+import thread
+import threading
+import time
 import logging
 import signal
+import re
 
 from pyxmpp.jid import JID
 from pyxmpp.jabberd.component import Component
+from pyxmpp.jabber.disco import DiscoInfo, DiscoItems
+from pyxmpp.message import Message
 from pyxmpp.presence import Presence
+from pyxmpp.streambase import StreamError, FatalStreamError
 
+from jcl.jabber.x import X
 from jcl.model.account import Account
 
 VERSION = "0.1"
@@ -35,58 +48,128 @@ VERSION = "0.1"
 ###############################################################################
 # JCL implementation
 ###############################################################################
-class JCLComponent(Component):
+class JCLComponent(Component):    
+    """Implement default JCL component behavior:
+    - regular interval behavior
+    - Jabber register process (add, delete, update accounts)
+    - Jabber presence handling
+    - passwork request at login
+    """
+
+    timeout = 1
+    
     def __init__(self,
                  jid,
                  secret,
                  server,
                  port,
-                 name = "Jabber Component Library generic component",
                  disco_category = "gateway",
-                 disco_type = "headline",
-                 spool_dir = ".",
-                 check_interval = 1,
-                 account_class = Account):
+                 disco_type = "headline"):
         Component.__init__(self, \
                            JID(jid), \
                            secret, \
+                           server, \
                            port, \
                            disco_category, \
                            disco_type)
+        # default values
+        self.name = "Jabber Component Library generic component"
+        self.spool_dir = "."
+        self.__account_class = None
+        self.account_class = Account
+        self.version = VERSION
+        self.accounts = []
+        
+        self.disco_info.add_feature("jabber:iq:version")
+        self.disco_info.add_feature("jabber:iq:register")
         self.__logger = logging.getLogger("jcl.jabber.JCLComponent")
         # TODO : self.__lang = Lang(default_lang)
-        self.__name = name
-        self.__disco_category = disco_category
-        self.__disco_type = disco_type
-        self.__interval = check_interval
+        self.__lang = None
         self.running = False
-
-        self.__shutdown = 0
 
         signal.signal(signal.SIGINT, self.signal_handler)
         signal.signal(signal.SIGTERM, self.signal_handler)
-        spool_dir += "/" + jid
+
+    def set_account_class(self, account_class):
         self.__account_class = account_class
         self.__account_class.createTable(ifNotExists = True)
-        self.version = VERSION
-        
+
+    def get_account_class(self):
+        return self.__account_class
+
+    account_class = property(get_account_class, set_account_class)
+    
+    def run(self):
+        """Main loop
+        Connect to Jabber server
+        Start timer thread
+        Call Component main loop
+        Clean up when shutting down JCLcomponent
+        """
+        self.spool_dir += "/" + str(self.jid)
+        self.running = True
+        self.connect()
+        thread.start_new_thread(self.time_handler, ())
+        try:
+            while (self.running and self.stream
+                   and not self.stream.eof and self.stream.socket is not None):
+                try:
+                    self.stream.loop_iter(JCLComponent.timeout)
+                except (KeyboardInterrupt, SystemExit, FatalStreamError, \
+                        StreamError):
+                    raise
+                except:
+                    self.__logger.exception("Exception cought:")
+        finally:
+            if self.stream:
+                # TODO : send unavailble from transport and all account to users
+                pass
+#                for jid in self.__storage.keys(()):
+#                    p = Presence(from_jid = unicode(self.jid), to_jid = jid, \
+#                                 stanza_type = "unavailable")
+#                    self.stream.send(p)
+#                for jid, name in self.__storage.keys():
+#                    if self.__storage[(jid, name)].status != "offline":
+#                      p = Presence(from_jid = name + "@" + unicode(self.jid),\
+#                                     to_jid = jid, \
+#                                     stanza_type = "unavailable")
+#                        self.stream.send(p)
+            threads = threading.enumerate()
+            for _thread in threads:
+                try:
+                    _thread.join(10 * JCLComponent.timeout)
+                except:
+                    pass
+            for _thread in threads:
+                try:
+                    _thread.join(JCLComponent.timeout)
+                except:
+                    pass
+            self.disconnect()
+            # TODO : terminate SQLObject
+            self.__logger.debug("Exitting normally")
+
+
+
+    ###########################################################################
+    # Handlers
+    ###########################################################################
+    def time_handler(self):
+        """Timer thread handler
+        """
+        self.__logger.info("Timer thread started...")
+        while self.running:
+            self.handle_tick()
+            self.__logger.debug("Resetting alarm signal")
+            time.sleep(60)
+
     def authenticated(self):
-        Component.authenticated(self)
+        """Override authenticated Component event handler
+        Register event handlers
+        Probe for every accounts registered
+        """
         self.__logger.debug("AUTHENTICATED")
-        # Send probe for transport
-        current_jid = None
-        for account in self.__account_class.select(orderBy = "user_jid"):
-            if account.user_jid != current_jid:
-                p = Presence(from_jid = unicode(self.jid), \
-                             to_jid = account.user_jid, \
-                             stanza_type = "probe")
-                self.stream.send(p)
-                current_jid = account.user_jid
-            p = Presence(from_jid = self.get_jid(account), \
-                         to_jid = account.user_jid, \
-                         stanza_type = "probe")
-            self.stream.send(p)
-            
+        Component.authenticated(self)
         self.stream.set_iq_get_handler("query", "jabber:iq:version", \
                                        self.handle_get_version)
         self.stream.set_iq_get_handler("query", "jabber:iq:register", \
@@ -114,180 +197,128 @@ class JCLComponent(Component):
 
         self.stream.set_message_handler("normal", \
                                         self.handle_message)
+        current_jid = None
+        for account in self.account_class.select(orderBy = "user_jid"):
+            if account.user_jid != current_jid:
+                presence = Presence(from_jid = unicode(self.jid), \
+                                    to_jid = account.user_jid, \
+                                    stanza_type = "probe")
+                self.stream.send(presence)
+                current_jid = account.user_jid
+            presence = Presence(from_jid = self.get_jid(account), \
+                                to_jid = account.user_jid, \
+                                stanza_type = "probe")
+            self.stream.send(presence)
 
-    def run(self):
-        self.connect()
-        self.running = True
-        thread.start_new_thread(self.time_handler, ())
-        try:
-            while (not self.__shutdown and self.stream
-                   and not self.stream.eof and self.stream.socket is not None):
-                try:
-                    self.stream.loop_iter(timeout)
-                except (KeyboardInterrupt, SystemExit, FatalStreamError, \
-                        StreamError):
-                    raise
-                except:
-                    self.__logger.exception("Exception cought:")
-        finally:
-            self.running = False
-            if self.stream:
-                # TODO : send unavailble from transport and all account to users
-                pass
-#                for jid in self.__storage.keys(()):
-#                    p = Presence(from_jid = unicode(self.jid), to_jid = jid, \
-#                                 stanza_type = "unavailable")
-#                    self.stream.send(p)
-#                for jid, name in self.__storage.keys():
-#                    if self.__storage[(jid, name)].status != "offline":
-#                        p = Presence(from_jid = name + "@" + unicode(self.jid), \
-#                                     to_jid = jid, \
-#                                     stanza_type = "unavailable")
-#                        self.stream.send(p)
-            threads = threading.enumerate()
-            for th in threads:
-                try:
-                    th.join(10 * timeout)
-                except:
-                    pass
-            for th in threads:
-                try:
-                    th.join(timeout)
-                except:
-                    pass
-            self.disconnect()
-            # TODO : terminate SQLObject
-            self.__logger.debug("Exitting normally")
-
-    def get_reg_form(self, lang_class, account_class):
-        pass
-
-    def get_reg_form_init(self, lang_class, account):
-        pass
-
-    def _ask_password(self, lang_class, account):
-        if not account.waiting_password_reply \
-               and account.status != "offline":
-            account.waiting_password_reply = True
-            msg = Message(from_jid = account.jid, \
-                          to_jid = from_jid, \
-                          stanza_type = "normal", \
-                          subject = u"[PASSWORD] " + lang_class.ask_password_subject, \
-                          body = lang_class.ask_password_body % \
-                          (account.host, account.login))
-            self.stream.send(msg)
-
-    def get_jid(self, account):
-        return account.name + u"@" + unicode(self.jid)
-    
-    ## Handlers
-
-    """ Stop method handler """
     def signal_handler(self, signum, frame):
+        """Stop method handler
+        """
         self.__logger.debug("Signal %i received, shutting down..." % (signum,))
-        self.__shutdown = 1
+        self.running = False
 
-
-    def stream_state_changed(self,state,arg):
-        self.__logger.debug("*** State changed: %s %r ***" % (state,arg))
-
-    """ Discovery get info handler """
-    def disco_get_info(self, node, iq):
+    def disco_get_info(self, node, input_query):
+        """Discovery get info handler
+        """
         self.__logger.debug("DISCO_GET_INFO")
-        di = DiscoInfo()
-        if node is None:
-            di.add_feature("jabber:iq:version")
-            di.add_feature("jabber:iq:register")
-            DiscoIdentity(di, self.__name, \
-                          self.__disco_category, \
-                          self.__disco_type)
+        if node is not None:
+            disco_info = DiscoInfo()
+            disco_info.add_feature("jabber:iq:register")
+            return disco_info
         else:
-            di.add_feature("jabber:iq:register")
-        return di
+            return self.disco_info
 
-    """ Discovery get nested nodes handler """
-    def disco_get_items(self, node, iq):
+    def disco_get_items(self, node, input_query):
+        """Discovery get nested nodes handler
+        """
         self.__logger.debug("DISCO_GET_ITEMS")
-#        lang_class = self.__lang.get_lang_class_from_node(iq.get_node())
-        base_from_jid = unicode(iq.get_from().bare())
-        di = DiscoItems()
+## TODO Lang
+##  lang_class = self.__lang.get_lang_class_from_node(input_query.get_node())
+##        base_from_jid = unicode(input_query.get_from().bare())
+        disco_items = DiscoItems()
         if not node:
-            # TODO : list accounts
-            for account in self.__accounts:
-                pass
-#                DiscoItem(di, JID(name + "@" + unicode(self.jid)), \
-#                          name, str_name)
-        return di
+## TODO : list accounts
+            for account in self.accounts:
+                self.__logger.debug(str(account))
+##                DiscoItem(di, JID(name + "@" + unicode(self.jid)), \
+##                          name, str_name)
+        return disco_items
 
-    """ Get Version handler """
-    def handle_get_version(self, iq):
+    def handle_get_version(self, input_query):
+        """Get Version handler
+        """
         self.__logger.debug("GET_VERSION")
-        iq = iq.make_result_response()
-        q = iq.new_query("jabber:iq:version")
-        q.newTextChild(q.ns(), "name", self.__name)
-        q.newTextChild(q.ns(), "version", self.version)
-        self.stream.send(iq)
+        input_query = input_query.make_result_response()
+        query = input_query.new_query("jabber:iq:version")
+        query.newTextChild(query.ns(), "name", self.name)
+        query.newTextChild(query.ns(), "version", self.version)
+        self.stream.send(input_query)
         return 1
 
-    """ Send back register form to user """
-    def handle_get_register(self, iq):
+    def handle_get_register(self, input_query):
+        """Send back register form to user
+        """
         self.__logger.debug("GET_REGISTER")
-#        lang_class = self.__lang.get_lang_class_from_node(iq.get_node())
-        base_from_jid = unicode(iq.get_from().bare())
-        to = iq.get_to()
-        iq = iq.make_result_response()
-        q = iq.new_query("jabber:iq:register")
-        if to and to != self.jid:
+## TODO Lang
+##  lang_class = self.__lang.get_lang_class_from_node(input_query.get_node())
+        lang_class = None
+##        base_from_jid = unicode(input_query.get_from().bare())
+        to_jid = input_query.get_to()
+        input_query = input_query.make_result_response()
+        query = input_query.new_query("jabber:iq:register")
+        if to_jid and to_jid != self.jid:
             self.get_reg_form_init(lang_class, \
-                                   self.__accounts.select() # TODO
-                                   ).attach_xml(q)
+                                   self.accounts.select() # TODO
+                                   ).attach_xml(query)
         else:
-            self.get_reg_form(lang_class).attach_xml(q)
-        self.stream.send(iq)
+            self.get_reg_form(lang_class).attach_xml(query)
+        self.stream.send(input_query)
         return 1
 
-    """ Handle user registration response """
-    def handle_set_register(self, iq):
+    def handle_set_register(self, input_query):
+        """Handle user registration response
+        """
         self.__logger.debug("SET_REGISTER")
-        lang_class = self.__lang.get_lang_class_from_node(iq.get_node())
-        to = iq.get_to()
-        from_jid = iq.get_from()
-        base_from_jid = unicode(from_jid.bare())
-        remove = iq.xpath_eval("r:query/r:remove", \
-                               {"r" : "jabber:iq:register"})
+##        lang_class = \
+##                 self.__lang.get_lang_class_from_node(input_query.get_node())
+        from_jid = input_query.get_from()
+##        base_from_jid = unicode(from_jid.bare())
+        remove = input_query.xpath_eval("r:query/r:remove", \
+                                        {"r" : "jabber:iq:register"})
         if remove:
-            for name in self.__storage.keys((base_from_jid,)):
-                self.__logger.debug("Deleting " + name + " for " + base_from_jid)
-                p = Presence(from_jid = name + "@" + unicode(self.jid), \
-                             to_jid = from_jid, \
-                             stanza_type = "unsubscribe")
-                self.stream.send(p)
-                p = Presence(from_jid = name + "@" + unicode(self.jid), \
-                             to_jid = from_jid, \
-                             stanza_type = "unsubscribed")
-                self.stream.send(p)
-                del self.__storage[(base_from_jid, name)]
-            p = Presence(from_jid = self.jid, to_jid = from_jid, \
-                         stanza_type = "unsubscribe")
-            self.stream.send(p)
-            p = Presence(from_jid = self.jid, to_jid = from_jid, \
-                         stanza_type = "unsubscribed")
-            self.stream.send(p)
+#            for name in self.__storage.keys((base_from_jid,)):
+#                self.__logger.debug("Deleting " + name \
+#                                    + " for " + base_from_jid)
+#              presence = Presence(from_jid = name + "@" + unicode(self.jid), \
+#                                    to_jid = from_jid, \
+#                                    stanza_type = "unsubscribe")
+#                self.stream.send(presence)
+#              presence = Presence(from_jid = name + "@" + unicode(self.jid), \
+#                                    to_jid = from_jid, \
+#                                    stanza_type = "unsubscribed")
+#                self.stream.send(presence)
+#                del self.__storage[(base_from_jid, name)]
+            presence = Presence(from_jid = self.jid, to_jid = from_jid, \
+                                stanza_type = "unsubscribe")
+            self.stream.send(presence)
+            presence = Presence(from_jid = self.jid, to_jid = from_jid, \
+                                stanza_type = "unsubscribed")
+            self.stream.send(presence)
             return 1
 
-        query = iq.get_query()
-        x = X()
-        x.from_xml(query.children)
+        query = input_query.get_query()
+        x_data = X()
+        x_data.from_xml(query.children)
         # TODO : get info from Xdata
   
 
-    """ Handle presence availability """
     def handle_presence_available(self, stanza):
+        """Handle presence availability
+        """
         self.__logger.debug("PRESENCE_AVAILABLE")
         from_jid = stanza.get_from()
         base_from_jid = unicode(from_jid.bare())
         name = stanza.get_to().node
-        lang_class = self.__lang.get_lang_class_from_node(stanza.get_node())
+##        lang_class = self.__lang.get_lang_class_from_node(stanza.get_node())
         show = stanza.get_show()
         self.__logger.debug("SHOW : " + str(show))
         if name:
@@ -296,63 +327,71 @@ class JCLComponent(Component):
         # else send available presence
         return 1
 
-    """ handle presence unavailability """
     def handle_presence_unavailable(self, stanza):
+        """Handle presence unavailability
+        """
         self.__logger.debug("PRESENCE_UNAVAILABLE")
-        from_jid = stanza.get_from()
-        base_from_jid = unicode(from_jid.bare())
+##        from_jid = stanza.get_from()
+##        base_from_jid = unicode(from_jid.bare())
         # TODO : send unavailable to all user's account if target is transport
         # else send unavailable back
         return 1
 
-    """ handle subscribe presence from user """
     def handle_presence_subscribe(self, stanza):
+        """Handle subscribe presence from user
+        """
         self.__logger.debug("PRESENCE_SUBSCRIBE")
-        p = stanza.make_accept_response()
-        self.stream.send(p)
+        presence = stanza.make_accept_response()
+        self.stream.send(presence)
         return 1
 
-    """ handle subscribed presence from user """
     def handle_presence_subscribed(self, stanza):
+        """Handle subscribed presence from user
+        """
         self.__logger.debug("PRESENCE_SUBSCRIBED")
         name = stanza.get_to().node
-        from_jid = stanza.get_from()
-        base_from_jid = unicode(from_jid.bare())
+##        from_jid = stanza.get_from()
+##        base_from_jid = unicode(from_jid.bare())
         # TODO : send presence available to subscribed user
         return 1
 
-    """ handle unsubscribe presence from user """
     def handle_presence_unsubscribe(self, stanza):
+        """Handle unsubscribe presence from user
+        """
         self.__logger.debug("PRESENCE_UNSUBSCRIBE")
         name = stanza.get_to().node
         from_jid = stanza.get_from()
-        base_from_jid = unicode(from_jid.bare())
+##        base_from_jid = unicode(from_jid.bare())
         # TODO : delete from account base
-        p = Presence(from_jid = stanza.get_to(), to_jid = from_jid, \
-                     stanza_type = "unsubscribe")
-        self.stream.send(p)
-        p = stanza.make_accept_response()
-        self.stream.send(p)
+        presence = Presence(from_jid = stanza.get_to(), to_jid = from_jid, \
+                            stanza_type = "unsubscribe")
+        self.stream.send(presence)
+        presence = stanza.make_accept_response()
+        self.stream.send(presence)
         return 1
 
-    """ handle unsubscribed presence from user """
     def handle_presence_unsubscribed(self, stanza):
+        """Handle unsubscribed presence from user
+        """
         self.__logger.debug("PRESENCE_UNSUBSCRIBED")
-        p = Presence(from_jid = stanza.get_to(), \
-                     to_jid = stanza.get_from(), \
-                     stanza_type = "unavailable")
-        self.stream.send(p)
+        presence = Presence(from_jid = stanza.get_to(), \
+                            to_jid = stanza.get_from(), \
+                            stanza_type = "unavailable")
+        self.stream.send(presence)
         return 1
 
-    """ Handle new message """
     def handle_message(self, message):
+        """Handle new message
+        """
         self.__logger.debug("MESSAGE: " + message.get_body())
         lang_class = self.__lang.get_lang_class_from_node(message.get_node())
-        name = message.get_to().node
-        base_from_jid = unicode(message.get_from().bare())
-        if re.compile("\[PASSWORD\]").search(message.get_subject()) is not None:
-# TODO               and self.__storage.has_key((base_from_jid, name)):
-#            account = self.__storage[(base_from_jid, name)]
+##        name = message.get_to().node
+##        base_from_jid = unicode(message.get_from().bare())
+        if re.compile("\[PASSWORD\]").search(message.get_subject()) \
+               is not None:
+## TODO               and self.__storage.has_key((base_from_jid, name)):
+##            account = self.__storage[(base_from_jid, name)]
+            account = Account()
             account.password = message.get_body()
             account.waiting_password_reply = False
             msg = Message(from_jid = account.jid, \
@@ -363,5 +402,47 @@ class JCLComponent(Component):
             self.stream.send(msg)
         return 1
 
+    ###########################################################################
+    # Utils
+    ###########################################################################
+    def _ask_password(self, from_jid, lang_class, account):
+        """Send a Jabber message to ask for account password
+        """
+        #TODO be JMC independant
+        if not account.waiting_password_reply \
+               and account.status != "offline":
+            account.waiting_password_reply = True
+            msg = Message(from_jid = account.jid, \
+                          to_jid = from_jid, \
+                          stanza_type = "normal", \
+                          subject = u"[PASSWORD] " + \
+                          lang_class.ask_password_subject, \
+                          body = lang_class.ask_password_body % \
+                          (account.host, account.login))
+            self.stream.send(msg)
+
+    def get_jid(self, account):
+        """Return account jid based on account instance and component jid
+        """
+        return account.name + u"@" + unicode(self.jid)
+    
+    ###########################################################################
+    # Virtual methods
+    ###########################################################################
     def handle_tick(self):
+        """Virtual method
+        Called regularly
+        """
+        pass
+
+    def get_reg_form(self, lang_class, account_class):
+        """Virtual method
+        Return register form based on language and account class
+        """
+        pass
+
+    def get_reg_form_init(self, lang_class, account):
+        """Virtual method
+        Return register form for an existing account (update)
+        """
         pass

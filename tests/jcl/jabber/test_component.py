@@ -22,6 +22,11 @@
 ##
 
 import unittest
+
+import thread
+import threading
+import time
+
 from sqlobject import *
 
 from jcl.jabber.component import JCLComponent
@@ -31,6 +36,8 @@ from jcl.lang import Lang
 class MockStream(object):
     def __init__(self):
         self.sended = []
+        self.connection_started = False
+        self.connection_stoped = False
         
     def send(self, iq):
         self.sended.append(iq)
@@ -65,6 +72,15 @@ class MockStream(object):
             raise Exception("Message type unknown: " + msg_type)
         if handler is None:
             raise Exception("Handler must not be None")
+
+    def connect(self):
+        self.connection_started = True
+
+    def disconnect(self):
+        self.connection_stoped = True
+
+    def loop_iter(self, timeout):
+        time.sleep(timeout)
         
 class JCLComponent_TestCase(unittest.TestCase):
     def setUp(self):
@@ -80,6 +96,25 @@ class JCLComponent_TestCase(unittest.TestCase):
     def test_constructor(self):
         self.assertTrue(Account._connection.tableExists("account"))
 
+    def test_run(self):
+        self.comp.stream = MockStream()
+        run_thread = thread.start_new_thread(self.comp.run, ())
+        self.assertTrue(self.comp.stream.connection_started)
+        self.comp.running = False
+        time.sleep(JCLComponent.timeout + 1)
+        threads = threading.enumerate()
+        self.assertNone(threads)
+        for _thread in threads:
+            try:
+                _thread.join(1)
+            except:
+                pass
+        self.assertTrue(self.comp.connection_stoped)
+
+    def test_run_go_offline(self):
+        ## TODO : verify offline stanza are sent
+        pass
+    
     def test_authenticated_handler(self):
         self.comp.stream = MockStream()
         self.comp.authenticated()

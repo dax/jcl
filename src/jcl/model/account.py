@@ -26,5 +26,7 @@ from sqlobject import *
 class Account(SQLObject):
     user_jid = StringCol()
     name = StringCol()
+    jid = StringCol()
+    
 
     

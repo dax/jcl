@@ -21,50 +21,70 @@
 ## Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 ##
 
+"""FeederComponent with default Feeder and Sender
+implementation
+"""
+
+__revision__ = "$Id: feeder.py dax $"
+
+import logging
+
 from jcl.jabber.component import JCLComponent
-from jcl.model.account import *
+from jcl.model.account import Account
 
 class FeederComponent(JCLComponent):
+    """Implement a feeder sender behavior based on the
+    regular interval behavior of JCLComponent
+    feed data from given Feeder and send it to user
+    through the given Sender.
+    """
     def __init__(self,
                  jid,
                  secret,
                  server,
-                 port,
-                 name = "Generic Feeder Component",
-                 disco_category = "gateway",
-                 disco_type = "headline",
-                 spool_dir = ".",
-                 check_interval = 1):
+                 port):
         JCLComponent.__init__(self, \
                               jid, \
                               secret, \
                               server, \
-                              port, \
-                              name, \
-                              disco_category, \
-                              disco_type, \
-                              spool_dir, \
-                              check_interval)
+                              port)
+        self.name = "Generic Feeder Component"
+        # Define default feeder and sender, can be override
+        self.feeder = Feeder()
+        self.sender = Sender()
+        self.check_interval = 1
+
+        self.__logger = logging.getLogger("jcl.jabber.JCLComponent")
         
     def handle_tick(self):
+        """Implement main feed/send behavior        
+        """
         for account in Account.select("*"):
-            for message in self.__jabber_component.feeder.feed(account):
-                self.__jabber_component.sender.send(account, message)
+            for data in self.feeder.feed(account):
+                self.sender.send(account, data)
 
 
 
 class Feeder(object):
+    """Abstract feeder class
+    """
     def __init__(self):
         pass
 
     def feed(self, account):
+        """Feed data for given account
+        """
         pass
 
 
 class Sender(object):
+    """Abstract sender class
+    """
     def __init__(self):
         pass
 
-    def send(self, to_account, message):
+    def send(self, to_account, data):
+        """Send data to given account
+        """
         pass
 
