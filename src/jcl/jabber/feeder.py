@@ -22,10 +22,9 @@
 ##
 
 """FeederComponent with default Feeder and Sender
-implementation
-"""
+implementation"""
 
-__revision__ = "$Id: feeder.py dax $"
+__revision__ = "$Id: feeder.py,v 1.3 2005/09/18 20:24:07 dax Exp $"
 
 import logging
 
@@ -36,8 +35,7 @@ class FeederComponent(JCLComponent):
     """Implement a feeder sender behavior based on the
     regular interval behavior of JCLComponent
     feed data from given Feeder and send it to user
-    through the given Sender.
-    """
+    through the given Sender."""
     def __init__(self,
                  jid,
                  secret,
@@ -57,34 +55,29 @@ class FeederComponent(JCLComponent):
         self.__logger = logging.getLogger("jcl.jabber.JCLComponent")
         
     def handle_tick(self):
-        """Implement main feed/send behavior        
-        """
-        for account in Account.select("*"):
+        """Implement main feed/send behavior"""
+        for account in Account.select():
             for data in self.feeder.feed(account):
                 self.sender.send(account, data)
 
 
 
 class Feeder(object):
-    """Abstract feeder class
-    """
+    """Abstract feeder class"""
     def __init__(self):
         pass
 
     def feed(self, account):
-        """Feed data for given account
-        """
+        """Feed data for given account"""
         pass
 
 
 class Sender(object):
-    """Abstract sender class
-    """
+    """Abstract sender class"""
     def __init__(self):
         pass
 
     def send(self, to_account, data):
-        """Send data to given account
-        """
+        """Send data to given account"""
         pass
 

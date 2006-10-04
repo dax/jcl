@@ -24,7 +24,7 @@
 """JCL base component
 """
 
-__revision__ = ""
+__revision__ = "$Id: component.py,v 1.3 2005/09/18 20:24:07 dax Exp $"
 
 import thread
 import threading

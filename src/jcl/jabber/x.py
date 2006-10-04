@@ -23,7 +23,7 @@
 """X -- X data handling
 """
 
-__revision__ = ""
+__revision__ = "$Id: x.py,v 1.3 2005/09/18 20:24:07 dax Exp $"
 
 from pyxmpp.stanza import common_doc
 

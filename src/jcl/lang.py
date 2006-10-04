@@ -24,8 +24,7 @@
 """lang -- contains translations
 """
 
-# TODO get help to generate revision
-__revision__ = "$Id: lang.py dax $"
+__revision__ = "$Id: lang.py,v 1.3 2005/09/18 20:24:07 dax Exp $"
 
 # TODO delete JMC translation
 class Lang:

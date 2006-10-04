@@ -21,12 +21,24 @@
 ## Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 ##
 
-from sqlobject import *
+"""Basic Account implementation
+"""
+
+__revision__ = "$Id: account.py,v 1.3 2005/09/18 20:24:07 dax Exp $"
+
+from sqlobject.main import SQLObject
+from sqlobject.col import StringCol
 
 class Account(SQLObject):
+    """Base Account class"""
     user_jid = StringCol()
     name = StringCol()
     jid = StringCol()
     
+    def get_long_name(self):
+        """Return Human readable account name"""
+        return self.name
 
+    long_name = property(get_long_name)
+    
     
