@@ -127,6 +127,7 @@ class JCLComponent_TestCase(unittest.TestCase):
         del account.hub.threadConnection
 
     def test_run(self):
+        self.comp.time_unit = 1
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
         run_thread = threading.Thread(target = self.comp.run, \
@@ -151,6 +152,15 @@ class JCLComponent_TestCase(unittest.TestCase):
         if self.max_tick_count == 0:
             self.comp.running = False
     
+    def test_time_handler(self):
+        self.comp.time_unit = 1
+        self.max_tick_count = 2
+        self.comp.handle_tick = self.__handle_tick_test_time_handler
+        self.comp.running = True
+        self.comp.time_handler()
+        self.assertEquals(self.max_tick_count, 0)
+        self.assertFalse(self.comp.running)
+
     def test_authenticated_handler(self):
         self.comp.stream = MockStream()
         self.comp.authenticated()

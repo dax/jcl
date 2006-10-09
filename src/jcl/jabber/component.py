@@ -102,6 +102,8 @@ class JCLComponent(Component):
         self.set_account_class(Account)
         self.version = VERSION
         self.accounts = []
+        self.time_unit = 60
+        self.queue = Queue(100)
         
         self.disco_info.add_feature("jabber:iq:version")
         self.disco_info.add_feature("jabber:iq:register")
@@ -134,11 +136,13 @@ class JCLComponent(Component):
                    and not self.stream.eof and self.stream.socket is not None):
                 try:
                     self.stream.loop_iter(JCLComponent.timeout)
-                except (KeyboardInterrupt, SystemExit, FatalStreamError, \
-                        StreamError):
-                    raise
-                except:
-                    self.__logger.exception("Exception cought:")
+                    if self.queue.qsize():
+                        raise self.queue.get(0)
+            except Exception, e:
+                self.__logger.exception("Exception cought:")
+                # put Exception in queue to be use by unit tests
+                self.queue.put(e)
+                raise
         finally:
             if self.stream:
                 # TODO : send unavailble from transport and all account to users
@@ -190,10 +194,14 @@ class JCLComponent(Component):
         """Timer thread handler
         """
         self.__logger.info("Timer thread started...")
-        while self.running:
-            self.handle_tick()
-            self.__logger.debug("Resetting alarm signal")
-            time.sleep(60)
+        try:
+            while self.running:
+                self.handle_tick()
+                self.__logger.debug("Resetting alarm signal")
+                time.sleep(self.time_unit)
+        except Exception, e:
+            self.queue.put(e)
+            raise
 
     def authenticated(self):
         """Override authenticated Component event handler
