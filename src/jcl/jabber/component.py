@@ -122,7 +122,7 @@ class JCLComponent(Component):
         Call Component main loop
         Clean up when shutting down JCLcomponent
         """
-        self.spool_dir += "/" + str(self.jid)
+        self.spool_dir += "/" + unicode(self.jid)
         self.running = True
         self.connect()
         ## TODO : workaround to make test_run pass on FeederComponent
@@ -132,9 +132,10 @@ class JCLComponent(Component):
                                         name = "TimerThread")
         timer_thread.start()
         try:
-            while (self.running and self.stream
-                   and not self.stream.eof and self.stream.socket is not None):
-                try:
+            try:
+                while (self.running and self.stream \
+                       and not self.stream.eof \
+                       and self.stream.socket is not None):
                     self.stream.loop_iter(JCLComponent.timeout)
                     if self.queue.qsize():
                         raise self.queue.get(0)
@@ -170,7 +171,6 @@ class JCLComponent(Component):
 #                except:
 #                    pass
             self.disconnect()
-            # TODO : terminate SQLObject
             self.__logger.debug("Exitting normally")
             # TODO : terminate SQLObject
 
@@ -258,7 +258,7 @@ class JCLComponent(Component):
         self.__logger.debug("Signal %i received, shutting down..." % (signum,))
         self.running = False
 
-    def disco_get_info(self, node, input_query):
+    def disco_get_info(self, node, info_query):
         """Discovery get info handler
         """
         self.__logger.debug("DISCO_GET_INFO")
@@ -269,7 +269,7 @@ class JCLComponent(Component):
         else:
             return self.disco_info
 
-    def disco_get_items(self, node, input_query):
+    def disco_get_items(self, node, info_query):
         """Discovery get nested nodes handler
         """
         self.__logger.debug("DISCO_GET_ITEMS")
@@ -289,28 +289,28 @@ class JCLComponent(Component):
             self.db_disconnect()
         return disco_items
 
-    def handle_get_version(self, input_query):
+    def handle_get_version(self, info_query):
         """Get Version handler
         """
         self.__logger.debug("GET_VERSION")
-        input_query = input_query.make_result_response()
-        query = input_query.new_query("jabber:iq:version")
+        info_query = info_query.make_result_response()
+        query = info_query.new_query("jabber:iq:version")
         query.newTextChild(query.ns(), "name", self.name)
         query.newTextChild(query.ns(), "version", self.version)
-        self.stream.send(input_query)
+        self.stream.send(info_query)
         return 1
 
-    def handle_get_register(self, input_query):
+    def handle_get_register(self, info_query):
         """Send back register form to user
         """
         self.__logger.debug("GET_REGISTER")
 ## TODO Lang
-##  lang_class = self.__lang.get_lang_class_from_node(input_query.get_node())
+##  lang_class = self.__lang.get_lang_class_from_node(info_query.get_node())
         lang_class = None
-##        base_from_jid = unicode(input_query.get_from().bare())
-        to_jid = input_query.get_to()
-        input_query = input_query.make_result_response()
-        query = input_query.new_query("jabber:iq:register")
+##        base_from_jid = unicode(info_query.get_from().bare())
+        to_jid = info_query.get_to()
+        info_query = info_query.make_result_response()
+        query = info_query.new_query("jabber:iq:register")
         if to_jid and to_jid != self.jid:
             self.db_connect()
             self.get_reg_form_init(lang_class, \
@@ -319,18 +319,18 @@ class JCLComponent(Component):
             self.db_disconnect()
         else:
             self.get_reg_form(lang_class).attach_xml(query)
-        self.stream.send(input_query)
+        self.stream.send(info_query)
         return 1
 
-    def handle_set_register(self, input_query):
+    def handle_set_register(self, info_query):
         """Handle user registration response
         """
         self.__logger.debug("SET_REGISTER")
 ##        lang_class = \
-##                 self.__lang.get_lang_class_from_node(input_query.get_node())
-        from_jid = input_query.get_from()
+##                 self.__lang.get_lang_class_from_node(info_query.get_node())
+        from_jid = info_query.get_from()
 ##        base_from_jid = unicode(from_jid.bare())
-        remove = input_query.xpath_eval("r:query/r:remove", \
+        remove = info_query.xpath_eval("r:query/r:remove", \
                                         {"r" : "jabber:iq:register"})
         if remove:
 #            for name in self.__storage.keys((base_from_jid,)):
@@ -353,7 +353,7 @@ class JCLComponent(Component):
             self.stream.send(presence)
             return 1
 
-        query = input_query.get_query()
+        query = info_query.get_query()
         x_data = X()
         x_data.from_xml(query.children)
         # TODO : get info from Xdata
@@ -397,7 +397,7 @@ class JCLComponent(Component):
         """Handle subscribed presence from user
         """
         self.__logger.debug("PRESENCE_SUBSCRIBED")
-        name = stanza.get_to().node
+##        name = stanza.get_to().node
 ##        from_jid = stanza.get_from()
 ##        base_from_jid = unicode(from_jid.bare())
         # TODO : send presence available to subscribed user
@@ -407,7 +407,7 @@ class JCLComponent(Component):
         """Handle unsubscribe presence from user
         """
         self.__logger.debug("PRESENCE_UNSUBSCRIBE")
-        name = stanza.get_to().node
+##        name = stanza.get_to().node
         from_jid = stanza.get_from()
 ##        base_from_jid = unicode(from_jid.bare())
         # TODO : delete from account base

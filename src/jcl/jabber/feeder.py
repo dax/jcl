@@ -29,7 +29,6 @@ __revision__ = "$Id: feeder.py,v 1.3 2005/09/18 20:24:07 dax Exp $"
 import logging
 
 from jcl.jabber.component import JCLComponent
-from jcl.model.account import Account
 
 class FeederComponent(JCLComponent):
     """Implement a feeder sender behavior based on the

@@ -93,7 +93,11 @@ class X(object):
         self.x_type = None
         self.xmlns = None
         
-    def add_field(self, field_type = "fixed", label = None, var = None, value = ""):
+    def add_field(self, \
+                  field_type = "fixed", \
+                  label = None, \
+                  var = None, \
+                  value = ""):
         """Add a Field to this Xdata form
         """
         field = Field(field_type, label, var, value)
@@ -102,10 +106,10 @@ class X(object):
         self.fields_tab.append(field)
         return field
 
-    def attach_xml(self, iq):
+    def attach_xml(self, info_query):
         """Attach this Xdata form to iq node
         """
-        node = iq.newChild(None, "x", None)
+        node = info_query.newChild(None, "x", None)
         _ns = node.newNs(self.xmlns, None)
         node.setNs(_ns)
         if not self.title is None:

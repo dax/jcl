@@ -97,5 +97,5 @@ class Sender_TestCase(unittest.TestCase):
                           name = "test", \
                           jid = "test@jcl.test.com")
         sender.send(to_account = account, \
-                    message = "Hello World")
+                    data = "Hello World")
         self.assertTrue(True)
