@@ -195,7 +195,29 @@ class JCLComponent_TestCase(unittest.TestCase):
                               for presence in presence_sended \
                               if presence.get_to_jid() == "test2@test.com"]), \
                          2)
-        
+
+    def test_signal_handler(self):
+        self.comp.running = True
+        self.comp.signal_handler(42, None)
+        self.assertFalse(self.comp.running)
+
+    def test_disco_get_info(self):
+        disco_info = self.comp.disco_get_info(None, None)
+        self.assertTrue(disco_info.has_feature("jabber:iq:version"))
+        self.assertTrue(disco_info.has_feature("jabber:iq:register"))
+
+    def test_disco_get_info_node(self):
+        disco_info = self.comp.disco_get_info("node_test", None)
+        self.assertFalse(disco_info.has_feature("jabber:iq:version"))
+        self.assertTrue(disco_info.has_feature("jabber:iq:register"))
+
+    def test_disco_get_items(self):
+        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
+        account1 = Account(user_jid = "user1@test.com", \
+                           name = "account1", \
+                           jid = "account1@jcl.test.com")
+        del account.hub.threadConnection
+    
     def test_get_reg_form(self):
         self.comp.get_reg_form(Lang.en, Account)
         self.assertTrue(True)
@@ -206,12 +228,6 @@ class JCLComponent_TestCase(unittest.TestCase):
         del account.hub.threadConnection
         self.comp.get_reg_form_init(Lang.en, account1)
         self.assertTrue(True)
-
-    def test_disco_get_info(self):
-        pass
-
-    def test_disco_get_items(self):
-        pass
 
     def test_handle_get_version(self):
         pass
