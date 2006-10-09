@@ -28,9 +28,15 @@ __revision__ = "$Id: account.py,v 1.3 2005/09/18 20:24:07 dax Exp $"
 
 from sqlobject.main import SQLObject
 from sqlobject.col import StringCol
+from sqlobject.dbconnection import ConnectionHub
+
+# create a hub to attach a per thread connection
+hub = ConnectionHub()
 
 class Account(SQLObject):
     """Base Account class"""
+    _cacheValue = False
+    _connection = hub
     user_jid = StringCol()
     name = StringCol()
     jid = StringCol()

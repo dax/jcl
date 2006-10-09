@@ -40,12 +40,14 @@ class FeederComponent(JCLComponent):
                  jid,
                  secret,
                  server,
-                 port):
+                 port,
+                 db_connection_str):
         JCLComponent.__init__(self, \
                               jid, \
                               secret, \
                               server, \
-                              port)
+                              port, \
+                              db_connection_str)
         self.name = "Generic Feeder Component"
         # Define default feeder and sender, can be override
         self.feeder = Feeder()
@@ -56,9 +58,13 @@ class FeederComponent(JCLComponent):
         
     def handle_tick(self):
         """Implement main feed/send behavior"""
-        for account in Account.select():
-            for data in self.feeder.feed(account):
-                self.sender.send(account, data)
+        pass
+        self.db_connect()
+        for acc in self.account_class.select():
+            print "OK"
+#            for data in self.feeder.feed(account):
+#                self.sender.send(account, data)
+        self.db_disconnect()
 
 
 

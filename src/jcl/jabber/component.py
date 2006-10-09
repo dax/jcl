@@ -26,21 +26,27 @@
 
 __revision__ = "$Id: component.py,v 1.3 2005/09/18 20:24:07 dax Exp $"
 
-import thread
+import sys
+
 import threading
 import time
 import logging
 import signal
 import re
 
+from Queue import Queue
+
+from sqlobject.dbconnection import connectionForURI
+
 from pyxmpp.jid import JID
 from pyxmpp.jabberd.component import Component
-from pyxmpp.jabber.disco import DiscoInfo, DiscoItems
+from pyxmpp.jabber.disco import DiscoInfo, DiscoItems, DiscoItem
 from pyxmpp.message import Message
 from pyxmpp.presence import Presence
 from pyxmpp.streambase import StreamError, FatalStreamError
 
 from jcl.jabber.x import X
+from jcl.model import account
 from jcl.model.account import Account
 
 VERSION = "0.1"
@@ -57,12 +63,28 @@ class JCLComponent(Component):
     """
 
     timeout = 1
+
+    def set_account_class(self, account_class):
+        """account_class attribut setter
+        create associated table via SQLObject"""
+        self.__account_class = account_class
+        self.db_connect()
+        self.__account_class.createTable() # TODO: ifNotExists = True)
+        self.db_disconnect()
+
+    def get_account_class(self):
+        """account_class attribut getter"""
+        return self.__account_class
+
+    account_class = property(get_account_class, set_account_class)
+
     
     def __init__(self,
                  jid,
                  secret,
                  server,
                  port,
+                 db_connection_str,
                  disco_category = "gateway",
                  disco_type = "headline"):
         Component.__init__(self, \
@@ -75,8 +97,9 @@ class JCLComponent(Component):
         # default values
         self.name = "Jabber Component Library generic component"
         self.spool_dir = "."
+        self.db_connection_str = db_connection_str
         self.__account_class = None
-        self.account_class = Account
+        self.set_account_class(Account)
         self.version = VERSION
         self.accounts = []
         
@@ -89,15 +112,6 @@ class JCLComponent(Component):
 
         signal.signal(signal.SIGINT, self.signal_handler)
         signal.signal(signal.SIGTERM, self.signal_handler)
-
-    def set_account_class(self, account_class):
-        self.__account_class = account_class
-        self.__account_class.createTable(ifNotExists = True)
-
-    def get_account_class(self):
-        return self.__account_class
-
-    account_class = property(get_account_class, set_account_class)
     
     def run(self):
         """Main loop
@@ -109,7 +123,12 @@ class JCLComponent(Component):
         self.spool_dir += "/" + str(self.jid)
         self.running = True
         self.connect()
-        thread.start_new_thread(self.time_handler, ())
+        ## TODO : workaround to make test_run pass on FeederComponent
+#        time.sleep(1)
+        ##
+        timer_thread = threading.Thread(target = self.time_handler, \
+                                        name = "TimerThread")
+        timer_thread.start()
         try:
             while (self.running and self.stream
                    and not self.stream.eof and self.stream.socket is not None):
@@ -134,21 +153,34 @@ class JCLComponent(Component):
 #                                     to_jid = jid, \
 #                                     stanza_type = "unavailable")
 #                        self.stream.send(p)
-            threads = threading.enumerate()
-            for _thread in threads:
-                try:
-                    _thread.join(10 * JCLComponent.timeout)
-                except:
-                    pass
-            for _thread in threads:
-                try:
-                    _thread.join(JCLComponent.timeout)
-                except:
-                    pass
+#            threads = threading.enumerate()
+            timer_thread.join(JCLComponent.timeout)
+#            for _thread in threads:
+#                try:
+#                    _thread.join(10 * JCLComponent.timeout)
+#                except:
+#                    pass
+#            for _thread in threads:
+#                try:
+#                    _thread.join(JCLComponent.timeout)
+#                except:
+#                    pass
             self.disconnect()
             # TODO : terminate SQLObject
             self.__logger.debug("Exitting normally")
+            # TODO : terminate SQLObject
 
+    #################
+    # SQlite connections are not multi-threaded
+    # Utils workaround methods
+    #################
+    def db_connect(self):
+        account.hub.threadConnection = \
+                     connectionForURI(self.db_connection_str)
+
+    def db_disconnect(self):
+#        account.hub.threadConnection.close()
+        del account.hub.threadConnection
 
 
     ###########################################################################
@@ -198,6 +230,7 @@ class JCLComponent(Component):
         self.stream.set_message_handler("normal", \
                                         self.handle_message)
         current_jid = None
+        self.db_connect()
         for account in self.account_class.select(orderBy = "user_jid"):
             if account.user_jid != current_jid:
                 presence = Presence(from_jid = unicode(self.jid), \
@@ -209,6 +242,7 @@ class JCLComponent(Component):
                                 to_jid = account.user_jid, \
                                 stanza_type = "probe")
             self.stream.send(presence)
+        self.db_disconnect()
 
     def signal_handler(self, signum, frame):
         """Stop method handler
@@ -232,15 +266,19 @@ class JCLComponent(Component):
         """
         self.__logger.debug("DISCO_GET_ITEMS")
 ## TODO Lang
-##  lang_class = self.__lang.get_lang_class_from_node(input_query.get_node())
-##        base_from_jid = unicode(input_query.get_from().bare())
+##  lang_class = self.__lang.get_lang_class_from_node(info_query.get_node())
+        base_from_jid = unicode(info_query.get_from().bare())
         disco_items = DiscoItems()
         if not node:
 ## TODO : list accounts
-            for account in self.accounts:
+            self.db_connect()
+            for account in self.account_class.select(Account.q.user_jid == \
+                                                     base_from_jid):
                 self.__logger.debug(str(account))
-##                DiscoItem(di, JID(name + "@" + unicode(self.jid)), \
-##                          name, str_name)
+                DiscoItem(disco_items, \
+                          JID(account.jid), \
+                          account.name, account.long_name)
+            self.db_disconnect()
         return disco_items
 
     def handle_get_version(self, input_query):
@@ -266,9 +304,11 @@ class JCLComponent(Component):
         input_query = input_query.make_result_response()
         query = input_query.new_query("jabber:iq:register")
         if to_jid and to_jid != self.jid:
+            self.db_connect()
             self.get_reg_form_init(lang_class, \
-                                   self.accounts.select() # TODO
+                                   self.account_class.select() # TODO
                                    ).attach_xml(query)
+            self.db_disconnect()
         else:
             self.get_reg_form(lang_class).attach_xml(query)
         self.stream.send(input_query)

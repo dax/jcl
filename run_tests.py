@@ -49,12 +49,17 @@ if __name__ == '__main__':
     feeder_component_suite = unittest.makeSuite(FeederComponent_TestCase, "test")
     feeder_suite = unittest.makeSuite(Feeder_TestCase, "test")
     sender_suite = unittest.makeSuite(Sender_TestCase, "test")
-
+#    jcl_suite = unittest.TestSuite()
+#    jcl_suite.addTest(FeederComponent_TestCase('test_handle_tick'))
+#    jcl_suite.addTest(FeederComponent_TestCase('test_run'))
+#    jcl_suite = unittest.TestSuite((feeder_component_suite))
+#    jcl_suite = unittest.TestSuite((component_suite))
     jcl_suite = unittest.TestSuite((component_suite,
                                     feeder_component_suite,
                                     feeder_suite,
                                     sender_suite))
     test_support.run_suite(jcl_suite)
+
 
 coverage.stop()
 coverage.analysis(jcl.jabber.component)

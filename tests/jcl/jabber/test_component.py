@@ -26,18 +26,32 @@ import unittest
 import thread
 import threading
 import time
+import sys
+import os
 
 from sqlobject import *
+from sqlobject.dbconnection import TheURIOpener
 
 from jcl.jabber.component import JCLComponent
+from jcl.model import account
 from jcl.model.account import Account
 from jcl.lang import Lang
 
+DB_PATH = "/tmp/test.db"
+DB_URL = DB_PATH# + "?debug=1&debugThreading=1"
+
 class MockStream(object):
-    def __init__(self):
+    def __init__(self, \
+                 jid = "",
+                 secret = "",
+                 server = "",
+                 port = "",
+                 keepalive = True):
         self.sended = []
         self.connection_started = False
-        self.connection_stoped = False
+        self.connection_stopped = False
+        self.eof = False
+        self.socket = []
         
     def send(self, iq):
         self.sended.append(iq)
@@ -77,43 +91,65 @@ class MockStream(object):
         self.connection_started = True
 
     def disconnect(self):
-        self.connection_stoped = True
+        self.connection_stopped = True
 
     def loop_iter(self, timeout):
         time.sleep(timeout)
-        
+
+    def close(self):
+        pass
+    
 class JCLComponent_TestCase(unittest.TestCase):
     def setUp(self):
-        connection = sqlhub.processConnection = connectionForURI('sqlite:/:memory:')
+        if os.path.exists(DB_PATH):
+            os.unlink(DB_PATH)
         self.comp = JCLComponent("jcl.test.com",
                                  "password",
                                  "localhost",
-                                 "5347")
+                                 "5347",
+                                 'sqlite://' + DB_URL)
+        self.max_tick_count = 2
         
     def tearDown(self):
+        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
         Account.dropTable(ifExists = True)
+        del TheURIOpener.cachedURIs['sqlite://' + DB_URL]
+        account.hub.threadConnection.close()
+        del account.hub.threadConnection
+        if os.path.exists(DB_PATH):
+            os.unlink(DB_PATH)
 
     def test_constructor(self):
+        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
         self.assertTrue(Account._connection.tableExists("account"))
+        if os.path.exists(DB_PATH):
+            print DB_PATH + " exists cons"
+        del account.hub.threadConnection
 
     def test_run(self):
         self.comp.stream = MockStream()
-        run_thread = thread.start_new_thread(self.comp.run, ())
+        self.comp.stream_class = MockStream
+        run_thread = threading.Thread(target = self.comp.run, \
+                                      name = "run_thread")
+        run_thread.start()
+        time.sleep(1)
         self.assertTrue(self.comp.stream.connection_started)
         self.comp.running = False
         time.sleep(JCLComponent.timeout + 1)
         threads = threading.enumerate()
-        self.assertNone(threads)
-        for _thread in threads:
-            try:
-                _thread.join(1)
-            except:
-                pass
-        self.assertTrue(self.comp.connection_stoped)
+        self.assertEquals(len(threads), 1)
+        self.assertTrue(self.comp.stream.connection_stopped)
+        if self.comp.queue.qsize():
+            raise self.comp.queue.get(0)
 
     def test_run_go_offline(self):
         ## TODO : verify offline stanza are sent
         pass
+
+    def __handle_tick_test_time_handler(self):
+        self.max_tick_count -= 1
+        if self.max_tick_count == 0:
+            self.comp.running = False
     
     def test_authenticated_handler(self):
         self.comp.stream = MockStream()
@@ -121,12 +157,17 @@ class JCLComponent_TestCase(unittest.TestCase):
         self.assertTrue(True)
 
     def test_authenticated_send_probe(self):
+        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)        
         account11 = Account(user_jid = "test1@test.com", \
-                            name = "test11")
+                            name = "test11", \
+                            jid = "account11@jcl.test.com")
         account12 = Account(user_jid = "test1@test.com", \
-                            name = "test12")
+                            name = "test12", \
+                            jid = "account12@jcl.test.com")
         account2 = Account(user_jid = "test2@test.com", \
-                           name = "test2")
+                           name = "test2", \
+                           jid = "account2@jcl.test.com")
+        del account.hub.threadConnection
         self.comp.stream = stream = MockStream()
         self.comp.authenticated()
 
@@ -150,8 +191,10 @@ class JCLComponent_TestCase(unittest.TestCase):
         self.assertTrue(True)
 
     def test_get_reg_form_init(self):
-        account = Account(user_jid = "", name = "")
-        self.comp.get_reg_form_init(Lang.en, account)
+        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
+        account1 = Account(user_jid = "", name = "", jid = "")
+        del account.hub.threadConnection
+        self.comp.get_reg_form_init(Lang.en, account1)
         self.assertTrue(True)
 
     def test_disco_get_info(self):

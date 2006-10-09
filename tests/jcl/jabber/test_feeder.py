@@ -22,42 +22,80 @@
 ##
 
 import unittest
+import os
+
 from sqlobject import *
+from sqlobject.dbconnection import TheURIOpener
 
 from tests.jcl.jabber.test_component import JCLComponent_TestCase
 
-from jcl.jabber.feeder import Feeder, Sender
+from jcl.jabber.feeder import FeederComponent, Feeder, Sender
 from jcl.model.account import Account
+from jcl.model import account
+
+DB_PATH = "/tmp/test.db"
+DB_URL = DB_PATH #+ "?debug=1&debugThreading=1"
 
 class FeederComponent_TestCase(JCLComponent_TestCase):
-    pass
+    def setUp(self):
+        if os.path.exists(DB_PATH):
+            os.unlink(DB_PATH)
+        self.comp = FeederComponent("jcl.test.com",
+                                    "password",
+                                    "localhost",
+                                    "5347",
+                                    'sqlite://' + DB_URL)
+        
+    def tearDown(self):
+        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
+        Account.dropTable(ifExists = True)
+        del TheURIOpener.cachedURIs['sqlite://' + DB_URL]
+        account.hub.threadConnection.close()
+        del account.hub.threadConnection
+        if os.path.exists(DB_PATH):
+            os.unlink(DB_PATH)
+        
+    def test_constructor(self):
+        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
+        self.assertTrue(Account._connection.tableExists("account"))
+        del account.hub.threadConnection
     
 class Feeder_TestCase(unittest.TestCase):
     def setUp(self):
-        connection = sqlhub.processConnection = connectionForURI('sqlite:/:memory:')
+        if os.path.exists(DB_PATH):
+            os.unlink(DB_PATH)
+        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
         Account.createTable()
 
     def tearDown(self):
         Account.dropTable(ifExists = True)
+        del account.hub.threadConnection
+#        os.unlink(DB_PATH)
         
     def test_feed_exist(self):
         feeder = Feeder()
         feeder.feed(Account(user_jid = "test@test.com", \
-                            name = "test"))
+                            name = "test", \
+                            jid = "test@jcl.test.com"))
         self.assertTrue(True)
 
 class Sender_TestCase(unittest.TestCase):
     def setUp(self):
-        connection = sqlhub.processConnection = connectionForURI('sqlite:/:memory:')
+        if os.path.exists(DB_PATH):
+            os.unlink(DB_PATH)
+        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
         Account.createTable()
 
     def tearDown(self):
         Account.dropTable(ifExists = True)
-
+        del account.hub.threadConnection
+#        os.unlink(DB_PATH)
+        
     def test_send_exist(self):
         sender = Sender()
         account = Account(user_jid = "test@test.com", \
-                          name = "test")
+                          name = "test", \
+                          jid = "test@jcl.test.com")
         sender.send(to_account = account, \
                     message = "Hello World")
         self.assertTrue(True)
