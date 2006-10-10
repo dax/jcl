@@ -125,9 +125,6 @@ class JCLComponent(Component):
         self.spool_dir += "/" + unicode(self.jid)
         self.running = True
         self.connect()
-        ## TODO : workaround to make test_run pass on FeederComponent
-#        time.sleep(1)
-        ##
         timer_thread = threading.Thread(target = self.time_handler, \
                                         name = "TimerThread")
         timer_thread.start()
@@ -183,7 +180,6 @@ class JCLComponent(Component):
                      connectionForURI(self.db_connection_str)
 
     def db_disconnect(self):
-#        account.hub.threadConnection.close()
         del account.hub.threadConnection
 
 
@@ -195,7 +191,9 @@ class JCLComponent(Component):
         """
         self.__logger.info("Timer thread started...")
         try:
-            while self.running:
+            while (self.running and self.stream \
+                   and not self.stream.eof \
+                   and self.stream.socket is not None):
                 self.handle_tick()
                 self.__logger.debug("Resetting alarm signal")
                 time.sleep(self.time_unit)
@@ -473,6 +471,18 @@ class JCLComponent(Component):
         """Return account jid based on account instance and component jid
         """
         return account.name + u"@" + unicode(self.jid)
+
+    def get_reg_form(self, lang_class, account_class):
+        """Return register form based on language and account class
+        """
+        # TODO
+        pass
+
+    def get_reg_form_init(self, lang_class, account):
+        """Return register form for an existing account (update)
+        """
+        # TODO
+        pass
     
     ###########################################################################
     # Virtual methods
@@ -481,16 +491,4 @@ class JCLComponent(Component):
         """Virtual method
         Called regularly
         """
-        pass
-
-    def get_reg_form(self, lang_class, account_class):
-        """Virtual method
-        Return register form based on language and account class
-        """
-        pass
-
-    def get_reg_form_init(self, lang_class, account):
-        """Virtual method
-        Return register form for an existing account (update)
-        """
-        pass
+        raise NotImplementedError

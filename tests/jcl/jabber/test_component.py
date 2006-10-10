@@ -98,7 +98,12 @@ class MockStream(object):
 
     def close(self):
         pass
-    
+
+class MockStreamNoConnect(MockStream):
+    def connect(self):
+        self.connection_started = True
+        self.eof = True
+        
 class JCLComponent_TestCase(unittest.TestCase):
     def setUp(self):
         if os.path.exists(DB_PATH):
@@ -122,21 +127,14 @@ class JCLComponent_TestCase(unittest.TestCase):
     def test_constructor(self):
         account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
         self.assertTrue(Account._connection.tableExists("account"))
-        if os.path.exists(DB_PATH):
-            print DB_PATH + " exists cons"
         del account.hub.threadConnection
 
     def test_run(self):
         self.comp.time_unit = 1
-        self.comp.stream = MockStream()
-        self.comp.stream_class = MockStream
-        run_thread = threading.Thread(target = self.comp.run, \
-                                      name = "run_thread")
-        run_thread.start()
-        time.sleep(1)
+        self.comp.stream = MockStreamNoConnect()
+        self.comp.stream_class = MockStreamNoConnect
+        self.comp.run()
         self.assertTrue(self.comp.stream.connection_started)
-        self.comp.running = False
-        time.sleep(JCLComponent.timeout + 1)
         threads = threading.enumerate()
         self.assertEquals(len(threads), 1)
         self.assertTrue(self.comp.stream.connection_stopped)
@@ -156,6 +154,7 @@ class JCLComponent_TestCase(unittest.TestCase):
         self.comp.time_unit = 1
         self.max_tick_count = 2
         self.comp.handle_tick = self.__handle_tick_test_time_handler
+        self.comp.stream = MockStream()
         self.comp.running = True
         self.comp.time_handler()
         self.assertEquals(self.max_tick_count, 0)
@@ -260,6 +259,6 @@ class JCLComponent_TestCase(unittest.TestCase):
         pass
 
     def test_handle_tick(self):
-        self.comp.handle_tick()
-        self.assertTrue(True)
+        self.assertRaises(NotImplementedError, self.comp.handle_tick)
+
 

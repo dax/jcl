@@ -23,12 +23,15 @@
 
 import unittest
 import os
+import threading
+import time
 
 from sqlobject import *
 from sqlobject.dbconnection import TheURIOpener
 
-from tests.jcl.jabber.test_component import JCLComponent_TestCase
+from tests.jcl.jabber.test_component import JCLComponent_TestCase, MockStream
 
+from jcl.jabber.component import JCLComponent
 from jcl.jabber.feeder import FeederComponent, Feeder, Sender
 from jcl.model.account import Account
 from jcl.model import account
@@ -55,11 +58,28 @@ class FeederComponent_TestCase(JCLComponent_TestCase):
         if os.path.exists(DB_PATH):
             os.unlink(DB_PATH)
         
-    def test_constructor(self):
-        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
-        self.assertTrue(Account._connection.tableExists("account"))
-        del account.hub.threadConnection
-    
+    def test_run(self):
+        self.comp.time_unit = 1
+        self.comp.stream = MockStream()
+        self.comp.stream_class = MockStream
+        run_thread = threading.Thread(target = self.comp.run, \
+                                      name = "run_thread")
+        run_thread.start()
+        time.sleep(1)
+        self.comp.running = False
+        self.assertTrue(self.comp.stream.connection_started)
+        time.sleep(JCLComponent.timeout + 1)
+        threads = threading.enumerate()
+        self.assertEquals(len(threads), 1)
+        self.assertTrue(self.comp.stream.connection_stopped)
+        if self.comp.queue.qsize():
+            raise self.comp.queue.get(0)
+
+    def test_handle_tick(self):
+        # TODO
+        self.comp.handle_tick()
+        self.assertTrue(True)
+        
 class Feeder_TestCase(unittest.TestCase):
     def setUp(self):
         if os.path.exists(DB_PATH):
