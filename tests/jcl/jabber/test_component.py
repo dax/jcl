@@ -114,6 +114,7 @@ class JCLComponent_TestCase(unittest.TestCase):
                                  "5347",
                                  'sqlite://' + DB_URL)
         self.max_tick_count = 2
+        self.saved_time_handler = None
         
     def tearDown(self):
         account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
@@ -129,8 +130,24 @@ class JCLComponent_TestCase(unittest.TestCase):
         self.assertTrue(Account._connection.tableExists("account"))
         del account.hub.threadConnection
 
+    def __comp_run(self):
+        try:
+            self.comp.run()
+        except:
+            # Ignore exception, might be obtain from self.comp.queue
+            pass
+
+    def __comp_time_handler(self):
+        try:
+            self.saved_time_handler()
+        except:
+            # Ignore exception, might be obtain from self.comp.queue
+            pass
+        
     def test_run(self):
         self.comp.time_unit = 1
+        # Do not loop, handle_tick is virtual
+        # Tests in subclasses might be more precise
         self.comp.stream = MockStreamNoConnect()
         self.comp.stream_class = MockStreamNoConnect
         self.comp.run()
@@ -140,6 +157,26 @@ class JCLComponent_TestCase(unittest.TestCase):
         self.assertTrue(self.comp.stream.connection_stopped)
         if self.comp.queue.qsize():
             raise self.comp.queue.get(0)
+
+    def test_run_ni_handle_tick(self):
+        self.comp.time_unit = 1
+        self.comp.stream = MockStream()
+        self.comp.stream_class = MockStream
+        self.saved_time_handler = self.comp.time_handler
+        self.comp.time_handler = self.__comp_time_handler
+        run_thread = threading.Thread(target = self.__comp_run, \
+                                      name = "run_thread")
+        run_thread.start()
+        time.sleep(1)
+        self.comp.running = False
+        self.assertTrue(self.comp.stream.connection_started)
+        time.sleep(1)
+        threads = threading.enumerate()
+        self.assertEquals(len(threads), 1)
+        self.assertTrue(self.comp.stream.connection_stopped)
+        self.assertEquals(self.comp.queue.qsize(), 1)
+        self.assertTrue(isinstance(self.comp.queue.get(0), \
+                                   NotImplementedError))
 
     def test_run_go_offline(self):
         ## TODO : verify offline stanza are sent
@@ -219,6 +256,7 @@ class JCLComponent_TestCase(unittest.TestCase):
     
     def test_get_reg_form(self):
         self.comp.get_reg_form(Lang.en, Account)
+        # TODO
         self.assertTrue(True)
 
     def test_get_reg_form_init(self):
@@ -226,6 +264,7 @@ class JCLComponent_TestCase(unittest.TestCase):
         account1 = Account(user_jid = "", name = "", jid = "")
         del account.hub.threadConnection
         self.comp.get_reg_form_init(Lang.en, account1)
+        # TODO
         self.assertTrue(True)
 
     def test_handle_get_version(self):

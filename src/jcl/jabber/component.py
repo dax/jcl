@@ -137,7 +137,7 @@ class JCLComponent(Component):
                     if self.queue.qsize():
                         raise self.queue.get(0)
             except Exception, e:
-                self.__logger.exception("Exception cought:")
+                #self.__logger.exception("Exception cought:")
                 # put Exception in queue to be use by unit tests
                 self.queue.put(e)
                 raise

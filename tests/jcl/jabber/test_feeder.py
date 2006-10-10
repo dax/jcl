@@ -75,6 +75,10 @@ class FeederComponent_TestCase(JCLComponent_TestCase):
         if self.comp.queue.qsize():
             raise self.comp.queue.get(0)
 
+    # handle_tick is implemented in FeederComponent
+    def test_run_ni_handle_tick(self):
+        pass
+    
     def test_handle_tick(self):
         # TODO
         self.comp.handle_tick()
