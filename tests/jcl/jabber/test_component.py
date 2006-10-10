@@ -32,6 +32,9 @@ import os
 from sqlobject import *
 from sqlobject.dbconnection import TheURIOpener
 
+from pyxmpp.iq import Iq
+from pyxmpp.stanza import Stanza
+
 from jcl.jabber.component import JCLComponent
 from jcl.model import account
 from jcl.model.account import Account
@@ -247,13 +250,32 @@ class JCLComponent_TestCase(unittest.TestCase):
         self.assertFalse(disco_info.has_feature("jabber:iq:version"))
         self.assertTrue(disco_info.has_feature("jabber:iq:register"))
 
-    def test_disco_get_items(self):
+    def test_disco_get_items_no_node(self):
         account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
         account1 = Account(user_jid = "user1@test.com", \
                            name = "account1", \
                            jid = "account1@jcl.test.com")
         del account.hub.threadConnection
-    
+        info_query = Iq(stanza_type = "get", \
+                        from_jid = "user1@test.com")
+        disco_items = self.comp.disco_get_items(None, info_query)
+        self.assertEquals(len(disco_items.get_items()), 1)
+        disco_item = disco_items.get_items()[0]
+        self.assertEquals(disco_item.get_jid(), account1.jid)
+        self.assertEquals(disco_item.get_node(), account1.name)
+        self.assertEquals(disco_item.get_name(), account1.long_name)
+
+    def test_disco_get_items_with_node(self):
+        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
+        account1 = Account(user_jid = "user1@test.com", \
+                           name = "account1", \
+                           jid = "account1@jcl.test.com")
+        del account.hub.threadConnection
+        info_query = Iq(stanza_type = "get", \
+                        from_jid = "user1@test.com")
+        disco_items = self.comp.disco_get_items("account1", info_query)
+        self.assertEquals(disco_items.get_items(), [])
+        
     def test_get_reg_form(self):
         self.comp.get_reg_form(Lang.en, Account)
         # TODO
