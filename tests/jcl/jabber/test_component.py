@@ -50,14 +50,14 @@ class MockStream(object):
                  server = "",
                  port = "",
                  keepalive = True):
-        self.sended = []
+        self.sent = []
         self.connection_started = False
         self.connection_stopped = False
         self.eof = False
         self.socket = []
         
     def send(self, iq):
-        self.sended.append(iq)
+        self.sent.append(iq)
 
     def set_iq_set_handler(self, iq_type, ns, handler):
         if not iq_type in ["query"]:
@@ -220,18 +220,18 @@ class JCLComponent_TestCase(unittest.TestCase):
         self.comp.stream = stream = MockStream()
         self.comp.authenticated()
 
-        presence_sended = stream.sended
-        self.assertEqual(len(presence_sended), 5)
+        presence_sent = stream.sent
+        self.assertEqual(len(presence_sent), 5)
         self.assertEqual(len([presence \
-                              for presence in presence_sended \
+                              for presence in presence_sent \
                               if presence.get_from_jid() == "jcl.test.com"]), \
                          2)
         self.assertEqual(len([presence \
-                              for presence in presence_sended \
+                              for presence in presence_sent \
                               if presence.get_to_jid() == "test1@test.com"]), \
                          3)
         self.assertEqual(len([presence \
-                              for presence in presence_sended \
+                              for presence in presence_sent \
                               if presence.get_to_jid() == "test2@test.com"]), \
                          2)
 
@@ -290,7 +290,18 @@ class JCLComponent_TestCase(unittest.TestCase):
         self.assertTrue(True)
 
     def test_handle_get_version(self):
-        pass
+        self.comp.stream = MockStream()
+        self.comp.stream_class = MockStream
+        self.comp.handle_get_version(Iq(stanza_type = "get", \
+                                        from_jid = "user1@test.com"))
+        self.assertEquals(len(self.comp.stream.sent), 1)
+        iq_sent = self.comp.stream.sent[0]
+        self.assertEquals(iq_sent.get_to(), "user1@test.com")
+        self.assertEquals(len(iq_sent.xpath_eval("*/*")), 2)
+        name_node = iq_sent.xpath_eval("*/*")[0]
+        version_node = iq_sent.xpath_eval("*/*")[1]
+        self.assertEquals(name_node.content, self.comp.name)
+        self.assertEquals(version_node.content, self.comp.version)
 
     def test_handle_get_register(self):
         pass
