@@ -45,9 +45,11 @@ from pyxmpp.message import Message
 from pyxmpp.presence import Presence
 from pyxmpp.streambase import StreamError, FatalStreamError
 
+import jcl
 from jcl.jabber.x import X
 from jcl.model import account
-from jcl.model.account import Account
+from jcl.model.account import *
+from jcl.lang import Lang
 
 VERSION = "0.1"
 
@@ -108,8 +110,7 @@ class JCLComponent(Component):
         self.disco_info.add_feature("jabber:iq:version")
         self.disco_info.add_feature("jabber:iq:register")
         self.__logger = logging.getLogger("jcl.jabber.JCLComponent")
-        # TODO : self.__lang = Lang(default_lang)
-        self.__lang = None
+        self.__lang = Lang() # TODO : Lang(default_lang = from_config)
         self.running = False
 
         signal.signal(signal.SIGINT, self.signal_handler)
@@ -364,23 +365,57 @@ class JCLComponent(Component):
         from_jid = stanza.get_from()
         base_from_jid = unicode(from_jid.bare())
         name = stanza.get_to().node
-##        lang_class = self.__lang.get_lang_class_from_node(stanza.get_node())
+        lang_class = self.__lang.get_lang_class_from_node(stanza.get_node())
         show = stanza.get_show()
         self.__logger.debug("SHOW : " + str(show))
         if name:
             self.__logger.debug("TO : " + name + " " + base_from_jid)
-        # TODO : if to transport send back available to all user's account
-        # else send available presence
+        self.db_connect()
+        if not name:
+            accounts = self.account_class.select(\
+                self.account_class.q.user_jid == base_from_jid)
+            # TODO: Translate
+            accounts_length = 0
+            for account in accounts:
+                ++accounts_length
+                self._send_presence_available(account, show, lang_class)
+            presence = Presence(from_jid = self.jid, \
+                                to_jid = from_jid, \
+                                status = \
+                                str(accounts_length) \
+                                + " accounts registered.", \
+                                show = show, \
+                                stanza_type = "available")
+            self.stream.send(presence)
+        else:
+            accounts = self.account_class.select(\
+                self.account_class.q.user_jid == base_from_jid
+                and self.account_class.q.name == name)
+            for account in accounts:
+                self._send_presence_available(account, show, lang_class)
+        self.db_disconnect()
         return 1
 
     def handle_presence_unavailable(self, stanza):
         """Handle presence unavailability
         """
         self.__logger.debug("PRESENCE_UNAVAILABLE")
-##        from_jid = stanza.get_from()
-##        base_from_jid = unicode(from_jid.bare())
-        # TODO : send unavailable to all user's account if target is transport
-        # else send unavailable back
+        from_jid = stanza.get_from()
+        base_from_jid = unicode(from_jid.bare())
+        if stanza.get_to() == unicode(self.jid):
+            self.db_connect()
+            for account in self.account_class.select(\
+                self.account_class.q.user_jid == base_from_jid):
+                account.status = jcl.model.account.OFFLINE
+                presence = Presence(from_jid = account.jid, \
+                                    to_jid = from_jid, \
+                                    stanza_type = "unavailable")
+                self.stream.send(presence)
+            self.db_disconnect()
+        presence = Presence(from_jid = stanza.get_to(), \
+                            to_jid = from_jid, \
+                            stanza_type = "unavailable")
+        self.stream.send(presence)
         return 1
 
     def handle_presence_subscribe(self, stanza):
@@ -451,20 +486,38 @@ class JCLComponent(Component):
     ###########################################################################
     # Utils
     ###########################################################################
-    def _ask_password(self, from_jid, lang_class, account):
+    def _send_presence_available(self, account, show, lang_class):
+        """Send available presence to account's user and ask for password
+        if necessary"""
+        account.default_lang_class = lang_class
+        old_status = account.status
+        if show is None:
+            account.status = account.ONLINE # TODO get real status = (not show)
+        else:
+            account.status = show
+        p = Presence(from_jid = account.jid, \
+                     to_jid = account.user_jid, \
+                     status = account.status_msg, \
+                     show = show, \
+                     stanza_type = "available")
+        self.stream.send(p)
+        if account.store_password == False \
+               and old_status == account.OFFLINE:
+            self._ask_password(account, lang_class)
+    
+    def _ask_password(self, account, lang_class):
         """Send a Jabber message to ask for account password
         """
-        #TODO be JMC independant
         if not account.waiting_password_reply \
                and account.status != "offline":
             account.waiting_password_reply = True
             msg = Message(from_jid = account.jid, \
-                          to_jid = from_jid, \
+                          to_jid = account.user_jid, \
                           stanza_type = "normal", \
                           subject = u"[PASSWORD] " + \
                           lang_class.ask_password_subject, \
-                          body = lang_class.ask_password_body % \
-                          (account.host, account.login))
+                          body = lang_class.ask_password_body)# % \
+##                          (account.host, account.login))
             self.stream.send(msg)
 
     def get_jid(self, account):
@@ -472,17 +525,17 @@ class JCLComponent(Component):
         """
         return account.name + u"@" + unicode(self.jid)
 
-    def get_reg_form(self, lang_class, account_class):
+    def get_reg_form(self, lang_class):
         """Return register form based on language and account class
         """
         # TODO
-        pass
+        return X()
 
     def get_reg_form_init(self, lang_class, account):
         """Return register form for an existing account (update)
         """
         # TODO
-        pass
+        return X()
     
     ###########################################################################
     # Virtual methods

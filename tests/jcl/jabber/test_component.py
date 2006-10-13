@@ -34,6 +34,7 @@ from sqlobject.dbconnection import TheURIOpener
 
 from pyxmpp.iq import Iq
 from pyxmpp.stanza import Stanza
+from pyxmpp.presence import Presence
 
 from jcl.jabber.component import JCLComponent
 from jcl.model import account
@@ -277,7 +278,7 @@ class JCLComponent_TestCase(unittest.TestCase):
         self.assertEquals(disco_items.get_items(), [])
         
     def test_get_reg_form(self):
-        self.comp.get_reg_form(Lang.en, Account)
+##        self.comp.get_reg_form(Lang.en, Account)
         # TODO
         self.assertTrue(True)
 
@@ -285,7 +286,7 @@ class JCLComponent_TestCase(unittest.TestCase):
         account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
         account1 = Account(user_jid = "", name = "", jid = "")
         del account.hub.threadConnection
-        self.comp.get_reg_form_init(Lang.en, account1)
+##        self.comp.get_reg_form_init(Lang.en, account1)
         # TODO
         self.assertTrue(True)
 
@@ -298,22 +299,181 @@ class JCLComponent_TestCase(unittest.TestCase):
         iq_sent = self.comp.stream.sent[0]
         self.assertEquals(iq_sent.get_to(), "user1@test.com")
         self.assertEquals(len(iq_sent.xpath_eval("*/*")), 2)
-        name_node = iq_sent.xpath_eval("*/*")[0]
-        version_node = iq_sent.xpath_eval("*/*")[1]
-        self.assertEquals(name_node.content, self.comp.name)
-        self.assertEquals(version_node.content, self.comp.version)
+        name_nodes = iq_sent.xpath_eval("jiv:query/jiv:name", \
+                                        {"jiv" : "jabber:iq:version"})
+        self.assertEquals(len(name_nodes), 1)
+        self.assertEquals(name_nodes[0].content, self.comp.name)
+        version_nodes = iq_sent.xpath_eval("jiv:query/jiv:version", \
+                                           {"jiv" : "jabber:iq:version"})
+        self.assertEquals(len(version_nodes), 1)
+        self.assertEquals(version_nodes[0].content, self.comp.version)
 
-    def test_handle_get_register(self):
+    def test_handle_get_register_new(self):
+        self.comp.stream = MockStream()
+        self.comp.stream_class = MockStream
+        self.comp.handle_get_register(Iq(stanza_type = "get", \
+                                         from_jid = "user1@test.com", \
+                                         to_jid = "jcl.test.com"))
+        self.assertEquals(len(self.comp.stream.sent), 1)
+        iq_sent = self.comp.stream.sent[0]
+#        print str(iq_sent.get_node())
+        self.assertEquals(iq_sent.get_to(), "user1@test.com")
+#        self.assertEquals(len(iq_sent.xpath_eval("*/*")), 1)
+        # TODO
+        
+
+    def test_handle_get_register_exist(self):
         pass
 
     def test_handle_set_register(self):
         pass
 
-    def test_handle_presence_available(self):
-        pass
+    def test_handle_presence_available_to_component(self):
+        self.comp.stream = MockStream()
+        self.comp.stream_class = MockStream
+        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
+        account11 = Account(user_jid = "user1@test.com", \
+                            name = "account11", \
+                            jid = "account11@jcl.test.com")
+        account12 = Account(user_jid = "user1@test.com", \
+                            name = "account12", \
+                            jid = "account12@jcl.test.com")
+        account2 = Account(user_jid = "user2@test.com", \
+                           name = "account2", \
+                           jid = "account2@jcl.test.com")
+        del account.hub.threadConnection
+## TODO: "online"  exist ?
+        self.comp.handle_presence_available(Presence(\
+            stanza_type = "available", \
+            show = "online", \
+            from_jid = "user1@test.com",\
+            to_jid = "jcl.test.com"))
+        presence_sent = self.comp.stream.sent
+        self.assertEqual(len(presence_sent), 3)
+        self.assertEqual(len([presence \
+                              for presence in presence_sent \
+                              if presence.get_to_jid() == "user1@test.com"]), \
+                          3)
+        self.assertEqual(len([presence \
+                              for presence in presence_sent \
+                              if presence.get_from_jid() == \
+                              "jcl.test.com" \
+                              and presence.get_show() == "online"]), \
+                          1)
+        self.assertEqual(len([presence \
+                              for presence in presence_sent \
+                              if presence.get_from_jid() == \
+                              "account11@jcl.test.com" \
+                              and presence.get_show() == "online"]), \
+                          1)
+        self.assertEqual(len([presence \
+                              for presence in presence_sent \
+                              if presence.get_from_jid() == \
+                              "account12@jcl.test.com" \
+                              and presence.get_show() == "online"]), \
+                          1)
 
-    def test_handle_presence_unavailable(self):
-        pass
+    def test_handle_presence_available_to_account(self):
+        self.comp.stream = MockStream()
+        self.comp.stream_class = MockStream
+        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
+        account11 = Account(user_jid = "user1@test.com", \
+                            name = "account11", \
+                            jid = "account11@jcl.test.com")
+        account12 = Account(user_jid = "user1@test.com", \
+                            name = "account12", \
+                            jid = "account12@jcl.test.com")
+        account2 = Account(user_jid = "user2@test.com", \
+                           name = "account2", \
+                           jid = "account2@jcl.test.com")
+        del account.hub.threadConnection
+## TODO: "online"  exist ?
+        self.comp.handle_presence_available(Presence(\
+            stanza_type = "available", \
+            show = "online", \
+            from_jid = "user1@test.com",\
+            to_jid = "account11@jcl.test.com"))
+        presence_sent = self.comp.stream.sent
+        self.assertEqual(len(presence_sent), 1)
+        self.assertEqual(presence_sent[0].get_to(), "user1@test.com")
+        self.assertEqual(presence_sent[0].get_from(), "account11@jcl.test.com")
+        self.assertEqual(presence_sent[0].get_show(), "online")
+        
+    def test_handle_presence_unavailable_to_component(self):
+        self.comp.stream = MockStream()
+        self.comp.stream_class = MockStream
+        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
+        account11 = Account(user_jid = "user1@test.com", \
+                            name = "account11", \
+                            jid = "account11@jcl.test.com")
+        account12 = Account(user_jid = "user1@test.com", \
+                            name = "account12", \
+                            jid = "account12@jcl.test.com")
+        account2 = Account(user_jid = "user2@test.com", \
+                           name = "account2", \
+                           jid = "account2@jcl.test.com")
+        del account.hub.threadConnection
+        self.comp.handle_presence_unavailable(Presence(\
+            stanza_type = "unavailable", \
+            from_jid = "user1@test.com",\
+            to_jid = "jcl.test.com"))
+        presence_sent = self.comp.stream.sent
+        self.assertEqual(len(presence_sent), 3)
+        self.assertEqual(len([presence \
+                              for presence in presence_sent \
+                              if presence.get_to_jid() == "user1@test.com"]), \
+                          3)
+        self.assertEqual(\
+            len([presence \
+                 for presence in presence_sent \
+                 if presence.get_from_jid() == \
+                 "jcl.test.com" \
+                 and presence.xpath_eval("@type")[0].get_content() \
+                 == "unavailable"]), \
+            1)
+        self.assertEqual(\
+            len([presence \
+                 for presence in presence_sent \
+                 if presence.get_from_jid() == \
+                 "account11@jcl.test.com" \
+                 and presence.xpath_eval("@type")[0].get_content() \
+                 == "unavailable"]), \
+            1)
+        self.assertEqual(\
+            len([presence \
+                 for presence in presence_sent \
+                 if presence.get_from_jid() == \
+                 "account12@jcl.test.com" \
+                 and presence.xpath_eval("@type")[0].get_content() \
+                 == "unavailable"]), \
+            1)
+        
+
+    def test_handle_presence_unavailable_to_account(self):
+        self.comp.stream = MockStream()
+        self.comp.stream_class = MockStream
+        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
+        account11 = Account(user_jid = "user1@test.com", \
+                            name = "account11", \
+                            jid = "account11@jcl.test.com")
+        account12 = Account(user_jid = "user1@test.com", \
+                            name = "account12", \
+                            jid = "account12@jcl.test.com")
+        account2 = Account(user_jid = "user2@test.com", \
+                           name = "account2", \
+                           jid = "account2@jcl.test.com")
+        del account.hub.threadConnection
+        self.comp.handle_presence_unavailable(Presence(\
+            stanza_type = "unavailable", \
+            from_jid = "user1@test.com",\
+            to_jid = "account11@jcl.test.com"))
+        presence_sent = self.comp.stream.sent
+        self.assertEqual(len(presence_sent), 1)
+        self.assertEqual(presence_sent[0].get_to(), "user1@test.com")
+        self.assertEqual(presence_sent[0].get_from(), "account11@jcl.test.com")
+        self.assertEqual(\
+            presence_sent[0].xpath_eval("@type")[0].get_content(), \
+            "unavailable")
     
     def test_handle_presence_subscribe(self):
         pass

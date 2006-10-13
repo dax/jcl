@@ -43,7 +43,6 @@ class Lang:
         """
         lang = node.getLang()
         if lang is None:
-            print "Using default lang " + self.default_lang
             lang = self.default_lang
         return lang
 
