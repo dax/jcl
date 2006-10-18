@@ -434,19 +434,25 @@ class JCLComponent(Component):
 ##        from_jid = stanza.get_from()
 ##        base_from_jid = unicode(from_jid.bare())
         # TODO : send presence available to subscribed user
+        # is it necessary to send available presence ?
         return 1
 
     def handle_presence_unsubscribe(self, stanza):
         """Handle unsubscribe presence from user
         """
         self.__logger.debug("PRESENCE_UNSUBSCRIBE")
-##        name = stanza.get_to().node
+        name = stanza.get_to().node
         from_jid = stanza.get_from()
-##        base_from_jid = unicode(from_jid.bare())
-        # TODO : delete from account base
+        base_from_jid = unicode(from_jid.bare())
         presence = Presence(from_jid = stanza.get_to(), to_jid = from_jid, \
                             stanza_type = "unsubscribe")
         self.stream.send(presence)
+        self.db_connect()
+        for _account in self.account_class.select(\
+            self.account_class.q.user_jid == base_from_jid \
+            and self.account_class.q.name == name):
+            _account.destroySelf()
+        self.db_disconnect()
         presence = stanza.make_accept_response()
         self.stream.send(presence)
         return 1
@@ -463,16 +469,20 @@ class JCLComponent(Component):
 
     def handle_message(self, message):
         """Handle new message
+        Handle password response message
         """
         self.__logger.debug("MESSAGE: " + message.get_body())
         lang_class = self.__lang.get_lang_class_from_node(message.get_node())
-##        name = message.get_to().node
-##        base_from_jid = unicode(message.get_from().bare())
+        name = message.get_to().node
+        base_from_jid = unicode(message.get_from().bare())
+        self.db_connect()
+        accounts = self.account_class.select(\
+            self.account_class.q.user_jid == base_from_jid \
+            and self.account_class.q.name == name)
         if re.compile("\[PASSWORD\]").search(message.get_subject()) \
-               is not None:
-## TODO               and self.__storage.has_key((base_from_jid, name)):
-##            account = self.__storage[(base_from_jid, name)]
-            account = Account()
+               is not None \
+               and accounts.count() == 1:
+            account = list(accounts)[0]
             account.password = message.get_body()
             account.waiting_password_reply = False
             msg = Message(from_jid = account.jid, \
@@ -481,42 +491,44 @@ class JCLComponent(Component):
                           subject = lang_class.password_saved_for_session, \
                           body = lang_class.password_saved_for_session)
             self.stream.send(msg)
+        self.db_disconnect()
         return 1
 
     ###########################################################################
     # Utils
     ###########################################################################
-    def _send_presence_available(self, account, show, lang_class):
+    def _send_presence_available(self, _account, show, lang_class):
         """Send available presence to account's user and ask for password
         if necessary"""
-        account.default_lang_class = lang_class
-        old_status = account.status
+        _account.default_lang_class = lang_class
+        old_status = _account.status
         if show is None:
-            account.status = account.ONLINE # TODO get real status = (not show)
+            _account.status = account.ONLINE # TODO get real status = (not show)
         else:
-            account.status = show
-        p = Presence(from_jid = account.jid, \
-                     to_jid = account.user_jid, \
-                     status = account.status_msg, \
+            _account.status = show
+        p = Presence(from_jid = _account.jid, \
+                     to_jid = _account.user_jid, \
+                     status = _account.status_msg, \
                      show = show, \
                      stanza_type = "available")
         self.stream.send(p)
-        if account.store_password == False \
-               and old_status == account.OFFLINE:
-            self._ask_password(account, lang_class)
+        if _account.store_password == False \
+               and old_status == account.OFFLINE \
+               and _account.password == None :
+            self._ask_password(_account, lang_class)
     
-    def _ask_password(self, account, lang_class):
+    def _ask_password(self, _account, lang_class):
         """Send a Jabber message to ask for account password
         """
-        if not account.waiting_password_reply \
-               and account.status != "offline":
-            account.waiting_password_reply = True
-            msg = Message(from_jid = account.jid, \
-                          to_jid = account.user_jid, \
+        if not _account.waiting_password_reply \
+               and _account.status != account.OFFLINE:
+            _account.waiting_password_reply = True
+            msg = Message(from_jid = _account.jid, \
+                          to_jid = _account.user_jid, \
                           stanza_type = "normal", \
                           subject = u"[PASSWORD] " + \
-                          lang_class.ask_password_subject, \
-                          body = lang_class.ask_password_body)# % \
+                          lang_class.ask_password_subject)#, \
+##                          body = lang_class.ask_password_body)# % \
 ##                          (account.host, account.login))
             self.stream.send(msg)
 

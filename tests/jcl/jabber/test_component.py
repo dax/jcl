@@ -4,18 +4,18 @@
 ## Login : David Rousselie <dax@happycoders.org>
 ## Started on  Wed Aug  9 21:34:26 2006 David Rousselie
 ## $Id$
-## 
+##
 ## Copyright (C) 2006 David Rousselie
 ## This program is free software; you can redistribute it and/or modify
 ## it under the terms of the GNU General Public License as published by
 ## the Free Software Foundation; either version 2 of the License, or
 ## (at your option) any later version.
-## 
+##
 ## This program is distributed in the hope that it will be useful,
 ## but WITHOUT ANY WARRANTY; without even the implied warranty of
 ## MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ## GNU General Public License for more details.
-## 
+##
 ## You should have received a copy of the GNU General Public License
 ## along with this program; if not, write to the Free Software
 ## Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
@@ -35,6 +35,7 @@ from sqlobject.dbconnection import TheURIOpener
 from pyxmpp.iq import Iq
 from pyxmpp.stanza import Stanza
 from pyxmpp.presence import Presence
+from pyxmpp.message import Message
 
 from jcl.jabber.component import JCLComponent
 from jcl.model import account
@@ -56,7 +57,7 @@ class MockStream(object):
         self.connection_stopped = False
         self.eof = False
         self.socket = []
-        
+
     def send(self, iq):
         self.sent.append(iq)
 
@@ -107,7 +108,7 @@ class MockStreamNoConnect(MockStream):
     def connect(self):
         self.connection_started = True
         self.eof = True
-        
+
 class JCLComponent_TestCase(unittest.TestCase):
     def setUp(self):
         if os.path.exists(DB_PATH):
@@ -119,7 +120,7 @@ class JCLComponent_TestCase(unittest.TestCase):
                                  'sqlite://' + DB_URL)
         self.max_tick_count = 2
         self.saved_time_handler = None
-        
+
     def tearDown(self):
         account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
         Account.dropTable(ifExists = True)
@@ -147,7 +148,7 @@ class JCLComponent_TestCase(unittest.TestCase):
         except:
             # Ignore exception, might be obtain from self.comp.queue
             pass
-        
+
     def test_run(self):
         self.comp.time_unit = 1
         # Do not loop, handle_tick is virtual
@@ -190,7 +191,7 @@ class JCLComponent_TestCase(unittest.TestCase):
         self.max_tick_count -= 1
         if self.max_tick_count == 0:
             self.comp.running = False
-    
+
     def test_time_handler(self):
         self.comp.time_unit = 1
         self.max_tick_count = 2
@@ -207,7 +208,7 @@ class JCLComponent_TestCase(unittest.TestCase):
         self.assertTrue(True)
 
     def test_authenticated_send_probe(self):
-        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)        
+        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
         account11 = Account(user_jid = "test1@test.com", \
                             name = "test11", \
                             jid = "account11@jcl.test.com")
@@ -276,7 +277,7 @@ class JCLComponent_TestCase(unittest.TestCase):
                         from_jid = "user1@test.com")
         disco_items = self.comp.disco_get_items("account1", info_query)
         self.assertEquals(disco_items.get_items(), [])
-        
+
     def test_get_reg_form(self):
 ##        self.comp.get_reg_form(Lang.en, Account)
         # TODO
@@ -320,7 +321,7 @@ class JCLComponent_TestCase(unittest.TestCase):
         self.assertEquals(iq_sent.get_to(), "user1@test.com")
 #        self.assertEquals(len(iq_sent.xpath_eval("*/*")), 1)
         # TODO
-        
+
 
     def test_handle_get_register_exist(self):
         pass
@@ -398,7 +399,51 @@ class JCLComponent_TestCase(unittest.TestCase):
         self.assertEqual(presence_sent[0].get_to(), "user1@test.com")
         self.assertEqual(presence_sent[0].get_from(), "account11@jcl.test.com")
         self.assertEqual(presence_sent[0].get_show(), "online")
+
+    def test_handle_presence_available_to_account_live_password(self):
+        self.comp.stream = MockStream()
+        self.comp.stream_class = MockStream
+        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
+        account11 = Account(user_jid = "user1@test.com", \
+                            name = "account11", \
+                            jid = "account11@jcl.test.com")
+        account11.store_password = False
+        account12 = Account(user_jid = "user1@test.com", \
+                            name = "account12", \
+                            jid = "account12@jcl.test.com")
+        account2 = Account(user_jid = "user2@test.com", \
+                           name = "account2", \
+                           jid = "account2@jcl.test.com")
+        del account.hub.threadConnection
+## TODO: "online"  exist ?
+        self.comp.handle_presence_available(Presence(\
+            stanza_type = "available", \
+            show = "online", \
+            from_jid = "user1@test.com",\
+            to_jid = "account11@jcl.test.com"))
+        messages_sent = self.comp.stream.sent
+        self.assertEqual(len(messages_sent), 2)
+        password_message = None
+        presence = None
+        for message in messages_sent:
+            if isinstance(message, Message):
+                password_message = message
+            elif isinstance(message, Presence):
+                presence = message
+        self.assertTrue(password_message is not None)
+        self.assertTrue(presence is not None)
+        self.assertEqual(presence.get_show(), "online")
+        self.assertEqual(presence.get_from_jid(), "account11@jcl.test.com")
+        self.assertEqual(presence.get_to_jid(), "user1@test.com")
         
+        self.assertEqual(unicode(password_message.get_from_jid()), \
+                         "account11@jcl.test.com")
+        self.assertEqual(unicode(password_message.get_to_jid()), \
+                         "user1@test.com")
+        self.assertEqual(password_message.get_subject(), \
+                         "[PASSWORD] Password request")
+        self.assertEqual(password_message.get_body(), None)
+
     def test_handle_presence_unavailable_to_component(self):
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
@@ -447,7 +492,7 @@ class JCLComponent_TestCase(unittest.TestCase):
                  and presence.xpath_eval("@type")[0].get_content() \
                  == "unavailable"]), \
             1)
-        
+
 
     def test_handle_presence_unavailable_to_account(self):
         self.comp.stream = MockStream()
@@ -474,22 +519,134 @@ class JCLComponent_TestCase(unittest.TestCase):
         self.assertEqual(\
             presence_sent[0].xpath_eval("@type")[0].get_content(), \
             "unavailable")
-    
-    def test_handle_presence_subscribe(self):
-        pass
+
+    def test_handle_presence_subscribe_to_component(self):
+        self.comp.stream = MockStream()
+        self.comp.stream_class = MockStream
+        self.comp.handle_presence_subscribe(Presence(\
+            stanza_type = "subscribe", \
+            from_jid = "user1@test.com",\
+            to_jid = "jcl.test.com"))
+        presence_sent = self.comp.stream.sent
+        self.assertEqual(len(presence_sent), 1)
+        self.assertEqual(presence_sent[0].get_to(), "user1@test.com")
+        self.assertEqual(presence_sent[0].get_from(), "jcl.test.com")
+        self.assertEqual(\
+            presence_sent[0].xpath_eval("@type")[0].get_content(), \
+            "subscribed")
+
+    def test_handle_presence_subscribe_to_account(self):
+        self.comp.stream = MockStream()
+        self.comp.stream_class = MockStream
+        self.comp.handle_presence_subscribe(Presence(\
+            stanza_type = "subscribe", \
+            from_jid = "user1@test.com",\
+            to_jid = "account11@jcl.test.com"))
+        presence_sent = self.comp.stream.sent
+        self.assertEqual(len(presence_sent), 1)
+        self.assertEqual(presence_sent[0].get_to(), "user1@test.com")
+        self.assertEqual(presence_sent[0].get_from(), "account11@jcl.test.com")
+        self.assertEqual(\
+            presence_sent[0].xpath_eval("@type")[0].get_content(), \
+            "subscribed")
 
     def test_handle_presence_subscribed(self):
         pass
 
     def test_handle_presence_unsubscribe(self):
-        pass
+        self.comp.stream = MockStream()
+        self.comp.stream_class = MockStream
+        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
+        account11 = Account(user_jid = "user1@test.com", \
+                            name = "account11", \
+                            jid = "account11@jcl.test.com")
+        account12 = Account(user_jid = "user1@test.com", \
+                            name = "account12", \
+                            jid = "account12@jcl.test.com")
+        account2 = Account(user_jid = "user2@test.com", \
+                           name = "account2", \
+                           jid = "account2@jcl.test.com")
+        del account.hub.threadConnection
+        self.comp.handle_presence_unsubscribe(Presence(\
+            stanza_type = "unsubscribe", \
+            from_jid = "user1@test.com",\
+            to_jid = "account11@jcl.test.com"))
+        presence_sent = self.comp.stream.sent
+        self.assertEqual(len(presence_sent), 2)
+        self.assertEqual(len([presence \
+                              for presence in presence_sent \
+                              if presence.get_to_jid() == "user1@test.com"]), \
+                          2)
+        self.assertEqual(\
+            len([presence \
+                 for presence in presence_sent \
+                 if presence.get_from_jid() == \
+                 "account11@jcl.test.com" \
+                 and presence.xpath_eval("@type")[0].get_content() \
+                 == "unsubscribe"]), \
+            1)
+        self.assertEqual(\
+            len([presence \
+                 for presence in presence_sent \
+                 if presence.get_from_jid() == \
+                 "account11@jcl.test.com" \
+                 and presence.xpath_eval("@type")[0].get_content() \
+                 == "unsubscribed"]), \
+            1)
+        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
+        self.assertEquals(self.comp.account_class.select(\
+            self.comp.account_class.q.user_jid == "user1@test.com" \
+            and self.comp.account_class.q.name == "account11").count(), \
+                          0)
+        del account.hub.threadConnection
 
     def test_handle_presence_unsubscribed(self):
-        pass
+        self.comp.stream = MockStream()
+        self.comp.stream_class = MockStream
+        self.comp.handle_presence_unsubscribed(Presence(\
+            stanza_type = "unsubscribed", \
+            from_jid = "user1@test.com",\
+            to_jid = "jcl.test.com"))
+        presence_sent = self.comp.stream.sent
+        self.assertEqual(len(presence_sent), 1)
+        self.assertEqual(presence_sent[0].get_to(), "user1@test.com")
+        self.assertEqual(presence_sent[0].get_from(), "jcl.test.com")
+        self.assertEqual(\
+            presence_sent[0].xpath_eval("@type")[0].get_content(), \
+            "unavailable")
 
-    def test_handle_message(self):
-        pass
 
+    def test_handle_message_password(self):
+        self.comp.stream = MockStream()
+        self.comp.stream_class = MockStream
+        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
+        account11 = Account(user_jid = "user1@test.com", \
+                            name = "account11", \
+                            jid = "account11@jcl.test.com")
+        account11.waiting_password_reply = True
+        account12 = Account(user_jid = "user1@test.com", \
+                            name = "account12", \
+                            jid = "account12@jcl.test.com")
+        account2 = Account(user_jid = "user2@test.com", \
+                           name = "account2", \
+                           jid = "account2@jcl.test.com")
+        del account.hub.threadConnection
+        self.comp.handle_message(Message(\
+            from_jid = "user1@test.com", \
+            to_jid = "account11@jcl.test.com", \
+            subject = "[PASSWORD]", \
+            body = "secret"))
+        messages_sent = self.comp.stream.sent
+        self.assertEqual(len(messages_sent), 1)
+        self.assertEqual(messages_sent[0].get_to(), "user1@test.com")
+        self.assertEqual(messages_sent[0].get_from(), "account11@jcl.test.com")
+        self.assertEqual(account11.password, "secret")
+        self.assertEqual(account11.waiting_password_reply, False)
+        self.assertEqual(messages_sent[0].get_subject(), \
+            "Password will be kept during your Jabber session")
+        self.assertEqual(messages_sent[0].get_body(), \
+            "Password will be kept during your Jabber session")
+        
     def test_handle_tick(self):
         self.assertRaises(NotImplementedError, self.comp.handle_tick)
 
