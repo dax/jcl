@@ -50,7 +50,7 @@ if __name__ == '__main__':
     feeder_suite = unittest.makeSuite(Feeder_TestCase, "test")
     sender_suite = unittest.makeSuite(Sender_TestCase, "test")
     jcl_suite = unittest.TestSuite()
-#    jcl_suite.addTest(FeederComponent_TestCase('test_handle_get_version'))
+#    jcl_suite.addTest(FeederComponent_TestCase('test_handle_get_register_new'))
 #    jcl_suite.addTest(FeederComponent_TestCase('test_handle_presence_available_to_account_live_password'))
 #    jcl_suite = unittest.TestSuite((feeder_component_suite))
 #    jcl_suite = unittest.TestSuite((component_suite))

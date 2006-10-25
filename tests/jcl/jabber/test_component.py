@@ -317,10 +317,30 @@ class JCLComponent_TestCase(unittest.TestCase):
                                          to_jid = "jcl.test.com"))
         self.assertEquals(len(self.comp.stream.sent), 1)
         iq_sent = self.comp.stream.sent[0]
-#        print str(iq_sent.get_node())
         self.assertEquals(iq_sent.get_to(), "user1@test.com")
-#        self.assertEquals(len(iq_sent.xpath_eval("*/*")), 1)
-        # TODO
+        titles = iq_sent.xpath_eval("jir:query/jxd:x/jxd:title", \
+                                    {"jir" : "jabber:iq:register", \
+                                     "jxd" : "jabber:x:data"})
+        self.assertEquals(len(titles), 1)
+        self.assertEquals(titles[0].content, \
+                          Lang.en.register_title)
+        instructions = iq_sent.xpath_eval("jir:query/jxd:x/jxd:instructions", \
+                                          {"jir" : "jabber:iq:register", \
+                                           "jxd" : "jabber:x:data"})
+        self.assertEquals(len(instructions), 1)
+        self.assertEquals(instructions[0].content, \
+                          Lang.en.register_instructions)
+        fields = iq_sent.xpath_eval("jir:query/jxd:x/jxd:field", \
+                                    {"jir" : "jabber:iq:register", \
+                                     "jxd" : "jabber:x:data"})
+        self.assertEquals(len(fields), 1)
+        self.assertEquals(len([field
+                               for field in fields \
+                               if field.prop("type") == "text-single" \
+                               and field.prop("var") == "name" \
+                               and field.prop("label") == \
+                               Lang.en.account_name]), \
+                          1)
 
 
     def test_handle_get_register_exist(self):

@@ -89,3 +89,8 @@ class Account(SQLObject):
         
     status = property(get_status, set_status)
 
+
+    def get_register_fields(cls):
+        return [('name', "text-single")]
+    
+    get_register_fields = classmethod(get_register_fields)

@@ -277,7 +277,6 @@ class JCLComponent(Component):
         base_from_jid = unicode(info_query.get_from().bare())
         disco_items = DiscoItems()
         if not node:
-## TODO : list accounts
             self.db_connect()
             for account in self.account_class.select(Account.q.user_jid == \
                                                      base_from_jid):
@@ -304,9 +303,8 @@ class JCLComponent(Component):
         """
         self.__logger.debug("GET_REGISTER")
 ## TODO Lang
-##  lang_class = self.__lang.get_lang_class_from_node(info_query.get_node())
-        lang_class = None
-##        base_from_jid = unicode(info_query.get_from().bare())
+        lang_class = self.__lang.get_lang_class_from_node(info_query.get_node())
+        base_from_jid = unicode(info_query.get_from().bare())
         to_jid = info_query.get_to()
         info_query = info_query.make_result_response()
         query = info_query.new_query("jabber:iq:register")
@@ -545,8 +543,28 @@ class JCLComponent(Component):
     def get_reg_form(self, lang_class):
         """Return register form based on language and account class
         """
-        # TODO
-        return X()
+        # TODO : handle text-private for password
+        # TODO : handle list-single
+        reg_form = X()
+        reg_form.xmlns = "jabber:x:data"
+        reg_form.title = lang_class.register_title
+        reg_form.instructions = lang_class.register_instructions
+        reg_form.type = "form"
+
+        for (field, field_type) in \
+                self.account_class.get_register_fields():
+            lang_label_attr = self.account_class.__name__.lower() \
+                              + "_" + field
+            if hasattr(lang_class, lang_label_attr):
+                label = getattr(lang_class, lang_label_attr)
+            else:
+                label = field
+            reg_form.add_field(field_type = field_type, \
+                               label = label, \
+                               var = field)
+            ## TODO : Add page when empty tuple given
+            ## TODO : get default value if any
+        return reg_form
 
     def get_reg_form_init(self, lang_class, account):
         """Return register form for an existing account (update)
