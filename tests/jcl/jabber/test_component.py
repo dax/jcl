@@ -422,27 +422,57 @@ class JCLComponent_TestCase(unittest.TestCase):
             from_jid = "user1@test.com",\
             to_jid = "account11@jcl.test.com"))
         messages_sent = self.comp.stream.sent
-        self.assertEqual(len(messages_sent), 2)
-        password_message = None
-        presence = None
-        for message in messages_sent:
-            if isinstance(message, Message):
-                password_message = message
-            elif isinstance(message, Presence):
-                presence = message
-        self.assertTrue(password_message is not None)
+        self.assertEqual(len(messages_sent), 1)
+        presence = messages_sent[0]
         self.assertTrue(presence is not None)
         self.assertEqual(presence.get_show(), "online")
         self.assertEqual(presence.get_from_jid(), "account11@jcl.test.com")
         self.assertEqual(presence.get_to_jid(), "user1@test.com")
         
-        self.assertEqual(unicode(password_message.get_from_jid()), \
-                         "account11@jcl.test.com")
-        self.assertEqual(unicode(password_message.get_to_jid()), \
-                         "user1@test.com")
-        self.assertEqual(password_message.get_subject(), \
-                         "[PASSWORD] Password request")
-        self.assertEqual(password_message.get_body(), None)
+# Use it in real live password implementation
+#     def test_handle_presence_available_to_account_live_password(self):
+#         self.comp.stream = MockStream()
+#         self.comp.stream_class = MockStream
+#         account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
+#         account11 = Account(user_jid = "user1@test.com", \
+#                             name = "account11", \
+#                             jid = "account11@jcl.test.com")
+#         account11.store_password = False
+#         account12 = Account(user_jid = "user1@test.com", \
+#                             name = "account12", \
+#                             jid = "account12@jcl.test.com")
+#         account2 = Account(user_jid = "user2@test.com", \
+#                            name = "account2", \
+#                            jid = "account2@jcl.test.com")
+#         del account.hub.threadConnection
+# ## TODO: "online"  exist ?
+#         self.comp.handle_presence_available(Presence(\
+#             stanza_type = "available", \
+#             show = "online", \
+#             from_jid = "user1@test.com",\
+#             to_jid = "account11@jcl.test.com"))
+#         messages_sent = self.comp.stream.sent
+#         self.assertEqual(len(messages_sent), 2)
+#         password_message = None
+#         presence = None
+#         for message in messages_sent:
+#             if isinstance(message, Message):
+#                 password_message = message
+#             elif isinstance(message, Presence):
+#                 presence = message
+#         self.assertTrue(password_message is not None)
+#         self.assertTrue(presence is not None)
+#         self.assertEqual(presence.get_show(), "online")
+#         self.assertEqual(presence.get_from_jid(), "account11@jcl.test.com")
+#         self.assertEqual(presence.get_to_jid(), "user1@test.com")
+        
+#         self.assertEqual(unicode(password_message.get_from_jid()), \
+#                          "account11@jcl.test.com")
+#         self.assertEqual(unicode(password_message.get_to_jid()), \
+#                          "user1@test.com")
+#         self.assertEqual(password_message.get_subject(), \
+#                          "[PASSWORD] Password request")
+#         self.assertEqual(password_message.get_body(), None)
 
     def test_handle_presence_unavailable_to_component(self):
         self.comp.stream = MockStream()
@@ -615,7 +645,6 @@ class JCLComponent_TestCase(unittest.TestCase):
             presence_sent[0].xpath_eval("@type")[0].get_content(), \
             "unavailable")
 
-
     def test_handle_message_password(self):
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
@@ -637,15 +666,39 @@ class JCLComponent_TestCase(unittest.TestCase):
             subject = "[PASSWORD]", \
             body = "secret"))
         messages_sent = self.comp.stream.sent
-        self.assertEqual(len(messages_sent), 1)
-        self.assertEqual(messages_sent[0].get_to(), "user1@test.com")
-        self.assertEqual(messages_sent[0].get_from(), "account11@jcl.test.com")
-        self.assertEqual(account11.password, "secret")
-        self.assertEqual(account11.waiting_password_reply, False)
-        self.assertEqual(messages_sent[0].get_subject(), \
-            "Password will be kept during your Jabber session")
-        self.assertEqual(messages_sent[0].get_body(), \
-            "Password will be kept during your Jabber session")
+        self.assertEqual(len(messages_sent), 0)
+
+# TODO Use it with real implementation live password
+#     def test_handle_message_password(self):
+#         self.comp.stream = MockStream()
+#         self.comp.stream_class = MockStream
+#         account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
+#         account11 = Account(user_jid = "user1@test.com", \
+#                             name = "account11", \
+#                             jid = "account11@jcl.test.com")
+#         account11.waiting_password_reply = True
+#         account12 = Account(user_jid = "user1@test.com", \
+#                             name = "account12", \
+#                             jid = "account12@jcl.test.com")
+#         account2 = Account(user_jid = "user2@test.com", \
+#                            name = "account2", \
+#                            jid = "account2@jcl.test.com")
+#         del account.hub.threadConnection
+#         self.comp.handle_message(Message(\
+#             from_jid = "user1@test.com", \
+#             to_jid = "account11@jcl.test.com", \
+#             subject = "[PASSWORD]", \
+#             body = "secret"))
+#         messages_sent = self.comp.stream.sent
+#         self.assertEqual(len(messages_sent), 1)
+#         self.assertEqual(messages_sent[0].get_to(), "user1@test.com")
+#         self.assertEqual(messages_sent[0].get_from(), "account11@jcl.test.com")
+#         self.assertEqual(account11.password, "secret")
+#         self.assertEqual(account11.waiting_password_reply, False)
+#         self.assertEqual(messages_sent[0].get_subject(), \
+#             "Password will be kept during your Jabber session")
+#         self.assertEqual(messages_sent[0].get_body(), \
+#             "Password will be kept during your Jabber session")
         
     def test_handle_tick(self):
         self.assertRaises(NotImplementedError, self.comp.handle_tick)

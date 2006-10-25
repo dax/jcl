@@ -32,8 +32,8 @@ from sqlobject.dbconnection import ConnectionHub
 
 from jcl.lang import Lang
 
-OFFLINE = 0
-ONLINE = 1
+OFFLINE = "offline"
+ONLINE = "online"
 
 # create a hub to attach a per thread connection
 hub = ConnectionHub()
@@ -45,14 +45,16 @@ class Account(SQLObject):
     user_jid = StringCol()
     name = StringCol()
     jid = StringCol()
-    login = StringCol(default = "")
-    password = StringCol(default = None)
-    store_password = BoolCol(default = True)
+## Not yet used    first_check = BoolCol(default = True)
+    __status = StringCol(default = OFFLINE, dbName = "status")
+
+## Use these attributs to support volatile password
+##    login = StringCol(default = "")
+##    password = StringCol(default = None)
+##    store_password = BoolCol(default = True)
+##    waiting_password_reply = BoolCol(default = False)
 
     default_lang_class = Lang.en
-    first_check = True
-    __status = OFFLINE
-    waiting_password_reply = False
     
     def get_long_name(self):
         """Return Human readable account name"""
@@ -73,10 +75,15 @@ class Account(SQLObject):
     def set_status(self, status):
         """Set current Jabber status"""
         if status == OFFLINE:
-            self.waiting_password_reply = False
-            if not self.store_password:
-                self.password = None
+            if hasattr(self.__class__, 'waiting_password_reply') \
+               and hasattr(self.__class__, 'store_password') \
+               and hasattr(self.__class__, 'password'):
+                self.waiting_password_reply = False
+                if not self.store_password:
+                    self.password = None
         else:
+            # TODO seems a bug : first_check = True only if previous status
+            # was OFFLINE
             self.first_check = True
         self.__status = status
         

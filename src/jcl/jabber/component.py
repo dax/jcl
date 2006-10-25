@@ -479,7 +479,9 @@ class JCLComponent(Component):
         accounts = self.account_class.select(\
             self.account_class.q.user_jid == base_from_jid \
             and self.account_class.q.name == name)
-        if re.compile("\[PASSWORD\]").search(message.get_subject()) \
+        if hasattr(self.account_class, 'password') \
+               and hasattr(self.account_class, 'waiting_password_reply') \
+               and re.compile("\[PASSWORD\]").search(message.get_subject()) \
                is not None \
                and accounts.count() == 1:
             account = list(accounts)[0]
@@ -512,7 +514,9 @@ class JCLComponent(Component):
                      show = show, \
                      stanza_type = "available")
         self.stream.send(p)
-        if _account.store_password == False \
+        if hasattr(self.account_class, 'store_password') \
+               and hasattr(self.account_class, 'password') \
+               and _account.store_password == False \
                and old_status == account.OFFLINE \
                and _account.password == None :
             self._ask_password(_account, lang_class)
@@ -520,7 +524,8 @@ class JCLComponent(Component):
     def _ask_password(self, _account, lang_class):
         """Send a Jabber message to ask for account password
         """
-        if not _account.waiting_password_reply \
+        if hasattr(self.account_class, 'waiting_password_reply') \
+               and not _account.waiting_password_reply \
                and _account.status != account.OFFLINE:
             _account.waiting_password_reply = True
             msg = Message(from_jid = _account.jid, \
