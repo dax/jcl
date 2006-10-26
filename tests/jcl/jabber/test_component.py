@@ -278,19 +278,6 @@ class JCLComponent_TestCase(unittest.TestCase):
         disco_items = self.comp.disco_get_items("account1", info_query)
         self.assertEquals(disco_items.get_items(), [])
 
-    def test_get_reg_form(self):
-##        self.comp.get_reg_form(Lang.en, Account)
-        # TODO
-        self.assertTrue(True)
-
-    def test_get_reg_form_init(self):
-        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
-        account1 = Account(user_jid = "", name = "", jid = "")
-        del account.hub.threadConnection
-##        self.comp.get_reg_form_init(Lang.en, account1)
-        # TODO
-        self.assertTrue(True)
-
     def test_handle_get_version(self):
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
@@ -344,7 +331,42 @@ class JCLComponent_TestCase(unittest.TestCase):
 
 
     def test_handle_get_register_exist(self):
-        pass
+        self.comp.stream = MockStream()
+        self.comp.stream_class = MockStream
+        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
+        account1 = Account(user_jid = "user1@test.com", \
+                           name = "account1", \
+                           jid = "account1@jcl.test.com")
+        del account.hub.threadConnection
+        self.comp.handle_get_register(Iq(stanza_type = "get", \
+                                         from_jid = "user1@test.com", \
+                                         to_jid = "account1@jcl.test.com"))
+        self.assertEquals(len(self.comp.stream.sent), 1)
+        iq_sent = self.comp.stream.sent[0]
+        self.assertEquals(iq_sent.get_to(), "user1@test.com")
+        titles = iq_sent.xpath_eval("jir:query/jxd:x/jxd:title", \
+                                    {"jir" : "jabber:iq:register", \
+                                     "jxd" : "jabber:x:data"})
+        self.assertEquals(len(titles), 1)
+        self.assertEquals(titles[0].content, \
+                          Lang.en.register_title)
+        instructions = iq_sent.xpath_eval("jir:query/jxd:x/jxd:instructions", \
+                                          {"jir" : "jabber:iq:register", \
+                                           "jxd" : "jabber:x:data"})
+        self.assertEquals(len(instructions), 1)
+        self.assertEquals(instructions[0].content, \
+                          Lang.en.register_instructions)
+        fields = iq_sent.xpath_eval("jir:query/jxd:x/jxd:field", \
+                                    {"jir" : "jabber:iq:register", \
+                                     "jxd" : "jabber:x:data"})
+        self.assertEquals(len(fields), 1)
+        self.assertEquals(len([field
+                               for field in fields \
+                               if field.prop("type") == "text-single" \
+                               and field.prop("var") == "name" \
+                               and field.prop("label") == \
+                               Lang.en.account_name]), \
+                          1)
 
     def test_handle_set_register(self):
         pass

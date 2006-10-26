@@ -302,17 +302,19 @@ class JCLComponent(Component):
         """Send back register form to user
         """
         self.__logger.debug("GET_REGISTER")
-## TODO Lang
         lang_class = self.__lang.get_lang_class_from_node(info_query.get_node())
         base_from_jid = unicode(info_query.get_from().bare())
         to_jid = info_query.get_to()
+        name = to_jid.node
         info_query = info_query.make_result_response()
         query = info_query.new_query("jabber:iq:register")
         if to_jid and to_jid != self.jid:
             self.db_connect()
-            self.get_reg_form_init(lang_class, \
-                                   self.account_class.select() # TODO
-                                   ).attach_xml(query)
+            for _account in self.account_class.select(\
+                self.account_class.q.user_jid == base_from_jid \
+                and self.account_class.q.name == name):
+                self.get_reg_form_init(lang_class, \
+                                       _account).attach_xml(query)
             self.db_disconnect()
         else:
             self.get_reg_form(lang_class).attach_xml(query)
@@ -569,8 +571,11 @@ class JCLComponent(Component):
     def get_reg_form_init(self, lang_class, account):
         """Return register form for an existing account (update)
         """
-        # TODO
-        return X()
+        reg_form = self.get_reg_form(lang_class)
+        for (field_name, field) in reg_form.fields.items():
+            if hasattr(self.account_class, field_name):
+                field.value = getattr(self.account_class, field_name)
+        return reg_form
     
     ###########################################################################
     # Virtual methods
