@@ -390,10 +390,8 @@ class JCLComponent_TestCase(unittest.TestCase):
                            name = "account2", \
                            jid = "account2@jcl.test.com")
         del account.hub.threadConnection
-## TODO: "online"  exist ?
         self.comp.handle_presence_available(Presence(\
             stanza_type = "available", \
-            show = "online", \
             from_jid = "user1@test.com",\
             to_jid = "jcl.test.com"))
         presence_sent = self.comp.stream.sent
@@ -406,19 +404,19 @@ class JCLComponent_TestCase(unittest.TestCase):
                               for presence in presence_sent \
                               if presence.get_from_jid() == \
                               "jcl.test.com" \
-                              and presence.get_show() == "online"]), \
+                              and isinstance(presence, Presence)]), \
                           1)
         self.assertEqual(len([presence \
                               for presence in presence_sent \
                               if presence.get_from_jid() == \
                               "account11@jcl.test.com" \
-                              and presence.get_show() == "online"]), \
+                              and isinstance(presence, Presence)]), \
                           1)
         self.assertEqual(len([presence \
                               for presence in presence_sent \
                               if presence.get_from_jid() == \
                               "account12@jcl.test.com" \
-                              and presence.get_show() == "online"]), \
+                              and isinstance(presence, Presence)]), \
                           1)
 
     def test_handle_presence_available_to_account(self):
@@ -435,17 +433,15 @@ class JCLComponent_TestCase(unittest.TestCase):
                            name = "account2", \
                            jid = "account2@jcl.test.com")
         del account.hub.threadConnection
-## TODO: "online"  exist ?
         self.comp.handle_presence_available(Presence(\
             stanza_type = "available", \
-            show = "online", \
             from_jid = "user1@test.com",\
             to_jid = "account11@jcl.test.com"))
         presence_sent = self.comp.stream.sent
         self.assertEqual(len(presence_sent), 1)
         self.assertEqual(presence_sent[0].get_to(), "user1@test.com")
         self.assertEqual(presence_sent[0].get_from(), "account11@jcl.test.com")
-        self.assertEqual(presence_sent[0].get_show(), "online")
+        self.assertTrue(isinstance(presence_sent[0], Presence))
 
     def test_handle_presence_available_to_account_live_password(self):
         self.comp.stream = MockStream()
@@ -462,17 +458,15 @@ class JCLComponent_TestCase(unittest.TestCase):
                            name = "account2", \
                            jid = "account2@jcl.test.com")
         del account.hub.threadConnection
-## TODO: "online"  exist ?
         self.comp.handle_presence_available(Presence(\
             stanza_type = "available", \
-            show = "online", \
             from_jid = "user1@test.com",\
             to_jid = "account11@jcl.test.com"))
         messages_sent = self.comp.stream.sent
         self.assertEqual(len(messages_sent), 1)
         presence = messages_sent[0]
         self.assertTrue(presence is not None)
-        self.assertEqual(presence.get_show(), "online")
+        self.assertTrue(isinstance(presence, Presence))
         self.assertEqual(presence.get_from_jid(), "account11@jcl.test.com")
         self.assertEqual(presence.get_to_jid(), "user1@test.com")
         
@@ -492,10 +486,8 @@ class JCLComponent_TestCase(unittest.TestCase):
 #                            name = "account2", \
 #                            jid = "account2@jcl.test.com")
 #         del account.hub.threadConnection
-# ## TODO: "online"  exist ?
 #         self.comp.handle_presence_available(Presence(\
 #             stanza_type = "available", \
-#             show = "online", \
 #             from_jid = "user1@test.com",\
 #             to_jid = "account11@jcl.test.com"))
 #         messages_sent = self.comp.stream.sent
@@ -509,7 +501,7 @@ class JCLComponent_TestCase(unittest.TestCase):
 #                 presence = message
 #         self.assertTrue(password_message is not None)
 #         self.assertTrue(presence is not None)
-#         self.assertEqual(presence.get_show(), "online")
+#         self.assertTrue(isinstance(presence, Presence))
 #         self.assertEqual(presence.get_from_jid(), "account11@jcl.test.com")
 #         self.assertEqual(presence.get_to_jid(), "user1@test.com")
         
