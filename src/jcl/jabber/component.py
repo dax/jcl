@@ -272,8 +272,6 @@ class JCLComponent(Component):
         """Discovery get nested nodes handler
         """
         self.__logger.debug("DISCO_GET_ITEMS")
-## TODO Lang
-##  lang_class = self.__lang.get_lang_class_from_node(info_query.get_node())
         base_from_jid = unicode(info_query.get_from().bare())
         disco_items = DiscoItems()
         if not node:
@@ -574,7 +572,7 @@ class JCLComponent(Component):
         reg_form = self.get_reg_form(lang_class)
         for (field_name, field) in reg_form.fields.items():
             if hasattr(self.account_class, field_name):
-                field.value = getattr(self.account_class, field_name)
+                field.value = getattr(account, field_name)
         return reg_form
     
     ###########################################################################

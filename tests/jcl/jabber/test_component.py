@@ -367,6 +367,11 @@ class JCLComponent_TestCase(unittest.TestCase):
                                and field.prop("label") == \
                                Lang.en.account_name]), \
                           1)
+        value = iq_sent.xpath_eval("jir:query/jxd:x/jxd:field/jxd:value", \
+                                   {"jir" : "jabber:iq:register", \
+                                    "jxd" : "jabber:x:data"})
+        self.assertEquals(len(value), 1)
+        self.assertEquals(value[0].content, "account1")
 
     def test_handle_set_register(self):
         pass
