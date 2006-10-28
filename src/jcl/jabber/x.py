@@ -113,7 +113,7 @@ class X(object):
         or return default func processing if field does not exist"""
         if self.fields.has_key(field_name):
             return post_func(self.fields[field_name].value)
-        return default_func()
+        return default_func(field_name)
         
     def attach_xml(self, info_query):
         """Attach this Xdata form to iq node

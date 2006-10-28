@@ -48,6 +48,7 @@ class FeederComponent_TestCase(JCLComponent_TestCase):
                                     "localhost",
                                     "5347",
                                     'sqlite://' + DB_URL)
+        self.comp.account_class = Account
         
     def tearDown(self):
         account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)

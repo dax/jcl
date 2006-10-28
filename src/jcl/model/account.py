@@ -31,12 +31,15 @@ from sqlobject.col import StringCol, BoolCol
 from sqlobject.dbconnection import ConnectionHub
 
 from jcl.lang import Lang
+from jcl.jabber.error import FieldError
 
 OFFLINE = "offline"
 ONLINE = "online"
 
 # create a hub to attach a per thread connection
 hub = ConnectionHub()
+class Account2(SQLObject):
+    pass
 
 class Account(SQLObject):
     """Base Account class"""
@@ -90,7 +93,7 @@ class Account(SQLObject):
     status = property(get_status, set_status)
 
 
-    def get_register_fields(cls):
+    def _get_register_fields(cls):
         """Return a list of tuples for X Data Form composition
         A tuple is composed of:
         - field_name: might be the name of one of the class attribut
@@ -102,7 +105,7 @@ class Account(SQLObject):
         """
         return [] # "name" field is mandatory
     
-    get_register_fields = classmethod(get_register_fields)
+    get_register_fields = classmethod(_get_register_fields)
 
     def get_new_message_subject(self, lang_class):
         """Get localized message subject for new account"""
@@ -119,4 +122,26 @@ class Account(SQLObject):
     def get_update_message_body(self, lang_class):
         """Return localized message body for existing account"""
         return lang_class.new_account_message_body
+
+    def default_post_func(self, field_value):
+        """Default post process function: do nothing"""
+        return field_value
+
+    def boolean_post_func(self, field_value):
+        """Return a boolean from boolean field value"""
+        return (field_value == "1" or field_value.lower() == "true")
     
+    def int_post_func(self, field_value):
+        """Return an integer from integer field value"""
+        return int(field_value)
+
+    def string_not_null_post_func(self, field_value):
+        """Post process function for not null/empty string"""
+        if field_value is None or field_value == "":
+            raise FieldError # TODO : add translated message
+        return field_value
+
+    def mandatory_field(self, field_name):
+        """Used as default function for field that must be specified
+        and cannot have default value"""
+        raise FieldError # TODO : add translated message

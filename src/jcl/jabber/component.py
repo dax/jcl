@@ -56,7 +56,7 @@ VERSION = "0.1"
 ###############################################################################
 # JCL implementation
 ###############################################################################
-class JCLComponent(Component):
+class JCLComponent(Component, object):
     """Implement default JCL component behavior:
     - regular interval behavior
     - Jabber register process (add, delete, update accounts)
@@ -65,21 +65,6 @@ class JCLComponent(Component):
     """
 
     timeout = 1
-
-    def set_account_class(self, account_class):
-        """account_class attribut setter
-        create associated table via SQLObject"""
-        self.__account_class = account_class
-        self.db_connect()
-        self.__account_class.createTable() # TODO: ifNotExists = True)
-        self.db_disconnect()
-
-    def get_account_class(self):
-        """account_class attribut getter"""
-        return self.__account_class
-
-    account_class = property(get_account_class, set_account_class)
-
 
     def __init__(self,
                  jid,
@@ -101,7 +86,6 @@ class JCLComponent(Component):
         self.spool_dir = "."
         self.db_connection_str = db_connection_str
         self.__account_class = None
-        self.set_account_class(Account)
         self.version = VERSION
         self.accounts = []
         self.time_unit = 60
@@ -115,6 +99,22 @@ class JCLComponent(Component):
 
         signal.signal(signal.SIGINT, self.signal_handler)
         signal.signal(signal.SIGTERM, self.signal_handler)
+
+    def set_account_class(self, account_class):
+        """account_class attribut setter
+        create associated table via SQLObject"""
+        self.__account_class = account_class
+        self.db_connect()
+        self.__account_class.createTable(ifNotExists = True)
+        self.db_disconnect()
+
+    def get_account_class(self):
+        """account_class attribut getter"""
+        if self.__account_class is None:
+            self.set_account_class(Account)
+        return self.__account_class
+
+    account_class = property(get_account_class, set_account_class)
 
     def run(self):
         """Main loop
@@ -591,8 +591,6 @@ class JCLComponent(Component):
     def get_reg_form(self, lang_class):
         """Return register form based on language and account class
         """
-        # TODO : handle text-private for password
-        # TODO : handle list-single
         reg_form = X()
         reg_form.xmlns = "jabber:x:data"
         reg_form.title = lang_class.register_title
@@ -604,7 +602,7 @@ class JCLComponent(Component):
                            label = lang_class.account_name, \
                            var = "name")
 
-        for (field, field_type) in \
+        for (field, field_type, post_func, default_func) in \
                 self.account_class.get_register_fields():
             lang_label_attr = self.account_class.__name__.lower() \
                               + "_" + field
