@@ -41,6 +41,7 @@ from jcl.jabber.component import JCLComponent
 from jcl.model import account
 from jcl.model.account import Account
 from jcl.lang import Lang
+from jcl.jabber.x import X
 
 DB_PATH = "/tmp/test.db"
 DB_URL = DB_PATH# + "?debug=1&debugThreading=1"
@@ -362,7 +363,7 @@ class JCLComponent_TestCase(unittest.TestCase):
         self.assertEquals(len(fields), 1)
         self.assertEquals(len([field
                                for field in fields \
-                               if field.prop("type") == "text-single" \
+                               if field.prop("type") == "hidden" \
                                and field.prop("var") == "name" \
                                and field.prop("label") == \
                                Lang.en.account_name]), \
@@ -373,9 +374,72 @@ class JCLComponent_TestCase(unittest.TestCase):
         self.assertEquals(len(value), 1)
         self.assertEquals(value[0].content, "account1")
 
-    def test_handle_set_register(self):
+    def test_handle_set_register_new(self):
+        self.comp.stream = MockStream()
+        self.comp.stream_class = MockStream
+        x_data = X()
+        x_data.xmlns = "jabber:x:data"
+        x_data.type = "submit"
+        x_data.add_field(field_type = "text-single", \
+                         var = "name", \
+                         value = "account1")
+        iq_set = Iq(stanza_type = "set", \
+                    from_jid = "user1@test.com", \
+                    to_jid = "jcl.test.com")
+        query = iq_set.new_query("jabber:iq:register")
+        x_data.attach_xml(query)
+        self.comp.handle_set_register(iq_set)
+
+        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
+        accounts = self.comp.account_class.select(\
+            self.comp.account_class.q.user_jid == "user1@test.com" \
+            and self.comp.account_class.q.name == "account1")
+        self.assertEquals(accounts.count(), 1)
+        _account = accounts[0]
+        self.assertEquals(_account.user_jid, "user1@test.com")
+        self.assertEquals(_account.name, "account1")
+        self.assertEquals(_account.jid, "account1@jcl.test.com")
+        del account.hub.threadConnection
+        
+        stanza_sent = self.comp.stream.sent
+        print str([str(stanza.get_node()) for stanza in stanza_sent])
+        self.assertEquals(len(stanza_sent), 4)
+        iq_result = stanza_sent[0]
+        self.assertTrue(isinstance(iq_result, Iq))
+        self.assertEquals(iq_result.get_node().prop("type"), "result")
+        self.assertEquals(iq_result.get_from(), "jcl.test.com")
+        self.assertEquals(iq_result.get_to(), "user1@test.com")
+
+        presence_component = stanza_sent[1]
+        self.assertTrue(isinstance(presence_component, Presence))
+        self.assertEquals(presence_component.get_from(), "jcl.test.com")
+        self.assertEquals(presence_component.get_to(), "user1@test.com")
+        self.assertEquals(presence_component.get_node().prop("type"), \
+                          "subscribe")
+        
+        message = stanza_sent[2]
+        self.assertTrue(isinstance(message, Message))
+        self.assertEquals(message.get_from(), "jcl.test.com")
+        self.assertEquals(message.get_to(), "user1@test.com")
+        self.assertEquals(message.get_subject(), \
+                          _account.get_new_message_subject(Lang.en))
+        self.assertEquals(message.get_body(), \
+                          _account.get_new_message_body(Lang.en))
+
+        presence_account = stanza_sent[3]
+        self.assertTrue(isinstance(presence_account, Presence))
+        self.assertEquals(presence_account.get_from(), "account1@jcl.test.com")
+        self.assertEquals(presence_account.get_to(), "user1@test.com")
+        self.assertEquals(presence_account.get_node().prop("type"), \
+                          "subscribe")
+        
+
+    def test_handle_set_register_update(self):
         pass
 
+    def test_handle_set_register_remove(self):
+        pass
+    
     def test_handle_presence_available_to_component(self):
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream

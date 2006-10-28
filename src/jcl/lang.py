@@ -88,12 +88,10 @@ class Lang:
         update_title = u"Jabber mail connection update"
         update_instructions = u"Modifying connection '%s'"
         connection_label = u"%s connection '%s'"
-        update_account_message_subject = u"Updated %s connection '%s'"
-        update_account_message_body = u"Registered with username '%s' and " \
-                                      u"password '%s' on '%s'"
-        new_account_message_subject = u"New %s connection '%s' created"
-        new_account_message_body = u"Registered with " \
-                                   "username '%s' and password '%s' on '%s'"
+        update_account_message_subject = u"Updated account '%s'"
+        update_account_message_body = u"Updated account"
+        new_account_message_subject = u"New account '%s' created"
+        new_account_message_body = u"New account created"
         ask_password_subject = u"Password request"
         ask_password_body = u"Reply to this message with the password " \
                             "for the following account: \n" \
@@ -135,13 +133,11 @@ class Lang:
         update_title = u"Mise à jour du compte JMC"
         update_instructions = u"Modification de la connexion '%s'"
         connection_label = u"Connexion %s '%s'"
-        update_account_message_subject = u"La connexion %s '%s' a été mise " \
+        update_account_message_subject = u"Le compte '%s' a été mis " \
                                          u"à jour"
-        update_account_message_body = u"Nom d'utilisateur : '%s'\nMot de " \
-                                      u"passe : '%s'\nsur : '%s'"
-        new_account_message_subject = u"La connexion %s '%s' a été créée"
-        new_account_message_body = u"Nom d'utilisateur : '%s'\nMot de passe " \
-                                   u": '%s'\nsur : '%s'"
+        update_account_message_body = u"Compte mis à jour"
+        new_account_message_subject = u"Le compte '%s' a été créé"
+        new_account_message_body = u"Compte créé"
         ask_password_subject = u"Demande de mot de passe"
         ask_password_body = u"Répondre à ce message avec le mot de passe " \
                             u"du compte suivant : \n" \

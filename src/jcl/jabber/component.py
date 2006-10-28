@@ -4,18 +4,18 @@
 ## Login : David Rousselie <dax@happycoders.org>
 ## Started on  Wed Aug  9 21:04:42 2006 David Rousselie
 ## $Id$
-## 
+##
 ## Copyright (C) 2006 David Rousselie
 ## This program is free software; you can redistribute it and/or modify
 ## it under the terms of the GNU General Public License as published by
 ## the Free Software Foundation; either version 2 of the License, or
 ## (at your option) any later version.
-## 
+##
 ## This program is distributed in the hope that it will be useful,
 ## but WITHOUT ANY WARRANTY; without even the implied warranty of
 ## MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ## GNU General Public License for more details.
-## 
+##
 ## You should have received a copy of the GNU General Public License
 ## along with this program; if not, write to the Free Software
 ## Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
@@ -56,7 +56,7 @@ VERSION = "0.1"
 ###############################################################################
 # JCL implementation
 ###############################################################################
-class JCLComponent(Component):    
+class JCLComponent(Component):
     """Implement default JCL component behavior:
     - regular interval behavior
     - Jabber register process (add, delete, update accounts)
@@ -80,7 +80,7 @@ class JCLComponent(Component):
 
     account_class = property(get_account_class, set_account_class)
 
-    
+
     def __init__(self,
                  jid,
                  secret,
@@ -106,7 +106,7 @@ class JCLComponent(Component):
         self.accounts = []
         self.time_unit = 60
         self.queue = Queue(100)
-        
+
         self.disco_info.add_feature("jabber:iq:version")
         self.disco_info.add_feature("jabber:iq:register")
         self.__logger = logging.getLogger("jcl.jabber.JCLComponent")
@@ -115,7 +115,7 @@ class JCLComponent(Component):
 
         signal.signal(signal.SIGINT, self.signal_handler)
         signal.signal(signal.SIGTERM, self.signal_handler)
-    
+
     def run(self):
         """Main loop
         Connect to Jabber server
@@ -323,10 +323,10 @@ class JCLComponent(Component):
         """Handle user registration response
         """
         self.__logger.debug("SET_REGISTER")
-##        lang_class = \
-##                 self.__lang.get_lang_class_from_node(info_query.get_node())
+        lang_class = \
+                   self.__lang.get_lang_class_from_node(info_query.get_node())
         from_jid = info_query.get_from()
-##        base_from_jid = unicode(from_jid.bare())
+        base_from_jid = unicode(from_jid.bare())
         remove = info_query.xpath_eval("r:query/r:remove", \
                                         {"r" : "jabber:iq:register"})
         if remove:
@@ -354,7 +354,55 @@ class JCLComponent(Component):
         x_data = X()
         x_data.from_xml(query.children)
         # TODO : get info from Xdata
-  
+        # "name" must not be null
+        name = x_data.get_field_value("name")
+        if name is None:
+            # TODO make error
+            print "ERROR"
+        self.db_connect()
+        accounts = self.account_class.select(\
+            self.account_class.q.user_jid == base_from_jid \
+            and self.account_class.q.name == name)
+        accounts_count = accounts.count()
+        all_accounts = self.account_class.select(\
+            self.account_class.q.user_jid == base_from_jid)
+        all_accounts_count = all_accounts.count()
+        if accounts_count > 1:
+            # TODO make error
+            print "ERROR"
+        if accounts_count == 1:
+            account = list(accounts)[0]
+        else:
+            account = self.account_class(user_jid = base_from_jid, \
+                                         name = name, \
+                                         jid = name + u"@" + unicode(self.jid))
+        for (field, field_type, field_post_func, field_default_func) in \
+                self.account_class.get_register_fields():
+            setattr(account, x_data.get_field_value(field, \
+                                                    field_post_func, \
+                                                    field_default_func))
+        info_query = info_query.make_result_response()
+        self.stream.send(info_query)
+
+        if all_accounts_count == 0:
+            self.stream.send(Presence(from_jid = self.jid, to_jid = base_from_jid, \
+                                      stanza_type = "subscribe"))
+        if accounts_count == 0:
+            self.stream.send(Message(\
+                from_jid = self.jid, to_jid = from_jid, \
+                stanza_type = "normal", \
+                subject = account.get_new_message_subject(lang_class), \
+                body = account.get_new_message_body(lang_class)))
+            self.stream.send(Presence(from_jid = self.get_jid(account), \
+                                      to_jid = base_from_jid, \
+                                      stanza_type = "subscribe"))
+        else:
+            self.stream.send(Message(\
+                from_jid = self.jid, to_jid = from_jid, \
+                stanza_type = "normal", \
+                subject = account.get_update_message_subject(lang_class), \
+                body = account.get_update_message_body(lang_class)))
+        self.db_disconnect()
 
     def handle_presence_available(self, stanza):
         """Handle presence availability
@@ -518,7 +566,7 @@ class JCLComponent(Component):
                and old_status == account.OFFLINE \
                and _account.password == None :
             self._ask_password(_account, lang_class)
-    
+
     def _ask_password(self, _account, lang_class):
         """Send a Jabber message to ask for account password
         """
@@ -551,6 +599,11 @@ class JCLComponent(Component):
         reg_form.instructions = lang_class.register_instructions
         reg_form.type = "form"
 
+        # "name" field is mandatory
+        reg_form.add_field(field_type = "text-single", \
+                           label = lang_class.account_name, \
+                           var = "name")
+
         for (field, field_type) in \
                 self.account_class.get_register_fields():
             lang_label_attr = self.account_class.__name__.lower() \
@@ -570,11 +623,13 @@ class JCLComponent(Component):
         """Return register form for an existing account (update)
         """
         reg_form = self.get_reg_form(lang_class)
+        reg_form.fields["name"].value = account.name
+        reg_form.fields["name"].type = "hidden"
         for (field_name, field) in reg_form.fields.items():
             if hasattr(self.account_class, field_name):
                 field.value = getattr(account, field_name)
         return reg_form
-    
+
     ###########################################################################
     # Virtual methods
     ###########################################################################

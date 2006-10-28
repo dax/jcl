@@ -50,7 +50,7 @@ class Field(object):
     """Jabber Xdata form Field
     """
     def __init__(self, field_type, label, var, value):
-        self.__type = field_type
+        self.type = field_type
         self.__label = label
         self.__var = var
         self.value = value
@@ -71,7 +71,7 @@ class Field(object):
             raise Exception, "parent field should not be None"
         else:
             field = parent.newChild(None, "field", None)
-        field.setProp("type", self.__type)
+        field.setProp("type", self.type)
         if not self.__label is None:
             field.setProp("label", self.__label)
         if not self.__var is None:
@@ -106,6 +106,15 @@ class X(object):
         self.fields_tab.append(field)
         return field
 
+    def get_field_value(self, field_name, \
+                        post_func = (lambda value: value), \
+                        defaut_func = (lambda: None)):
+        """Return field value processed by post_func
+        or return default func processing if field does not exist"""
+        if self.fields.has_key(field_name):
+            return post_func(self.fields[field_name].value)
+        return default_func()
+        
     def attach_xml(self, info_query):
         """Attach this Xdata form to iq node
         """

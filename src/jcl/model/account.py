@@ -91,6 +91,32 @@ class Account(SQLObject):
 
 
     def get_register_fields(cls):
-        return [('name', "text-single")]
+        """Return a list of tuples for X Data Form composition
+        A tuple is composed of:
+        - field_name: might be the name of one of the class attribut
+        - field_type: 'text-single', 'hidden', 'text-private', 'boolean',
+        'list-single', ...
+        - field_post_func: function called to process received field
+        - field_default_func: function to return default value (or error if
+        field is mandatory)
+        """
+        return [] # "name" field is mandatory
     
     get_register_fields = classmethod(get_register_fields)
+
+    def get_new_message_subject(self, lang_class):
+        """Get localized message subject for new account"""
+        return lang_class.new_account_message_subject % (self.name)
+
+    def get_new_message_body(self, lang_class):
+        """Return localized message body for new account"""
+        return lang_class.new_account_message_body
+
+    def get_update_message_subject(self, lang_class):
+        """Return localized message subject for existing account"""
+        return lang_class.new_account_message_subject % (self.name)
+
+    def get_update_message_body(self, lang_class):
+        """Return localized message body for existing account"""
+        return lang_class.new_account_message_body
+    
