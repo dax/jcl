@@ -49,12 +49,13 @@ class Option(object):
 class Field(object):
     """Jabber Xdata form Field
     """
-    def __init__(self, field_type, label, var, value):
+    def __init__(self, field_type, label, var, value, required = False):
         self.type = field_type
         self.__label = label
         self.__var = var
         self.value = value
         self.__options = []
+        self.required = required
 
     def add_option(self, label, value):
         """Add an Option to this field
@@ -78,6 +79,8 @@ class Field(object):
             field.setProp("var", self.__var)
         if self.value:
             field.newChild(None, "value", self.value)
+        if self.required:
+            field.newChild(None, "required", None)
         for option in self.__options:
             option.get_xml(field)
         return field
@@ -108,7 +111,7 @@ class X(object):
 
     def get_field_value(self, field_name, \
                         post_func = (lambda value: value), \
-                        defaut_func = (lambda: None)):
+                        default_func = (lambda field_name: None)):
         """Return field value processed by post_func
         or return default func processing if field does not exist"""
         if self.fields.has_key(field_name):

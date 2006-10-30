@@ -36,10 +36,32 @@ from jcl.jabber.error import FieldError
 OFFLINE = "offline"
 ONLINE = "online"
 
+
+def default_post_func(field_value):
+    """Default post process function: do nothing"""
+    return field_value
+
+def boolean_post_func(field_value):
+    """Return a boolean from boolean field value"""
+    return (field_value == "1" or field_value.lower() == "true")
+
+def int_post_func(field_value):
+    """Return an integer from integer field value"""
+    return int(field_value)
+
+def string_not_null_post_func(field_value):
+    """Post process function for not null/empty string"""
+    if field_value is None or field_value == "":
+        raise FieldError # TODO : add translated message
+    return field_value
+
+def mandatory_field(field_name):
+    """Used as default function for field that must be specified
+    and cannot have default value"""
+    raise FieldError # TODO : add translated message
+
 # create a hub to attach a per thread connection
 hub = ConnectionHub()
-class Account2(SQLObject):
-    pass
 
 class Account(SQLObject):
     """Base Account class"""
@@ -122,26 +144,3 @@ class Account(SQLObject):
     def get_update_message_body(self, lang_class):
         """Return localized message body for existing account"""
         return lang_class.new_account_message_body
-
-    def default_post_func(self, field_value):
-        """Default post process function: do nothing"""
-        return field_value
-
-    def boolean_post_func(self, field_value):
-        """Return a boolean from boolean field value"""
-        return (field_value == "1" or field_value.lower() == "true")
-    
-    def int_post_func(self, field_value):
-        """Return an integer from integer field value"""
-        return int(field_value)
-
-    def string_not_null_post_func(self, field_value):
-        """Post process function for not null/empty string"""
-        if field_value is None or field_value == "":
-            raise FieldError # TODO : add translated message
-        return field_value
-
-    def mandatory_field(self, field_name):
-        """Used as default function for field that must be specified
-        and cannot have default value"""
-        raise FieldError # TODO : add translated message

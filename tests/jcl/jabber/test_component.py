@@ -256,7 +256,7 @@ class JCLComponent_TestCase(unittest.TestCase):
         disco_info = self.comp.disco_get_info("node_test", None)
         self.assertFalse(disco_info.has_feature("jabber:iq:version"))
         self.assertTrue(disco_info.has_feature("jabber:iq:register"))
-
+        
     def test_disco_get_items_no_node(self):
         account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
         account1 = Account(user_jid = "user1@test.com", \
@@ -325,13 +325,12 @@ class JCLComponent_TestCase(unittest.TestCase):
         fields = iq_sent.xpath_eval("jir:query/jxd:x/jxd:field", \
                                     {"jir" : "jabber:iq:register", \
                                      "jxd" : "jabber:x:data"})
-        print str([str(field) for field in fields])
         self.assertEquals(len(fields), 1)
         self.assertEquals(fields[0].prop("type"), "text-single")
         self.assertEquals(fields[0].prop("var"), "name")
         self.assertEquals(fields[0].prop("label"), Lang.en.account_name)
 
-    def test_handle_get_register_new2(self):
+    def test_handle_get_register_new_complex(self):
         self.comp.account_class = AccountExample
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
@@ -387,7 +386,7 @@ class JCLComponent_TestCase(unittest.TestCase):
         account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
         account1 = Account(user_jid = "user1@test.com", \
                            name = "account1", \
-                        jid = "account1@jcl.test.com")
+                           jid = "account1@jcl.test.com")
         del account.hub.threadConnection
         self.comp.handle_get_register(Iq(stanza_type = "get", \
                                          from_jid = "user1@test.com", \
@@ -424,49 +423,78 @@ class JCLComponent_TestCase(unittest.TestCase):
         self.assertEquals(len(value), 1)
         self.assertEquals(value[0].content, "account1")
 
-#     def test_handle_get_register_exist2(self):
-#         self.comp.account_class = AccountExample
-#         self.comp.stream = MockStream()
-#         self.comp.stream_class = MockStream
-#         account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
-#         account1 = AccountExample(user_jid = "user1@test.com", \
-#                                   name = "account1", \
-#                                   jid = "account1@jcl.test.com")
-#         del account.hub.threadConnection
-#         self.comp.handle_get_register(Iq(stanza_type = "get", \
-#                                          from_jid = "user1@test.com", \
-#                                          to_jid = "account1@jcl.test.com"))
-#         self.assertEquals(len(self.comp.stream.sent), 1)
-#         iq_sent = self.comp.stream.sent[0]
-#         self.assertEquals(iq_sent.get_to(), "user1@test.com")
-#         titles = iq_sent.xpath_eval("jir:query/jxd:x/jxd:title", \
-#                                     {"jir" : "jabber:iq:register", \
-#                                      "jxd" : "jabber:x:data"})
-#         self.assertEquals(len(titles), 1)
-#         self.assertEquals(titles[0].content, \
-#                           Lang.en.register_title)
-#         instructions = iq_sent.xpath_eval("jir:query/jxd:x/jxd:instructions", \
-#                                           {"jir" : "jabber:iq:register", \
-#                                            "jxd" : "jabber:x:data"})
-#         self.assertEquals(len(instructions), 1)
-#         self.assertEquals(instructions[0].content, \
-#                           Lang.en.register_instructions)
-#         fields = iq_sent.xpath_eval("jir:query/jxd:x/jxd:field", \
-#                                     {"jir" : "jabber:iq:register", \
-#                                      "jxd" : "jabber:x:data"})
-#         self.assertEquals(len(fields), 1)
-#         self.assertEquals(len([field
-#                                for field in fields \
-#                                if field.prop("type") == "hidden" \
-#                                and field.prop("var") == "name" \
-#                                and field.prop("label") == \
-#                                Lang.en.account_name]), \
-#                           1)
-#         value = iq_sent.xpath_eval("jir:query/jxd:x/jxd:field/jxd:value", \
-#                                    {"jir" : "jabber:iq:register", \
-#                                     "jxd" : "jabber:x:data"})
-#         self.assertEquals(len(value), 1)
-#         self.assertEquals(value[0].content, "account1")
+    def test_handle_get_register_exist_complex(self):
+        self.comp.account_class = AccountExample
+        self.comp.stream = MockStream()
+        self.comp.stream_class = MockStream
+        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
+        account1 = AccountExample(user_jid = "user1@test.com", \
+                                  name = "account1", \
+                                  jid = "account1@jcl.test.com", \
+                                  login = "mylogin", \
+                                  password = "mypassword", \
+                                  store_password = False, \
+                                  test_enum = "choice3", \
+                                  test_int = 21)
+        del account.hub.threadConnection
+        self.comp.handle_get_register(Iq(stanza_type = "get", \
+                                         from_jid = "user1@test.com", \
+                                         to_jid = "account1@jcl.test.com"))
+        self.assertEquals(len(self.comp.stream.sent), 1)
+        iq_sent = self.comp.stream.sent[0]
+        self.assertEquals(iq_sent.get_to(), "user1@test.com")
+        titles = iq_sent.xpath_eval("jir:query/jxd:x/jxd:title", \
+                                    {"jir" : "jabber:iq:register", \
+                                     "jxd" : "jabber:x:data"})
+        self.assertEquals(len(titles), 1)
+        self.assertEquals(titles[0].content, \
+                          Lang.en.register_title)
+        instructions = iq_sent.xpath_eval("jir:query/jxd:x/jxd:instructions", \
+                                          {"jir" : "jabber:iq:register", \
+                                           "jxd" : "jabber:x:data"})
+        self.assertEquals(len(instructions), 1)
+        self.assertEquals(instructions[0].content, \
+                          Lang.en.register_instructions)
+        fields = iq_sent.xpath_eval("jir:query/jxd:x/jxd:field", \
+                                    {"jir" : "jabber:iq:register", \
+                                     "jxd" : "jabber:x:data"})
+        self.assertEquals(len(fields), 6)
+        field = fields[0]
+        self.assertEquals(field.prop("type"), "hidden")
+        self.assertEquals(field.prop("var"), "name")
+        self.assertEquals(field.prop("label"), Lang.en.account_name)
+        self.assertEquals(field.children.name, "value")
+        self.assertEquals(field.children.content, "account1")
+        field = fields[1]
+        self.assertEquals(field.prop("type"), "text-single")
+        self.assertEquals(field.prop("var"), "login")
+        self.assertEquals(field.prop("label"), "login")
+        self.assertEquals(field.children.name, "value")
+        self.assertEquals(field.children.content, "mylogin")
+        field = fields[2]
+        self.assertEquals(field.prop("type"), "text-private")
+        self.assertEquals(field.prop("var"), "password")
+        self.assertEquals(field.prop("label"), "password")
+        self.assertEquals(field.children.name, "value")
+        self.assertEquals(field.children.content, "mypassword")
+        field = fields[3]
+        self.assertEquals(field.prop("type"), "boolean")
+        self.assertEquals(field.prop("var"), "store_password")
+        self.assertEquals(field.prop("label"), "store_password")
+        self.assertEquals(field.children.name, "value")
+        self.assertEquals(field.children.content, "False")
+        field = fields[4]
+        self.assertEquals(field.prop("type"), "list-single")
+        self.assertEquals(field.prop("var"), "test_enum")
+        self.assertEquals(field.prop("label"), "test_enum")
+        self.assertEquals(field.children.name, "value")
+        self.assertEquals(field.children.content, "choice3")
+        field = fields[5]
+        self.assertEquals(field.prop("type"), "text-single")
+        self.assertEquals(field.prop("var"), "test_int")
+        self.assertEquals(field.prop("label"), "test_int")
+        self.assertEquals(field.children.name, "value")
+        self.assertEquals(field.children.content, "21")
 
     def test_handle_set_register_new(self):
         self.comp.stream = MockStream()
@@ -526,9 +554,8 @@ class JCLComponent_TestCase(unittest.TestCase):
         self.assertEquals(presence_account.get_node().prop("type"), \
                           "subscribe")
 
-    def test_handle_set_register_new2(self):
-        # TODO : Add AccountExample fields
-#        self.comp.account_class = AccountExample
+    def test_handle_set_register_new_complex(self):
+        self.comp.account_class = AccountExample
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
         x_data = X()
@@ -537,6 +564,21 @@ class JCLComponent_TestCase(unittest.TestCase):
         x_data.add_field(field_type = "text-single", \
                          var = "name", \
                          value = "account1")
+        x_data.add_field(field_type = "text-single", \
+                         var = "login", \
+                         value = "mylogin")
+        x_data.add_field(field_type = "text-private", \
+                         var = "password", \
+                         value = "mypassword")
+        x_data.add_field(field_type = "boolean", \
+                         var = "store_password", \
+                         value = "false")
+        x_data.add_field(field_type = "list-single", \
+                         var = "test_enum", \
+                         value = "choice3")
+        x_data.add_field(field_type = "text-single", \
+                         var = "test_int", \
+                         value = "43")
         iq_set = Iq(stanza_type = "set", \
                     from_jid = "user1@test.com", \
                     to_jid = "jcl.test.com")
@@ -553,6 +595,11 @@ class JCLComponent_TestCase(unittest.TestCase):
         self.assertEquals(_account.user_jid, "user1@test.com")
         self.assertEquals(_account.name, "account1")
         self.assertEquals(_account.jid, "account1@jcl.test.com")
+        self.assertEquals(_account.login, "mylogin")
+        self.assertEquals(_account.password, "mypassword")
+        self.assertFalse(_account.store_password)
+        self.assertEquals(_account.test_enum, "choice3")
+        self.assertEquals(_account.test_int, 43)
         del account.hub.threadConnection
         
         stanza_sent = self.comp.stream.sent
@@ -586,11 +633,246 @@ class JCLComponent_TestCase(unittest.TestCase):
         self.assertEquals(presence_account.get_node().prop("type"), \
                           "subscribe")        
 
-    def test_handle_set_register_update(self):
-        pass
+    def test_handle_set_register_new_default_values(self):
+        self.comp.account_class = AccountExample
+        self.comp.stream = MockStream()
+        self.comp.stream_class = MockStream
+        x_data = X()
+        x_data.xmlns = "jabber:x:data"
+        x_data.type = "submit"
+        x_data.add_field(field_type = "text-single", \
+                         var = "name", \
+                         value = "account1")
+        x_data.add_field(field_type = "text-single", \
+                         var = "login", \
+                         value = "mylogin")
+        iq_set = Iq(stanza_type = "set", \
+                    from_jid = "user1@test.com", \
+                    to_jid = "jcl.test.com")
+        query = iq_set.new_query("jabber:iq:register")
+        x_data.attach_xml(query)
+        self.comp.handle_set_register(iq_set)
+
+        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
+        accounts = self.comp.account_class.select(\
+            self.comp.account_class.q.user_jid == "user1@test.com" \
+            and self.comp.account_class.q.name == "account1")
+        self.assertEquals(accounts.count(), 1)
+        _account = accounts[0]
+        self.assertEquals(_account.user_jid, "user1@test.com")
+        self.assertEquals(_account.name, "account1")
+        self.assertEquals(_account.jid, "account1@jcl.test.com")
+        self.assertEquals(_account.login, "mylogin")
+        self.assertEquals(_account.password, None)
+        self.assertTrue(_account.store_password)
+        self.assertEquals(_account.test_enum, "choice2")
+        self.assertEquals(_account.test_int, 44)
+        del account.hub.threadConnection
+
+    def test_handle_set_register_new_name_mandatory(self):
+        self.comp.account_class = AccountExample
+        self.comp.stream = MockStream()
+        self.comp.stream_class = MockStream
+        x_data = X()
+        x_data.xmlns = "jabber:x:data"
+        x_data.type = "submit"
+        iq_set = Iq(stanza_type = "set", \
+                    from_jid = "user1@test.com", \
+                    to_jid = "jcl.test.com")
+        query = iq_set.new_query("jabber:iq:register")
+        x_data.attach_xml(query)
+        self.comp.handle_set_register(iq_set)
+
+        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
+        accounts = self.comp.account_class.select(\
+            self.comp.account_class.q.user_jid == "user1@test.com" \
+            and self.comp.account_class.q.name == "account1")
+        self.assertEquals(accounts.count(), 0)
+        del account.hub.threadConnection
+
+        stanza_sent = self.comp.stream.sent
+        self.assertEquals(len(stanza_sent), 1)
+        self.assertTrue(isinstance(stanza_sent[0], Iq))
+        # TODO : add more assertions
+
+    def test_handle_set_register_new_field_mandatory(self):
+        self.comp.account_class = AccountExample
+        self.comp.stream = MockStream()
+        self.comp.stream_class = MockStream
+        x_data = X()
+        x_data.xmlns = "jabber:x:data"
+        x_data.type = "submit"
+        x_data.add_field(field_type = "text-single", \
+                         var = "name", \
+                         value = "account1")
+        iq_set = Iq(stanza_type = "set", \
+                    from_jid = "user1@test.com", \
+                    to_jid = "jcl.test.com")
+        query = iq_set.new_query("jabber:iq:register")
+        x_data.attach_xml(query)
+        self.comp.handle_set_register(iq_set)
+
+        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
+        accounts = self.comp.account_class.select(\
+            self.comp.account_class.q.user_jid == "user1@test.com" \
+            and self.comp.account_class.q.name == "account1")
+        self.assertEquals(accounts.count(), 0)
+        del account.hub.threadConnection
+
+        stanza_sent = self.comp.stream.sent
+        self.assertEquals(len(stanza_sent), 1)
+        self.assertTrue(isinstance(stanza_sent[0], Iq))
+        # TODO : add more assertions
+        
+    def test_handle_set_register_update_complex(self):
+        self.comp.account_class = AccountExample
+        self.comp.stream = MockStream()
+        self.comp.stream_class = MockStream
+        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
+        existing_account = AccountExample(user_jid = "user1@test.com", \
+                                          name = "account1", \
+                                          jid = "account1@jcl.test.com", \
+                                          login = "mylogin", \
+                                          password = "mypassword", \
+                                          store_password = True, \
+                                          test_enum = "choice1", \
+                                          test_int = 21)
+        another_account = AccountExample(user_jid = "user1@test.com", \
+                                         name = "account2", \
+                                         jid = "account2@jcl.test.com", \
+                                         login = "mylogin", \
+                                         password = "mypassword", \
+                                         store_password = True, \
+                                         test_enum = "choice1", \
+                                         test_int = 21)
+        del account.hub.threadConnection
+        x_data = X()
+        x_data.xmlns = "jabber:x:data"
+        x_data.type = "submit"
+        x_data.add_field(field_type = "text-single", \
+                         var = "name", \
+                         value = "account1")
+        x_data.add_field(field_type = "text-single", \
+                         var = "login", \
+                         value = "mylogin2")
+        x_data.add_field(field_type = "text-private", \
+                         var = "password", \
+                         value = "mypassword2")
+        x_data.add_field(field_type = "boolean", \
+                         var = "store_password", \
+                         value = "false")
+        x_data.add_field(field_type = "list-single", \
+                         var = "test_enum", \
+                         value = "choice3")
+        x_data.add_field(field_type = "text-single", \
+                         var = "test_int", \
+                         value = "43")
+        iq_set = Iq(stanza_type = "set", \
+                    from_jid = "user1@test.com", \
+                    to_jid = "jcl.test.com")
+        query = iq_set.new_query("jabber:iq:register")
+        x_data.attach_xml(query)
+        self.comp.handle_set_register(iq_set)
+
+        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
+        accounts = self.comp.account_class.select(\
+            self.comp.account_class.q.user_jid == "user1@test.com" \
+            and self.comp.account_class.q.name == "account1")
+        self.assertEquals(accounts.count(), 1)
+        _account = accounts[0]
+        self.assertEquals(_account.user_jid, "user1@test.com")
+        self.assertEquals(_account.name, "account1")
+        self.assertEquals(_account.jid, "account1@jcl.test.com")
+        self.assertEquals(_account.login, "mylogin2")
+        self.assertEquals(_account.password, "mypassword2")
+        self.assertFalse(_account.store_password)
+        self.assertEquals(_account.test_enum, "choice3")
+        self.assertEquals(_account.test_int, 43)
+        del account.hub.threadConnection
+        
+        stanza_sent = self.comp.stream.sent
+        self.assertEquals(len(stanza_sent), 2)
+        iq_result = stanza_sent[0]
+        self.assertTrue(isinstance(iq_result, Iq))
+        self.assertEquals(iq_result.get_node().prop("type"), "result")
+        self.assertEquals(iq_result.get_from(), "jcl.test.com")
+        self.assertEquals(iq_result.get_to(), "user1@test.com")
+
+        message = stanza_sent[1]
+        self.assertTrue(isinstance(message, Message))
+        self.assertEquals(message.get_from(), "jcl.test.com")
+        self.assertEquals(message.get_to(), "user1@test.com")
+        self.assertEquals(message.get_subject(), \
+                          _account.get_update_message_subject(Lang.en))
+        self.assertEquals(message.get_body(), \
+                          _account.get_update_message_body(Lang.en))
 
     def test_handle_set_register_remove(self):
-        pass
+        self.comp.stream = MockStream()
+        self.comp.stream_class = MockStream
+        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
+        account11 = Account(user_jid = "user1@test.com", \
+                            name = "account1", \
+                            jid = "account1@jcl.test.com")
+        account12 = Account(user_jid = "user1@test.com", \
+                            name = "account2", \
+                            jid = "account2@jcl.test.com")
+        account21 = Account(user_jid = "user2@test.com", \
+                            name = "account1", \
+                            jid = "account1@jcl.test.com")
+        del account.hub.threadConnection
+        iq_set = Iq(stanza_type = "set", \
+                    from_jid = "user1@test.com", \
+                    to_jid = "jcl.test.com")
+        query = iq_set.new_query("jabber:iq:register")
+        query.newChild(None, "remove", None)
+        self.comp.handle_set_register(iq_set)
+
+        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
+        accounts = self.comp.account_class.select(\
+            self.comp.account_class.q.user_jid == "user1@test.com")
+        self.assertEquals(accounts.count(), 0)
+        accounts = self.comp.account_class.select(\
+            self.comp.account_class.q.user_jid == "user2@test.com")
+        self.assertEquals(accounts.count(), 1)
+        _account = accounts[0]
+        self.assertEquals(_account.user_jid, "user2@test.com")
+        self.assertEquals(_account.name, "account1")
+        self.assertEquals(_account.jid, "account1@jcl.test.com")
+        del account.hub.threadConnection
+        
+        stanza_sent = self.comp.stream.sent
+        self.assertEquals(len(stanza_sent), 6)
+        presence = stanza_sent[0]
+        self.assertTrue(isinstance(presence, Presence))
+        self.assertEquals(presence.get_node().prop("type"), "unsubscribe")
+        self.assertEquals(presence.get_from(), "account1@jcl.test.com")
+        self.assertEquals(presence.get_to(), "user1@test.com")
+        presence = stanza_sent[1]
+        self.assertTrue(isinstance(presence, Presence))
+        self.assertEquals(presence.get_node().prop("type"), "unsubscribed")
+        self.assertEquals(presence.get_from(), "account1@jcl.test.com")
+        self.assertEquals(presence.get_to(), "user1@test.com")
+        presence = stanza_sent[2]
+        self.assertTrue(isinstance(presence, Presence))
+        self.assertEquals(presence.get_node().prop("type"), "unsubscribe")
+        self.assertEquals(presence.get_from(), "account2@jcl.test.com")
+        self.assertEquals(presence.get_to(), "user1@test.com")
+        presence = stanza_sent[3]
+        self.assertTrue(isinstance(presence, Presence))
+        self.assertEquals(presence.get_node().prop("type"), "unsubscribed")
+        self.assertEquals(presence.get_from(), "account2@jcl.test.com")
+        self.assertEquals(presence.get_to(), "user1@test.com")
+        presence = stanza_sent[4]
+        self.assertTrue(isinstance(presence, Presence))
+        self.assertEquals(presence.get_node().prop("type"), "unsubscribe")
+        self.assertEquals(presence.get_from(), "jcl.test.com")
+        self.assertEquals(presence.get_to(), "user1@test.com")
+        presence = stanza_sent[5]
+        self.assertTrue(isinstance(presence, Presence))
+        self.assertEquals(presence.get_node().prop("type"), "unsubscribed")
+        self.assertEquals(presence.get_from(), "jcl.test.com")
+        self.assertEquals(presence.get_to(), "user1@test.com")
     
     def test_handle_presence_available_to_component(self):
         self.comp.stream = MockStream()
@@ -686,7 +968,7 @@ class JCLComponent_TestCase(unittest.TestCase):
         self.assertEqual(presence.get_from_jid(), "account11@jcl.test.com")
         self.assertEqual(presence.get_to_jid(), "user1@test.com")
         
-    def test_handle_presence_available_to_account_live_password2(self):
+    def test_handle_presence_available_to_account_live_password_complex(self):
         self.comp.account_class = AccountExample
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
@@ -923,7 +1205,7 @@ class JCLComponent_TestCase(unittest.TestCase):
         messages_sent = self.comp.stream.sent
         self.assertEqual(len(messages_sent), 0)
 
-    def test_handle_message_password2(self):
+    def test_handle_message_password_complex(self):
         self.comp.account_class = AccountExample
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
