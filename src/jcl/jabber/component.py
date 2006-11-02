@@ -143,19 +143,23 @@ class JCLComponent(Component, object):
                 self.queue.put(e)
                 raise
         finally:
-            if self.stream:
-                # TODO : send unavailble from transport and all account to users
-                pass
-#                for jid in self.__storage.keys(()):
-#                    p = Presence(from_jid = unicode(self.jid), to_jid = jid, \
-#                                 stanza_type = "unavailable")
-#                    self.stream.send(p)
-#                for jid, name in self.__storage.keys():
-#                    if self.__storage[(jid, name)].status != "offline":
-#                      p = Presence(from_jid = name + "@" + unicode(self.jid),\
-#                                     to_jid = jid, \
-#                                     stanza_type = "unavailable")
-#                        self.stream.send(p)
+            if self.stream and not self.stream.eof \
+                   and self.stream.socket is not None:
+                current_user_jid = None
+                self.db_connect()
+                for _account in \
+                        self.account_class.select(orderBy = "user_jid"):
+                    if current_user_jid != _account.user_jid:
+                        current_user_jid = _account.user_jid
+                        self.stream.send(Presence(\
+                            from_jid = unicode(self.jid), \
+                            to_jid = _account.user_jid, \
+                            stanza_type = "unavailable"))
+                    self.stream.send(Presence(\
+                        from_jid = self.get_jid(_account), \
+                        to_jid = _account.user_jid, \
+                        stanza_type = "unavailable"))
+                self.db_disconnect()
 #            threads = threading.enumerate()
             timer_thread.join(JCLComponent.timeout)
 #            for _thread in threads:

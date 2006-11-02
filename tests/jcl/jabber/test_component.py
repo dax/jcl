@@ -189,9 +189,56 @@ class JCLComponent_TestCase(unittest.TestCase):
                                    NotImplementedError))
 
     def test_run_go_offline(self):
-        ## TODO : verify offline stanza are sent
-        pass
-
+        self.comp.stream = MockStream()
+        self.comp.stream_class = MockStream
+        self.comp.time_unit = 1
+        self.max_tick_count = 1
+        self.comp.handle_tick = self.__handle_tick_test_time_handler
+        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
+        account11 = Account(user_jid = "test1@test.com", \
+                            name = "account11", \
+                            jid = "account11@jcl.test.com")
+        account12 = Account(user_jid = "test1@test.com", \
+                            name = "account12", \
+                            jid = "account12@jcl.test.com")
+        account2 = Account(user_jid = "test2@test.com", \
+                           name = "account2", \
+                           jid = "account2@jcl.test.com")
+        del account.hub.threadConnection
+        self.comp.run()
+        self.assertTrue(self.comp.stream.connection_started)
+        threads = threading.enumerate()
+        self.assertEquals(len(threads), 1)
+        self.assertTrue(self.comp.stream.connection_stopped)
+        if self.comp.queue.qsize():
+            raise self.comp.queue.get(0)
+        self.assertEquals(len(self.comp.stream.sent), 5)
+        presence = self.comp.stream.sent[0]
+        self.assertTrue(isinstance(presence, Presence))
+        self.assertEquals(presence.get_from(), "jcl.test.com")
+        self.assertEquals(presence.get_to(), "test1@test.com")
+        self.assertEquals(presence.get_node().prop("type"), "unavailable")
+        presence = self.comp.stream.sent[1]
+        self.assertTrue(isinstance(presence, Presence))
+        self.assertEquals(presence.get_from(), "account11@jcl.test.com")
+        self.assertEquals(presence.get_to(), "test1@test.com")
+        self.assertEquals(presence.get_node().prop("type"), "unavailable")
+        presence = self.comp.stream.sent[2]
+        self.assertTrue(isinstance(presence, Presence))
+        self.assertEquals(presence.get_from(), "account12@jcl.test.com")
+        self.assertEquals(presence.get_to(), "test1@test.com")
+        self.assertEquals(presence.get_node().prop("type"), "unavailable")
+        presence = self.comp.stream.sent[3]
+        self.assertTrue(isinstance(presence, Presence))
+        self.assertEquals(presence.get_from(), "jcl.test.com")
+        self.assertEquals(presence.get_to(), "test2@test.com")
+        self.assertEquals(presence.get_node().prop("type"), "unavailable")
+        presence = self.comp.stream.sent[4]
+        self.assertTrue(isinstance(presence, Presence))
+        self.assertEquals(presence.get_from(), "account2@jcl.test.com")
+        self.assertEquals(presence.get_to(), "test2@test.com")
+        self.assertEquals(presence.get_node().prop("type"), "unavailable")
+        
     def __handle_tick_test_time_handler(self):
         self.max_tick_count -= 1
         if self.max_tick_count == 0:
@@ -215,13 +262,13 @@ class JCLComponent_TestCase(unittest.TestCase):
     def test_authenticated_send_probe(self):
         account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
         account11 = Account(user_jid = "test1@test.com", \
-                            name = "test11", \
+                            name = "account11", \
                             jid = "account11@jcl.test.com")
         account12 = Account(user_jid = "test1@test.com", \
-                            name = "test12", \
+                            name = "account12", \
                             jid = "account12@jcl.test.com")
         account2 = Account(user_jid = "test2@test.com", \
-                           name = "test2", \
+                           name = "account2", \
                            jid = "account2@jcl.test.com")
         del account.hub.threadConnection
         self.comp.stream = stream = MockStream()
