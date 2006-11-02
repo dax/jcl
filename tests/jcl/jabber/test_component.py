@@ -271,23 +271,34 @@ class JCLComponent_TestCase(unittest.TestCase):
                            name = "account2", \
                            jid = "account2@jcl.test.com")
         del account.hub.threadConnection
-        self.comp.stream = stream = MockStream()
+        self.comp.stream = MockStream()
         self.comp.authenticated()
-
-        presence_sent = stream.sent
-        self.assertEqual(len(presence_sent), 5)
-        self.assertEqual(len([presence \
-                              for presence in presence_sent \
-                              if presence.get_from_jid() == "jcl.test.com"]), \
-                         2)
-        self.assertEqual(len([presence \
-                              for presence in presence_sent \
-                              if presence.get_to_jid() == "test1@test.com"]), \
-                         3)
-        self.assertEqual(len([presence \
-                              for presence in presence_sent \
-                              if presence.get_to_jid() == "test2@test.com"]), \
-                         2)
+        self.assertEqual(len(self.comp.stream.sent), 5)
+        presence = self.comp.stream.sent[0]
+        self.assertTrue(isinstance(presence, Presence))
+        self.assertEquals(presence.get_from(), "jcl.test.com")
+        self.assertEquals(presence.get_to(), "test1@test.com")
+        self.assertEquals(presence.get_node().prop("type"), "probe")
+        presence = self.comp.stream.sent[1]
+        self.assertTrue(isinstance(presence, Presence))
+        self.assertEquals(presence.get_from(), "account11@jcl.test.com")
+        self.assertEquals(presence.get_to(), "test1@test.com")
+        self.assertEquals(presence.get_node().prop("type"), "probe")
+        presence = self.comp.stream.sent[2]
+        self.assertTrue(isinstance(presence, Presence))
+        self.assertEquals(presence.get_from(), "account12@jcl.test.com")
+        self.assertEquals(presence.get_to(), "test1@test.com")
+        self.assertEquals(presence.get_node().prop("type"), "probe")
+        presence = self.comp.stream.sent[3]
+        self.assertTrue(isinstance(presence, Presence))
+        self.assertEquals(presence.get_from(), "jcl.test.com")
+        self.assertEquals(presence.get_to(), "test2@test.com")
+        self.assertEquals(presence.get_node().prop("type"), "probe")
+        presence = self.comp.stream.sent[4]
+        self.assertTrue(isinstance(presence, Presence))
+        self.assertEquals(presence.get_from(), "account2@jcl.test.com")
+        self.assertEquals(presence.get_to(), "test2@test.com")
+        self.assertEquals(presence.get_node().prop("type"), "probe")
 
     def test_signal_handler(self):
         self.comp.running = True
