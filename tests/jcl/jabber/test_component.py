@@ -121,7 +121,6 @@ class JCLComponent_TestCase(unittest.TestCase):
                                  "localhost",
                                  "5347",
                                  'sqlite://' + DB_URL)
-        self.comp.account_class = Account
         self.max_tick_count = 2
         self.saved_time_handler = None
 
@@ -246,7 +245,7 @@ class JCLComponent_TestCase(unittest.TestCase):
 
     def test_time_handler(self):
         self.comp.time_unit = 1
-        self.max_tick_count = 2
+        self.max_tick_count = 1
         self.comp.handle_tick = self.__handle_tick_test_time_handler
         self.comp.stream = MockStream()
         self.comp.running = True
