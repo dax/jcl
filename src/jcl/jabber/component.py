@@ -460,7 +460,7 @@ class JCLComponent(Component, object):
                 self.account_class.q.user_jid == base_from_jid
                 and self.account_class.q.name == name)
             if accounts.count() >= 1:
-                self._send_presence_available(_account[0], show, lang_class)
+                self._send_presence_available(accounts[0], show, lang_class)
         self.db_disconnect()
         return 1
 

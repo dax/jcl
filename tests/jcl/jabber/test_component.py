@@ -121,7 +121,8 @@ class JCLComponent_TestCase(unittest.TestCase):
                                  "localhost",
                                  "5347",
                                  'sqlite://' + DB_URL)
-        self.max_tick_count = 2
+        self.comp.account_class = Account
+        self.max_tick_count = 1
         self.saved_time_handler = None
 
     def tearDown(self):
@@ -1175,6 +1176,7 @@ class JCLComponent_TestCase(unittest.TestCase):
             "subscribed")
 
     def test_handle_presence_subscribed(self):
+        # TODO
         pass
 
     def test_handle_presence_unsubscribe(self):

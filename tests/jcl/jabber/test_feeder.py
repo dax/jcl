@@ -29,6 +29,8 @@ import time
 from sqlobject import *
 from sqlobject.dbconnection import TheURIOpener
 
+from pyxmpp.message import Message
+
 from tests.jcl.jabber.test_component import JCLComponent_TestCase, MockStream
 
 from jcl.jabber.component import JCLComponent
@@ -76,51 +78,88 @@ class FeederComponent_TestCase(JCLComponent_TestCase):
         if self.comp.queue.qsize():
             raise self.comp.queue.get(0)
 
-    # handle_tick is implemented in FeederComponent
     def test_run_ni_handle_tick(self):
-        pass
+        # handle_tick is implemented in FeederComponent
+        # so no need to check for NotImplemented raise assertion
+        self.assertTrue(True)
     
     def test_handle_tick(self):
-        # TODO
-        self.comp.handle_tick()
-        self.assertTrue(True)
-        
-class Feeder_TestCase(unittest.TestCase):
-    def setUp(self):
-        if os.path.exists(DB_PATH):
-            os.unlink(DB_PATH)
-        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
-        Account.createTable()
+        class AccountFeeder(Feeder):
+            def feed(self, _account):
+                return ["user_jid: " + _account.user_jid, \
+                        "jid: " + _account.jid]
 
-    def tearDown(self):
-        Account.dropTable(ifExists = True)
-        del account.hub.threadConnection
-#        os.unlink(DB_PATH)
+        class MessageAccountSender(Sender):
+            def send(self, _account, data):
+                self.stream.send(Message(\
+                    from_jid = _account.jid, \
+                    to_jid = _account.user_jid, \
+                    subject = "Simple Message for account " + _account.name, \
+                    body = data))
+                
+        self.comp.stream = MockStream()
+        self.comp.stream_class = MockStream
+        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
+        account11 = Account(user_jid = "user1@test.com", \
+                            name = "account11", \
+                            jid = "account11@jcl.test.com")
+        account12 = Account(user_jid = "user1@test.com", \
+                            name = "account12", \
+                            jid = "account12@jcl.test.com")
+        account2 = Account(user_jid = "user2@test.com", \
+                           name = "account2", \
+                           jid = "account2@jcl.test.com")
+        self.comp.feeder = AccountFeeder(self.comp.stream)
+        self.comp.sender = MessageAccountSender(self.comp.stream)
+        self.comp.handle_tick()
+
+        messages_sent = self.comp.stream.sent
+        self.assertEquals(len(messages_sent), 6)
+        self.assertEqual(messages_sent[0].get_from(), "account11@jcl.test.com")
+        self.assertEqual(messages_sent[0].get_to(), "user1@test.com")
+        self.assertEqual(messages_sent[0].get_subject(), \
+            "Simple Message for account account11")
+        self.assertEqual(messages_sent[0].get_body(), \
+            "user_jid: user1@test.com")
+        self.assertEqual(messages_sent[1].get_from(), "account11@jcl.test.com")
+        self.assertEqual(messages_sent[1].get_to(), "user1@test.com")
+        self.assertEqual(messages_sent[1].get_subject(), \
+            "Simple Message for account account11")
+        self.assertEqual(messages_sent[1].get_body(), \
+            "jid: account11@jcl.test.com")
+
+        self.assertEqual(messages_sent[2].get_from(), "account12@jcl.test.com")
+        self.assertEqual(messages_sent[2].get_to(), "user1@test.com")
+        self.assertEqual(messages_sent[2].get_subject(), \
+            "Simple Message for account account12")
+        self.assertEqual(messages_sent[2].get_body(), \
+            "user_jid: user1@test.com")
+        self.assertEqual(messages_sent[3].get_from(), "account12@jcl.test.com")
+        self.assertEqual(messages_sent[3].get_to(), "user1@test.com")
+        self.assertEqual(messages_sent[3].get_subject(), \
+            "Simple Message for account account12")
+        self.assertEqual(messages_sent[3].get_body(), \
+            "jid: account12@jcl.test.com")
+
+        self.assertEqual(messages_sent[4].get_from(), "account2@jcl.test.com")
+        self.assertEqual(messages_sent[4].get_to(), "user2@test.com")
+        self.assertEqual(messages_sent[4].get_subject(), \
+            "Simple Message for account account2")
+        self.assertEqual(messages_sent[4].get_body(), \
+            "user_jid: user2@test.com")
+        self.assertEqual(messages_sent[5].get_from(), "account2@jcl.test.com")
+        self.assertEqual(messages_sent[5].get_to(), "user2@test.com")
+        self.assertEqual(messages_sent[5].get_subject(), \
+            "Simple Message for account account2")
+        self.assertEqual(messages_sent[5].get_body(), \
+            "jid: account2@jcl.test.com")
         
+class Feeder_TestCase(unittest.TestCase):        
     def test_feed_exist(self):
         feeder = Feeder()
-        feeder.feed(Account(user_jid = "test@test.com", \
-                            name = "test", \
-                            jid = "test@jcl.test.com"))
-        self.assertTrue(True)
+        self.assertRaises(NotImplementedError, feeder.feed, None)
 
 class Sender_TestCase(unittest.TestCase):
-    def setUp(self):
-        if os.path.exists(DB_PATH):
-            os.unlink(DB_PATH)
-        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
-        Account.createTable()
-
-    def tearDown(self):
-        Account.dropTable(ifExists = True)
-        del account.hub.threadConnection
-#        os.unlink(DB_PATH)
-        
     def test_send_exist(self):
         sender = Sender()
-        account = Account(user_jid = "test@test.com", \
-                          name = "test", \
-                          jid = "test@jcl.test.com")
-        sender.send(to_account = account, \
-                    data = "Hello World")
-        self.assertTrue(True)
+        self.assertRaises(NotImplementedError, sender.send, None, None)

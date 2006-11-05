@@ -53,36 +53,34 @@ class FeederComponent(JCLComponent):
         self.sender = Sender()
         self.check_interval = 1
 
-        self.__logger = logging.getLogger("jcl.jabber.JCLComponent")
+        self.__logger = logging.getLogger("jcl.jabber.FeederComponent")
         
     def handle_tick(self):
         """Implement main feed/send behavior"""
-        pass
         self.db_connect()
-        for acc in self.account_class.select():
-            print "OK"
-#            for data in self.feeder.feed(account):
-#                self.sender.send(account, data)
+        for _account in self.account_class.select(orderBy = "user_jid"):
+            for data in self.feeder.feed(_account):
+                self.sender.send(_account, data)
         self.db_disconnect()
 
 
 
 class Feeder(object):
     """Abstract feeder class"""
-    def __init__(self):
-        pass
+    def __init__(self, stream = None):
+        self.stream = stream
 
     def feed(self, account):
         """Feed data for given account"""
-        pass
+        raise NotImplementedError
 
 
 class Sender(object):
     """Abstract sender class"""
-    def __init__(self):
-        pass
+    def __init__(self, stream = None):
+        self.stream = stream
 
     def send(self, to_account, data):
         """Send data to given account"""
-        pass
+        raise NotImplementedError
 
