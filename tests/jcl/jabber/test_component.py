@@ -41,7 +41,7 @@ from jcl.jabber.component import JCLComponent
 from jcl.model import account
 from jcl.model.account import Account
 from jcl.lang import Lang
-from jcl.jabber.x import X
+from jcl.jabber.x import DataForm
 
 from tests.jcl.model.account import AccountExample
 
@@ -557,7 +557,7 @@ class JCLComponent_TestCase(unittest.TestCase):
     def test_handle_set_register_new(self):
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
-        x_data = X()
+        x_data = DataForm()
         x_data.xmlns = "jabber:x:data"
         x_data.type = "submit"
         x_data.add_field(field_type = "text-single", \
@@ -616,7 +616,7 @@ class JCLComponent_TestCase(unittest.TestCase):
         self.comp.account_class = AccountExample
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
-        x_data = X()
+        x_data = DataForm()
         x_data.xmlns = "jabber:x:data"
         x_data.type = "submit"
         x_data.add_field(field_type = "text-single", \
@@ -695,7 +695,7 @@ class JCLComponent_TestCase(unittest.TestCase):
         self.comp.account_class = AccountExample
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
-        x_data = X()
+        x_data = DataForm()
         x_data.xmlns = "jabber:x:data"
         x_data.type = "submit"
         x_data.add_field(field_type = "text-single", \
@@ -731,7 +731,7 @@ class JCLComponent_TestCase(unittest.TestCase):
         self.comp.account_class = AccountExample
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
-        x_data = X()
+        x_data = DataForm()
         x_data.xmlns = "jabber:x:data"
         x_data.type = "submit"
         iq_set = Iq(stanza_type = "set", \
@@ -751,13 +751,13 @@ class JCLComponent_TestCase(unittest.TestCase):
         stanza_sent = self.comp.stream.sent
         self.assertEquals(len(stanza_sent), 1)
         self.assertTrue(isinstance(stanza_sent[0], Iq))
-        # TODO : add more assertions
+        # TODO : add more assertions need to find the correct exception
 
     def test_handle_set_register_new_field_mandatory(self):
         self.comp.account_class = AccountExample
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
-        x_data = X()
+        x_data = DataForm()
         x_data.xmlns = "jabber:x:data"
         x_data.type = "submit"
         x_data.add_field(field_type = "text-single", \
@@ -780,7 +780,7 @@ class JCLComponent_TestCase(unittest.TestCase):
         stanza_sent = self.comp.stream.sent
         self.assertEquals(len(stanza_sent), 1)
         self.assertTrue(isinstance(stanza_sent[0], Iq))
-        # TODO : add more assertions
+        # TODO : add more assertions need to find the correct exception
         
     def test_handle_set_register_update_complex(self):
         self.comp.account_class = AccountExample
@@ -804,7 +804,7 @@ class JCLComponent_TestCase(unittest.TestCase):
                                          test_enum = "choice1", \
                                          test_int = 21)
         del account.hub.threadConnection
-        x_data = X()
+        x_data = DataForm()
         x_data.xmlns = "jabber:x:data"
         x_data.type = "submit"
         x_data.add_field(field_type = "text-single", \

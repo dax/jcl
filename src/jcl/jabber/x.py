@@ -20,7 +20,7 @@
 ## Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 ##
 
-"""X -- X data handling
+"""X -- Data Form handling
 """
 
 __revision__ = "$Id: x.py,v 1.3 2005/09/18 20:24:07 dax Exp $"
@@ -85,8 +85,8 @@ class Field(object):
             option.get_xml(field)
         return field
 
-class X(object):
-    """Jabber Xdata form
+class DataForm(object):
+    """Jabber Data Form
     """
     def __init__(self):
         self.fields = {}

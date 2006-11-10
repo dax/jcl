@@ -43,12 +43,12 @@ from pyxmpp.jabberd.component import Component
 from pyxmpp.jabber.disco import DiscoInfo, DiscoItems, DiscoItem
 from pyxmpp.message import Message
 from pyxmpp.presence import Presence
-from pyxmpp.streambase import StreamError, FatalStreamError
 
 import jcl
-from jcl.jabber.x import X
+from jcl.jabber.x import DataForm
+from jcl.jabber.error import FieldError
 from jcl.model import account
-from jcl.model.account import *
+from jcl.model.account import Account
 from jcl.lang import Lang
 
 VERSION = "0.1"
@@ -137,10 +137,10 @@ class JCLComponent(Component, object):
                     self.stream.loop_iter(JCLComponent.timeout)
                     if self.queue.qsize():
                         raise self.queue.get(0)
-            except Exception, e:
+            except Exception, exception:
                 #self.__logger.exception("Exception cought:")
                 # put Exception in queue to be use by unit tests
-                self.queue.put(e)
+                self.queue.put(exception)
                 raise
         finally:
             if self.stream and not self.stream.eof \
@@ -160,31 +160,22 @@ class JCLComponent(Component, object):
                         to_jid = _account.user_jid, \
                         stanza_type = "unavailable"))
                 self.db_disconnect()
-#            threads = threading.enumerate()
             timer_thread.join(JCLComponent.timeout)
-#            for _thread in threads:
-#                try:
-#                    _thread.join(10 * JCLComponent.timeout)
-#                except:
-#                    pass
-#            for _thread in threads:
-#                try:
-#                    _thread.join(JCLComponent.timeout)
-#                except:
-#                    pass
             self.disconnect()
             self.__logger.debug("Exitting normally")
-            # TODO : terminate SQLObject
 
     #################
     # SQlite connections are not multi-threaded
     # Utils workaround methods
     #################
     def db_connect(self):
+        """Create a new connection to the DataBase (SQLObject use connection
+        pool) associated to the current thread"""
         account.hub.threadConnection = \
                      connectionForURI(self.db_connection_str)
 
     def db_disconnect(self):
+        """Delete connection associated to the current thread"""
         del account.hub.threadConnection
 
 
@@ -202,8 +193,8 @@ class JCLComponent(Component, object):
                 self.handle_tick()
                 self.__logger.debug("Resetting alarm signal")
                 time.sleep(self.time_unit)
-        except Exception, e:
-            self.queue.put(e)
+        except Exception, exception:
+            self.queue.put(exception)
             raise
 
     def authenticated(self):
@@ -242,15 +233,15 @@ class JCLComponent(Component, object):
                                         self.handle_message)
         current_jid = None
         self.db_connect()
-        for account in self.account_class.select(orderBy = "user_jid"):
-            if account.user_jid != current_jid:
+        for _account in self.account_class.select(orderBy = "user_jid"):
+            if _account.user_jid != current_jid:
                 presence = Presence(from_jid = unicode(self.jid), \
-                                    to_jid = account.user_jid, \
+                                    to_jid = _account.user_jid, \
                                     stanza_type = "probe")
                 self.stream.send(presence)
-                current_jid = account.user_jid
-            presence = Presence(from_jid = self.get_jid(account), \
-                                to_jid = account.user_jid, \
+                current_jid = _account.user_jid
+            presence = Presence(from_jid = _account.jid, \
+                                to_jid = _account.user_jid, \
                                 stanza_type = "probe")
             self.stream.send(presence)
         self.db_disconnect()
@@ -324,6 +315,8 @@ class JCLComponent(Component, object):
         return 1
 
     def remove_all_accounts(self, user_jid):
+        """Unsubscribe all accounts associated to 'user_jid' then delete
+        those accounts from the DataBase"""
         self.db_connect()
         for _account in self.account_class.select(\
             self.account_class.q.user_jid == user_jid):
@@ -361,7 +354,7 @@ class JCLComponent(Component, object):
             return 1
 
         query = info_query.get_query()
-        x_data = X()
+        x_data = DataForm()
         x_data.from_xml(query.children)
         name = x_data.get_field_value("name")
         if name is None:
@@ -380,7 +373,7 @@ class JCLComponent(Component, object):
         all_accounts_count = all_accounts.count()
         if accounts_count > 1:
             # Just print a warning, only the first account will be use
-            print >>sys.stderr, "There might not exist 2 accounts for " + \
+            print >> sys.stderr, "There might not exist 2 accounts for " + \
                   base_from_jid + " and named " + name
         if accounts_count >= 1:
             _account = list(accounts)[0]
@@ -395,9 +388,9 @@ class JCLComponent(Component, object):
                         x_data.get_field_value(field, \
                                                field_post_func, \
                                                field_default_func))
-        except FieldError, e:
+        except FieldError, exception:
             _account.destroySelf()
-            # TODO: get correct error from e
+            # TODO: get correct error from exception
             info_query = info_query.make_error_response("resource-constraint")
             self.stream.send(info_query)
             self.db_disconnect()
@@ -445,7 +438,7 @@ class JCLComponent(Component, object):
             # TODO: Translate
             accounts_length = 0
             for _account in accounts:
-                ++accounts_length
+                accounts_length += 1
                 self._send_presence_available(_account, show, lang_class)
             presence = Presence(from_jid = self.jid, \
                                 to_jid = from_jid, \
@@ -472,10 +465,10 @@ class JCLComponent(Component, object):
         base_from_jid = unicode(from_jid.bare())
         if stanza.get_to() == unicode(self.jid):
             self.db_connect()
-            for account in self.account_class.select(\
+            for _account in self.account_class.select(\
                 self.account_class.q.user_jid == base_from_jid):
-                account.status = jcl.model.account.OFFLINE
-                presence = Presence(from_jid = account.jid, \
+                _account.status = jcl.model.account.OFFLINE
+                presence = Presence(from_jid = _account.jid, \
                                     to_jid = from_jid, \
                                     stanza_type = "unavailable")
                 self.stream.send(presence)
@@ -558,10 +551,10 @@ class JCLComponent(Component, object):
                and re.compile("\[PASSWORD\]").search(message.get_subject()) \
                is not None \
                and accounts.count() == 1:
-            account = list(accounts)[0]
-            account.password = message.get_body()
-            account.waiting_password_reply = False
-            msg = Message(from_jid = account.jid, \
+            _account = list(accounts)[0]
+            _account.password = message.get_body()
+            _account.waiting_password_reply = False
+            msg = Message(from_jid = _account.jid, \
                           to_jid = message.get_from(), \
                           stanza_type = "normal", \
                           subject = lang_class.password_saved_for_session, \
@@ -579,15 +572,14 @@ class JCLComponent(Component, object):
         _account.default_lang_class = lang_class
         old_status = _account.status
         if show is None:
-            _account.status = account.ONLINE # TODO get real status = (not show)
+            _account.status = account.ONLINE
         else:
             _account.status = show
-        p = Presence(from_jid = _account.jid, \
+        self.stream.send(Presence(from_jid = _account.jid, \
                      to_jid = _account.user_jid, \
                      status = _account.status_msg, \
                      show = show, \
-                     stanza_type = "available")
-        self.stream.send(p)
+                     stanza_type = "available"))
         if hasattr(self.account_class, 'store_password') \
                and hasattr(self.account_class, 'password') \
                and _account.store_password == False \
@@ -619,7 +611,7 @@ class JCLComponent(Component, object):
     def get_reg_form(self, lang_class):
         """Return register form based on language and account class
         """
-        reg_form = X()
+        reg_form = DataForm()
         reg_form.xmlns = "jabber:x:data"
         reg_form.title = lang_class.register_title
         reg_form.instructions = lang_class.register_instructions
@@ -645,15 +637,15 @@ class JCLComponent(Component, object):
             ## TODO : get default value if any
         return reg_form
 
-    def get_reg_form_init(self, lang_class, account):
+    def get_reg_form_init(self, lang_class, _account):
         """Return register form for an existing account (update)
         """
         reg_form = self.get_reg_form(lang_class)
-        reg_form.fields["name"].value = account.name
+        reg_form.fields["name"].value = _account.name
         reg_form.fields["name"].type = "hidden"
         for (field_name, field) in reg_form.fields.items():
             if hasattr(self.account_class, field_name):
-                field.value = str(getattr(account, field_name))
+                field.value = str(getattr(_account, field_name))
         return reg_form
 
     ###########################################################################

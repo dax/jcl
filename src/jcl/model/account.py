@@ -27,7 +27,7 @@
 __revision__ = "$Id: account.py,v 1.3 2005/09/18 20:24:07 dax Exp $"
 
 from sqlobject.main import SQLObject
-from sqlobject.col import StringCol, BoolCol
+from sqlobject.col import StringCol
 from sqlobject.dbconnection import ConnectionHub
 
 from jcl.lang import Lang
@@ -103,12 +103,12 @@ class Account(SQLObject):
             if hasattr(self.__class__, 'waiting_password_reply') \
                and hasattr(self.__class__, 'store_password') \
                and hasattr(self.__class__, 'password'):
-                self.waiting_password_reply = False
-                if not self.store_password:
-                    self.password = None
+                setattr(self.__class__, 'waiting_password_reply', False)
+                if not getattr(self.__class__, 'store_password'):
+                    setattr(self.__class__, 'password', None)
         else:
-            # TODO seems a bug : first_check = True only if previous status
-            # was OFFLINE
+            # TODO seems to be a bug : first_check = True only
+            # if previous status was OFFLINE
             self.first_check = True
         self.__status = status
         
