@@ -51,7 +51,7 @@ if __name__ == '__main__':
     sender_suite = unittest.makeSuite(Sender_TestCase, "test")
     jcl_suite = unittest.TestSuite()
 #    jcl_suite.addTest(FeederComponent_TestCase('test_handle_tick'))
-#    jcl_suite.addTest(FeederComponent_TestCase('test_handle_presence_available_to_account_live_password'))
+#    jcl_suite.addTest(FeederComponent_TestCase('test_handle_set_register_new_field_mandatory'))
 #    jcl_suite = unittest.TestSuite((feeder_component_suite))
 #    jcl_suite = unittest.TestSuite((component_suite))
     jcl_suite = unittest.TestSuite((component_suite,

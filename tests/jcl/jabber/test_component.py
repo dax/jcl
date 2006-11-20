@@ -751,7 +751,9 @@ class JCLComponent_TestCase(unittest.TestCase):
         stanza_sent = self.comp.stream.sent
         self.assertEquals(len(stanza_sent), 1)
         self.assertTrue(isinstance(stanza_sent[0], Iq))
-        # TODO : add more assertions need to find the correct exception
+        self.assertEquals(stanza_sent[0].get_node().prop("type"), "error")
+        error = stanza_sent[0].get_error()
+        self.assertEquals(error.get_condition().name, "not-acceptable")
 
     def test_handle_set_register_new_field_mandatory(self):
         self.comp.account_class = AccountExample
@@ -780,8 +782,10 @@ class JCLComponent_TestCase(unittest.TestCase):
         stanza_sent = self.comp.stream.sent
         self.assertEquals(len(stanza_sent), 1)
         self.assertTrue(isinstance(stanza_sent[0], Iq))
-        # TODO : add more assertions need to find the correct exception
-        
+        self.assertEquals(stanza_sent[0].get_node().prop("type"), "error")
+        error = stanza_sent[0].get_error()
+        self.assertEquals(error.get_condition().name, "not-acceptable")
+
     def test_handle_set_register_update_complex(self):
         self.comp.account_class = AccountExample
         self.comp.stream = MockStream()

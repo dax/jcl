@@ -358,9 +358,8 @@ class JCLComponent(Component, object):
         x_data.from_xml(query.children)
         name = x_data.get_field_value("name")
         if name is None:
-            # TODO : find correct error for mandatory field
             info_query = info_query.make_error_response(\
-                "resource-constraint")
+                "not-acceptable")
             self.stream.send(info_query)
             return            
         self.db_connect()
@@ -390,8 +389,7 @@ class JCLComponent(Component, object):
                                                field_default_func))
         except FieldError, exception:
             _account.destroySelf()
-            # TODO: get correct error from exception
-            info_query = info_query.make_error_response("resource-constraint")
+            info_query = info_query.make_error_response("not-acceptable")
             self.stream.send(info_query)
             self.db_disconnect()
             return
