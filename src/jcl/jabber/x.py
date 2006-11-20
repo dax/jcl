@@ -100,10 +100,11 @@ class DataForm(object):
                   field_type = "fixed", \
                   label = None, \
                   var = None, \
-                  value = ""):
+                  value = "", \
+                  required = False):
         """Add a Field to this Xdata form
         """
-        field = Field(field_type, label, var, value)
+        field = Field(field_type, label, var, value, required)
         self.fields[var] = field
         # fields_tab exist to keep added fields order
         self.fields_tab.append(field)

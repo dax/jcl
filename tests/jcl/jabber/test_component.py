@@ -387,6 +387,7 @@ class JCLComponent_TestCase(unittest.TestCase):
         self.assertEquals(fields[0].prop("type"), "text-single")
         self.assertEquals(fields[0].prop("var"), "name")
         self.assertEquals(fields[0].prop("label"), Lang.en.account_name)
+        self.assertEquals(fields[0].children.name, "required")
 
     def test_handle_get_register_new_complex(self):
         self.comp.account_class = AccountExample
@@ -417,10 +418,12 @@ class JCLComponent_TestCase(unittest.TestCase):
         self.assertEquals(fields[0].prop("type"), "text-single")
         self.assertEquals(fields[0].prop("var"), "name")
         self.assertEquals(fields[0].prop("label"), Lang.en.account_name)
+        self.assertEquals(fields[0].children.name, "required")
 
         self.assertEquals(fields[1].prop("type"), "text-single")
         self.assertEquals(fields[1].prop("var"), "login")
         self.assertEquals(fields[1].prop("label"), "login")
+        self.assertEquals(fields[0].children.name, "required")
 
         self.assertEquals(fields[2].prop("type"), "text-private")
         self.assertEquals(fields[2].prop("var"), "password")
@@ -468,13 +471,10 @@ class JCLComponent_TestCase(unittest.TestCase):
                                     {"jir" : "jabber:iq:register", \
                                      "jxd" : "jabber:x:data"})
         self.assertEquals(len(fields), 1)
-        self.assertEquals(len([field
-                               for field in fields \
-                               if field.prop("type") == "hidden" \
-                               and field.prop("var") == "name" \
-                               and field.prop("label") == \
-                               Lang.en.account_name]), \
-                          1)
+        self.assertEquals(fields[0].prop("type"), "hidden")
+        self.assertEquals(fields[0].prop("var"), "name")
+        self.assertEquals(fields[0].prop("label"), Lang.en.account_name)
+        self.assertEquals(fields[0].children.next.name, "required")
         value = iq_sent.xpath_eval("jir:query/jxd:x/jxd:field/jxd:value", \
                                    {"jir" : "jabber:iq:register", \
                                     "jxd" : "jabber:x:data"})
@@ -523,12 +523,14 @@ class JCLComponent_TestCase(unittest.TestCase):
         self.assertEquals(field.prop("label"), Lang.en.account_name)
         self.assertEquals(field.children.name, "value")
         self.assertEquals(field.children.content, "account1")
+        self.assertEquals(field.children.next.name, "required")
         field = fields[1]
         self.assertEquals(field.prop("type"), "text-single")
         self.assertEquals(field.prop("var"), "login")
         self.assertEquals(field.prop("label"), "login")
         self.assertEquals(field.children.name, "value")
         self.assertEquals(field.children.content, "mylogin")
+        self.assertEquals(field.children.next.name, "required")
         field = fields[2]
         self.assertEquals(field.prop("type"), "text-private")
         self.assertEquals(field.prop("var"), "password")

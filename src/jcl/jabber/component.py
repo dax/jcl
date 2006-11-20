@@ -618,7 +618,8 @@ class JCLComponent(Component, object):
         # "name" field is mandatory
         reg_form.add_field(field_type = "text-single", \
                            label = lang_class.account_name, \
-                           var = "name")
+                           var = "name", \
+                           required = True)
 
         for (field, field_type, post_func, default_func) in \
                 self.account_class.get_register_fields():
@@ -628,9 +629,11 @@ class JCLComponent(Component, object):
                 label = getattr(lang_class, lang_label_attr)
             else:
                 label = field
-            reg_form.add_field(field_type = field_type, \
-                               label = label, \
-                               var = field)
+            field = reg_form.add_field(field_type = field_type, \
+                                       label = label, \
+                                       var = field)
+            if default_func == account.mandatory_field:
+                field.required = True
             ## TODO : Add page when empty tuple given
             ## TODO : get default value if any
         return reg_form
