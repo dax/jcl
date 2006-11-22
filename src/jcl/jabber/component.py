@@ -94,7 +94,7 @@ class JCLComponent(Component, object):
         self.disco_info.add_feature("jabber:iq:version")
         self.disco_info.add_feature("jabber:iq:register")
         self.__logger = logging.getLogger("jcl.jabber.JCLComponent")
-        self.__lang = Lang() # TODO : Lang(default_lang = from_config)
+        self.lang = Lang()
         self.running = False
 
         signal.signal(signal.SIGINT, self.signal_handler)
@@ -295,7 +295,7 @@ class JCLComponent(Component, object):
         """Send back register form to user
         """
         self.__logger.debug("GET_REGISTER")
-        lang_class = self.__lang.get_lang_class_from_node(info_query.get_node())
+        lang_class = self.lang.get_lang_class_from_node(info_query.get_node())
         base_from_jid = unicode(info_query.get_from().bare())
         to_jid = info_query.get_to()
         name = to_jid.node
@@ -344,7 +344,7 @@ class JCLComponent(Component, object):
         """
         self.__logger.debug("SET_REGISTER")
         lang_class = \
-                   self.__lang.get_lang_class_from_node(info_query.get_node())
+                   self.lang.get_lang_class_from_node(info_query.get_node())
         from_jid = info_query.get_from()
         base_from_jid = unicode(from_jid.bare())
         remove = info_query.xpath_eval("r:query/r:remove", \
@@ -424,7 +424,7 @@ class JCLComponent(Component, object):
         from_jid = stanza.get_from()
         base_from_jid = unicode(from_jid.bare())
         name = stanza.get_to().node
-        lang_class = self.__lang.get_lang_class_from_node(stanza.get_node())
+        lang_class = self.lang.get_lang_class_from_node(stanza.get_node())
         show = stanza.get_show()
         self.__logger.debug("SHOW : " + str(show))
         if name:
@@ -433,7 +433,6 @@ class JCLComponent(Component, object):
         if not name:
             accounts = self.account_class.select(\
                 self.account_class.q.user_jid == base_from_jid)
-            # TODO: Translate
             accounts_length = 0
             for _account in accounts:
                 accounts_length += 1
@@ -442,7 +441,7 @@ class JCLComponent(Component, object):
                                 to_jid = from_jid, \
                                 status = \
                                 str(accounts_length) \
-                                + " accounts registered.", \
+                                + lang_class.message_status, \
                                 show = show, \
                                 stanza_type = "available")
             self.stream.send(presence)
@@ -537,7 +536,7 @@ class JCLComponent(Component, object):
         Handle password response message
         """
         self.__logger.debug("MESSAGE: " + message.get_body())
-        lang_class = self.__lang.get_lang_class_from_node(message.get_node())
+        lang_class = self.lang.get_lang_class_from_node(message.get_node())
         name = message.get_to().node
         base_from_jid = unicode(message.get_from().bare())
         self.db_connect()
@@ -596,9 +595,9 @@ class JCLComponent(Component, object):
                           to_jid = _account.user_jid, \
                           stanza_type = "normal", \
                           subject = u"[PASSWORD] " + \
-                          lang_class.ask_password_subject)#, \
-##                          body = lang_class.ask_password_body)# % \
-##                          (account.host, account.login))
+                          lang_class.ask_password_subject, \
+                          body = lang_class.ask_password_body % \
+                          (_account.name))
             self.stream.send(msg)
 
     def get_jid(self, _account):

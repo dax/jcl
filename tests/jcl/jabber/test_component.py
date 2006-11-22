@@ -1073,7 +1073,8 @@ class JCLComponent_TestCase(unittest.TestCase):
                          "user1@test.com")
         self.assertEqual(password_message.get_subject(), \
                          "[PASSWORD] Password request")
-        self.assertEqual(password_message.get_body(), None)
+        self.assertEqual(password_message.get_body(), \
+                         Lang.en.ask_password_body % ("account11"))
 
     def test_handle_presence_unavailable_to_component(self):
         self.comp.stream = MockStream()
