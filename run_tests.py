@@ -37,6 +37,7 @@ del sys.setdefaultencoding
 import tests
 from tests.jcl.jabber.test_component import *
 from tests.jcl.jabber.test_feeder import *
+from tests.jcl.jabber.test_x import *
 from tests.jcl.test_lang import *
 
 import jcl
@@ -50,7 +51,11 @@ if __name__ == '__main__':
     feeder_component_suite = unittest.makeSuite(FeederComponent_TestCase, "test")
     feeder_suite = unittest.makeSuite(Feeder_TestCase, "test")
     sender_suite = unittest.makeSuite(Sender_TestCase, "test")
+    dataform_suite = unittest.makeSuite(DataForm_TestCase, "test")
+    field_suite = unittest.makeSuite(Field_TestCase, "test")
+    option_suite = unittest.makeSuite(Option_TestCase, "test")
     lang_suite = unittest.makeSuite(Lang_TestCase, "test")
+
     jcl_suite = unittest.TestSuite()
 #    jcl_suite.addTest(FeederComponent_TestCase('test_handle_tick'))
 #    jcl_suite.addTest(FeederComponent_TestCase('test_handle_get_register_new'))
@@ -60,6 +65,9 @@ if __name__ == '__main__':
                                     feeder_component_suite, \
                                     feeder_suite, \
                                     sender_suite, \
+                                    dataform_suite, \
+                                    field_suite, \
+                                    option_suite, \
                                     lang_suite))
     test_support.run_suite(jcl_suite)
 
@@ -67,8 +75,11 @@ if __name__ == '__main__':
 coverage.stop()
 coverage.analysis(jcl.jabber.component)
 coverage.analysis(jcl.jabber.feeder)
+coverage.analysis(jcl.jabber.x)
 coverage.analysis(jcl.lang)
+
 coverage.report([jcl.jabber.component, \
                  jcl.jabber.feeder, \
+                 jcl.jabber.x, \
                  jcl.lang])
 
