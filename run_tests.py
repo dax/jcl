@@ -39,6 +39,7 @@ from tests.jcl.jabber.test_component import *
 from tests.jcl.jabber.test_feeder import *
 from tests.jcl.jabber.test_x import *
 from tests.jcl.test_lang import *
+from tests.jcl.model.test_account import *
 
 import jcl
 
@@ -55,12 +56,14 @@ if __name__ == '__main__':
     field_suite = unittest.makeSuite(Field_TestCase, "test")
     option_suite = unittest.makeSuite(Option_TestCase, "test")
     lang_suite = unittest.makeSuite(Lang_TestCase, "test")
-
+    account_module_suite = unittest.makeSuite(AccountModule_TestCase, "test")
+    account_suite = unittest.makeSuite(Account_TestCase, "test")
+    
     jcl_suite = unittest.TestSuite()
 #    jcl_suite.addTest(FeederComponent_TestCase('test_handle_tick'))
 #    jcl_suite.addTest(FeederComponent_TestCase('test_handle_get_register_new'))
 #    jcl_suite = unittest.TestSuite((feeder_component_suite))
-#    jcl_suite = unittest.TestSuite((component_suite))
+#    jcl_suite = unittest.TestSuite((account_suite))
     jcl_suite = unittest.TestSuite((component_suite, \
                                     feeder_component_suite, \
                                     feeder_suite, \
@@ -68,7 +71,9 @@ if __name__ == '__main__':
                                     dataform_suite, \
                                     field_suite, \
                                     option_suite, \
-                                    lang_suite))
+                                    lang_suite, \
+                                    account_module_suite, \
+                                    account_suite))
     test_support.run_suite(jcl_suite)
 
 
@@ -77,9 +82,11 @@ coverage.analysis(jcl.jabber.component)
 coverage.analysis(jcl.jabber.feeder)
 coverage.analysis(jcl.jabber.x)
 coverage.analysis(jcl.lang)
+coverage.analysis(jcl.model.account)
 
 coverage.report([jcl.jabber.component, \
                  jcl.jabber.feeder, \
                  jcl.jabber.x, \
-                 jcl.lang])
+                 jcl.lang, \
+                 jcl.model.account])
 

@@ -100,12 +100,12 @@ class Account(SQLObject):
     def set_status(self, status):
         """Set current Jabber status"""
         if status == OFFLINE:
-            if hasattr(self.__class__, 'waiting_password_reply') \
-               and hasattr(self.__class__, 'store_password') \
-               and hasattr(self.__class__, 'password'):
-                setattr(self.__class__, 'waiting_password_reply', False)
-                if not getattr(self.__class__, 'store_password'):
-                    setattr(self.__class__, 'password', None)
+            if hasattr(self, 'waiting_password_reply') \
+               and hasattr(self, 'store_password') \
+               and hasattr(self, 'password'):
+                setattr(self, 'waiting_password_reply', False)
+                if not getattr(self, 'store_password'):
+                    setattr(self, 'password', None)
         else:
             # TODO seems to be a bug : first_check = True only
             # if previous status was OFFLINE

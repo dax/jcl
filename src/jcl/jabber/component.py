@@ -644,7 +644,7 @@ class JCLComponent(Component, object):
         reg_form.fields["name"].value = _account.name
         reg_form.fields["name"].type = "hidden"
         for (field_name, field) in reg_form.fields.items():
-            if hasattr(self.account_class, field_name):
+            if hasattr(_account, field_name):
                 field.value = str(getattr(_account, field_name))
         return reg_form
 
