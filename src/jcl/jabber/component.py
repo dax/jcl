@@ -356,6 +356,7 @@ class JCLComponent(Component, object):
         query = info_query.get_query()
         x_data = DataForm()
         x_data.from_xml(query.children)
+
         name = x_data.get_field_value("name")
         if name is None:
             info_query = info_query.make_error_response(\

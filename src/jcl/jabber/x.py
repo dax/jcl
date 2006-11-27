@@ -31,19 +31,19 @@ class Option(object):
     """Option value for list field
     """
     def __init__(self, label, value):
-        self.__label = label
-        self.__value = value
+        self.label = label
+        self.value = value
     
     def get_xml(self, parent):
         """Return XML Option representation from
-        self.__label and self.__value and attach it to parent
+        self.label and self.value and attach it to parent
         """
         if parent is None:
             option = common_doc.newChild(None, "option", None)
         else:
             option = parent.newChild(None, "option", None)
-        option.setProp("label", self.__label)
-        option.newChild(None, "value", self.__value)
+        option.setProp("label", self.label)
+        option.newChild(None, "value", self.value)
         return option
 
 class Field(object):
@@ -51,17 +51,17 @@ class Field(object):
     """
     def __init__(self, field_type, label, var, value, required = False):
         self.type = field_type
-        self.__label = label
-        self.__var = var
+        self.label = label
+        self.var = var
         self.value = value
-        self.__options = []
+        self.options = []
         self.required = required
 
     def add_option(self, label, value):
         """Add an Option to this field
         """
         option = Option(label, value)
-        self.__options.append(option)
+        self.options.append(option)
         return option
 
     def get_xml(self, parent):
@@ -73,15 +73,15 @@ class Field(object):
         else:
             field = parent.newChild(None, "field", None)
         field.setProp("type", self.type)
-        if not self.__label is None:
-            field.setProp("label", self.__label)
-        if not self.__var is None:
-            field.setProp("var", self.__var)
+        if not self.label is None:
+            field.setProp("label", self.label)
+        if not self.var is None:
+            field.setProp("var", self.var)
         if self.value:
             field.newChild(None, "value", self.value)
         if self.required:
             field.newChild(None, "required", None)
-        for option in self.__options:
+        for option in self.options:
             option.get_xml(field)
         return field
 
@@ -136,35 +136,37 @@ class DataForm(object):
     def from_xml(self, node):
         """Populate this X object from an XML representation
         """
-## TODO : test node type and ns and clean that loop !!!!
-        while node and node.type != "element":
-            node = node.next
-        child = node.children
-        while child:
-## TODO : test child type (element) and ns (jabber:x:data)
-            if child.type == "element" and child.name == "field":
-                if child.hasProp("type"): 
-                    field_type = child.prop("type")
-                else:
-                    field_type = ""
+        context = common_doc.xpathNewContext()
+        context.setContextNode(node)
+        context.xpathRegisterNs("jxd", "jabber:x:data")
+        fields_node = context.xpathEval("jxd:field")
+        for field_node in fields_node:
+            if field_node.hasProp("type"): 
+                field_type = field_node.prop("type")
+            else:
+                field_type = ""
 
-                if child.hasProp("label"): 
-                    label = child.prop("label")
-                else:
-                    label = ""
+            if field_node.hasProp("label"): 
+                label = field_node.prop("label")
+            else:
+                label = ""
 
-                if child.hasProp("var"): 
-                    var = child.prop("var")
-                else:
-                    var = ""
+            if field_node.hasProp("var"): 
+                var = field_node.prop("var")
+            else:
+                var = ""
 
-                xval = child.children
-                while xval and xval.name != "value":
-                    xval = xval.next
-                if xval:
-                    value = xval.getContent()
-                else:
-                    value = ""
-                field = Field(field_type, label, var, value)
-                self.fields[var] = field
-            child = child.next
+            field_context = common_doc.xpathNewContext()
+            field_context.setContextNode(field_node)
+            field_context.xpathRegisterNs("jxd", "jabber:x:data")
+            fields_value_node = field_context.xpathEval("jxd:value")
+            if len(fields_value_node) > 0:
+                value = fields_value_node[0].content
+            else:
+                value = ""
+            self.add_field(field_type = field_type, \
+                           label = label, \
+                           var = var, \
+                           value = value)
+            field_context.xpathFreeContext()
+        context.xpathFreeContext()

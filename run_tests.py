@@ -63,7 +63,7 @@ if __name__ == '__main__':
 #    jcl_suite.addTest(FeederComponent_TestCase('test_handle_tick'))
 #    jcl_suite.addTest(FeederComponent_TestCase('test_handle_get_register_new'))
 #    jcl_suite = unittest.TestSuite((feeder_component_suite))
-#    jcl_suite = unittest.TestSuite((account_suite))
+#    jcl_suite = unittest.TestSuite((dataform_suite))
     jcl_suite = unittest.TestSuite((component_suite, \
                                     feeder_component_suite, \
                                     feeder_suite, \
