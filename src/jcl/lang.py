@@ -52,7 +52,11 @@ class Lang:
         :Parameters:
            - `lang`: lang code.
         """
-        return getattr(self, lang)
+        if lang is not None:
+            lang = lang[:2]
+        if hasattr(Lang, lang):
+            return getattr(Lang, lang)
+        return getattr(Lang, self.default_lang)
 
     def get_lang_class_from_node(self, node):
         """Return lang class from XML node.

@@ -1,3 +1,4 @@
+# -*- coding: UTF-8 -*-
 ##
 ## test_lang.py
 ## Login : David Rousselie <dax@happycoders.org>
@@ -21,6 +22,44 @@
 ##
 
 import unittest
+from jcl.lang import Lang
+
+from pyxmpp.iq import Iq
 
 class Lang_TestCase(unittest.TestCase):
-    pass
+    def setUp(self):
+        self.lang = Lang()
+
+    def tearDown(self):
+        self.lang = None
+        
+    def test_get_lang_class_exist(self):
+        lang_class = self.lang.get_lang_class("fr")
+        self.assertEquals(lang_class, Lang.fr)
+
+    def test_get_lang_class_not_exist(self):
+        lang_class = self.lang.get_lang_class("not_exist")
+        self.assertEquals(lang_class, Lang.en)
+        
+    def test_get_lang_class_long_code(self):
+        lang_class = self.lang.get_lang_class("fr_FR")
+        self.assertEquals(lang_class, Lang.fr)
+        
+    def test_get_lang_from_node(self):
+        iq = Iq(from_jid = "test@test.com", \
+                to_jid = "test2@test.com", \
+                stanza_type = "get")
+        iq_node = iq.get_node()
+        iq_node.setLang("fr")
+        lang = self.lang.get_lang_from_node(iq_node)
+        self.assertEquals(lang, "fr")
+
+    def test_get_lang_class_from_node(self):
+        iq = Iq(from_jid = "test@test.com", \
+                to_jid = "test2@test.com", \
+                stanza_type = "get")
+        iq_node = iq.get_node()
+        iq_node.setLang("fr")
+        lang = self.lang.get_lang_class_from_node(iq_node)
+        self.assertEquals(lang, Lang.fr)
+        
