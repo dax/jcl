@@ -98,6 +98,7 @@ class JCLComponent(Component, object):
         self.__logger = logging.getLogger("jcl.jabber.JCLComponent")
         self.lang = Lang()
         self.running = False
+        self.wait_event = threading.Event()
 
         signal.signal(signal.SIGINT, self.signal_handler)
         signal.signal(signal.SIGTERM, self.signal_handler)
@@ -162,6 +163,7 @@ class JCLComponent(Component, object):
                         to_jid = _account.user_jid, \
                         stanza_type = "unavailable"))
                 self.db_disconnect()
+            self.wait_event.set()
             timer_thread.join(JCLComponent.timeout)
             self.disconnect()
             self.__logger.debug("Exitting normally")
@@ -194,10 +196,12 @@ class JCLComponent(Component, object):
                    and self.stream.socket is not None):
                 self.handle_tick()
                 self.__logger.debug("Resetting alarm signal")
-                time.sleep(self.time_unit)
+                ##time.sleep(self.time_unit)
+                self.wait_event.wait(self.time_unit)
         except Exception, exception:
             self.queue.put(exception)
             raise
+        self.__logger.info("Timer thread terminated...")
 
     def authenticated(self):
         """Override authenticated Component event handler
