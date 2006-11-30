@@ -91,7 +91,7 @@ class FeederComponent_TestCase(JCLComponent_TestCase):
 
         class MessageAccountSender(Sender):
             def send(self, _account, data):
-                self.stream.send(Message(\
+                self.component.stream.send(Message(\
                     from_jid = _account.jid, \
                     to_jid = _account.user_jid, \
                     subject = "Simple Message for account " + _account.name, \
@@ -109,8 +109,8 @@ class FeederComponent_TestCase(JCLComponent_TestCase):
         account2 = Account(user_jid = "user2@test.com", \
                            name = "account2", \
                            jid = "account2@jcl.test.com")
-        self.comp.feeder = AccountFeeder(self.comp.stream)
-        self.comp.sender = MessageAccountSender(self.comp.stream)
+        self.comp.feeder = AccountFeeder(self.comp)
+        self.comp.sender = MessageAccountSender(self.comp)
         self.comp.handle_tick()
 
         messages_sent = self.comp.stream.sent

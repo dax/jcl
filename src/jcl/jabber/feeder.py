@@ -67,18 +67,18 @@ class FeederComponent(JCLComponent):
 
 class Feeder(object):
     """Abstract feeder class"""
-    def __init__(self, stream = None):
-        self.stream = stream
+    def __init__(self, component = None):
+        self.component = component
 
-    def feed(self, account):
+    def feed(self, _account):
         """Feed data for given account"""
         raise NotImplementedError
 
 
 class Sender(object):
     """Abstract sender class"""
-    def __init__(self, stream = None):
-        self.stream = stream
+    def __init__(self, component = None):
+        self.component = component
 
     def send(self, to_account, data):
         """Send data to given account"""
