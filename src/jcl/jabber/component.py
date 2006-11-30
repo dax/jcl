@@ -355,9 +355,12 @@ class JCLComponent(Component, object):
             self.remove_all_accounts(base_from_jid)
             return 1
 
-        query = info_query.get_query()
+        x_node = info_query.xpath_eval("jir:query/jxd:x", \
+                                       {"jir" : "jabber:iq:register", \
+                                        "jxd" : "jabber:x:data"})[0]
+
         x_data = DataForm()
-        x_data.from_xml(query.children)
+        x_data.from_xml(x_node)
 
         name = x_data.get_field_value("name")
         self.__logger.debug("Account name received = " + str(name))
