@@ -1421,7 +1421,13 @@ class JCLComponent_TestCase(unittest.TestCase):
         presence_sent = self.comp.stream.sent
         self.assertEqual(len(presence_sent), 0)
 
-    def test_handle_presence_unsubscribe(self):
+    def test_handle_presence_subscribed(self):
+        self.comp.stream = MockStream()
+        self.comp.stream_class = MockStream
+        self.comp.handle_presence_subscribed(None)
+        self.assertEqual(len(self.comp.stream.sent), 0)
+        
+    def test_handle_presence_unsubscribe_to_account(self):
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
         account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)

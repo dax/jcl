@@ -535,17 +535,6 @@ class JCLComponent(Component, object):
         """Handle subscribed presence from user
         """
         self.__logger.debug("PRESENCE_SUBSCRIBED")
-        name = stanza.get_to().node
-        from_jid = stanza.get_from()
-        base_from_jid = unicode(from_jid.bare())
-#        accounts = self.account_class.select(\
-#                self.account_class.q.user_jid == base_from_jid
-#                and self.account_class.q.name == name)
-#        if accounts.count() >= 1:
-#            _account = list(accounts)[0]
-#            self._send_presence_available(_account, "show", lang_class)
-        # TODO : send presence available to subscribed user
-        # is it necessary to send available presence ?
         return 1
 
     def handle_presence_unsubscribe(self, stanza):
