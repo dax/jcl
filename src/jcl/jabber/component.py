@@ -36,6 +36,7 @@ import re
 
 from Queue import Queue
 
+from sqlobject.sqlbuilder import AND
 from sqlobject.dbconnection import connectionForURI
 
 from pyxmpp.jid import JID
@@ -304,8 +305,8 @@ class JCLComponent(Component, object):
         if to_jid and to_jid != self.jid:
             self.db_connect()
             for _account in self.account_class.select(\
-                self.account_class.q.user_jid == base_from_jid \
-                and self.account_class.q.name == name):
+                AND(self.account_class.q.name == name, \
+                    self.account_class.q.user_jid == base_from_jid)):
                 self.get_reg_form_init(lang_class, \
                                        _account).attach_xml(query)
             self.db_disconnect()
@@ -365,8 +366,8 @@ class JCLComponent(Component, object):
             return            
         self.db_connect()
         accounts = self.account_class.select(\
-            self.account_class.q.user_jid == base_from_jid \
-            and self.account_class.q.name == name)
+            AND(self.account_class.q.name == name, \
+                self.account_class.q.user_jid == base_from_jid))
         accounts_count = accounts.count()
         all_accounts = self.account_class.select(\
             self.account_class.q.user_jid == base_from_jid)
@@ -448,9 +449,9 @@ class JCLComponent(Component, object):
             self.stream.send(presence)
         else:
             accounts = self.account_class.select(\
-                self.account_class.q.user_jid == base_from_jid
-                and self.account_class.q.name == name)
-            if accounts.count() >= 1:
+                 AND(self.account_class.q.name == name, \
+                     self.account_class.q.user_jid == base_from_jid))
+            if accounts.count() > 0:
                 self._send_presence_available(accounts[0], show, lang_class)
         self.db_disconnect()
         return 1
@@ -542,8 +543,8 @@ class JCLComponent(Component, object):
         base_from_jid = unicode(message.get_from().bare())
         self.db_connect()
         accounts = self.account_class.select(\
-            self.account_class.q.user_jid == base_from_jid \
-            and self.account_class.q.name == name)
+            AND(self.account_class.q.name == name, \
+                self.account_class.q.user_jid == base_from_jid))
         if hasattr(self.account_class, 'password') \
                and hasattr(self.account_class, 'waiting_password_reply') \
                and re.compile("\[PASSWORD\]").search(message.get_subject()) \
