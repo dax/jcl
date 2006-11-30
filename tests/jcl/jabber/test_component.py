@@ -445,13 +445,19 @@ class JCLComponent_TestCase(unittest.TestCase):
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
         account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
-        account1 = Account(user_jid = "user1@test.com", \
-                           name = "account1", \
-                           jid = "account1@jcl.test.com")
+        account11 = Account(user_jid = "user1@test.com", \
+                           name = "account11", \
+                           jid = "account11@jcl.test.com")
+        account12 = Account(user_jid = "user1@test.com", \
+                           name = "account12", \
+                           jid = "account12@jcl.test.com")
+        account21 = Account(user_jid = "user1@test.com", \
+                           name = "account21", \
+                           jid = "account21@jcl.test.com")
         del account.hub.threadConnection
         self.comp.handle_get_register(Iq(stanza_type = "get", \
                                          from_jid = "user1@test.com", \
-                                         to_jid = "account1@jcl.test.com"))
+                                         to_jid = "account11@jcl.test.com"))
         self.assertEquals(len(self.comp.stream.sent), 1)
         iq_sent = self.comp.stream.sent[0]
         self.assertEquals(iq_sent.get_to(), "user1@test.com")
@@ -479,7 +485,7 @@ class JCLComponent_TestCase(unittest.TestCase):
                                    {"jir" : "jabber:iq:register", \
                                     "jxd" : "jabber:x:data"})
         self.assertEquals(len(value), 1)
-        self.assertEquals(value[0].content, "account1")
+        self.assertEquals(value[0].content, "account11")
 
     def test_handle_get_register_exist_complex(self):
         self.comp.account_class = AccountExample
@@ -494,6 +500,22 @@ class JCLComponent_TestCase(unittest.TestCase):
                                   store_password = False, \
                                   test_enum = "choice3", \
                                   test_int = 21)
+        account11 = AccountExample(user_jid = "user1@test.com", \
+                                   name = "account11", \
+                                   jid = "account11@jcl.test.com", \
+                                   login = "mylogin", \
+                                   password = "mypassword", \
+                                   store_password = False, \
+                                   test_enum = "choice3", \
+                                   test_int = 21)
+        account21 = AccountExample(user_jid = "user2@test.com", \
+                                   name = "account21", \
+                                   jid = "account21@jcl.test.com", \
+                                   login = "mylogin", \
+                                   password = "mypassword", \
+                                   store_password = False, \
+                                   test_enum = "choice3", \
+                                   test_int = 21)
         del account.hub.threadConnection
         self.comp.handle_get_register(Iq(stanza_type = "get", \
                                          from_jid = "user1@test.com", \
@@ -981,6 +1003,27 @@ class JCLComponent_TestCase(unittest.TestCase):
                               and isinstance(presence, Presence)]), \
                           1)
 
+    def test_handle_presence_available_to_component_unknown_user(self):
+        self.comp.stream = MockStream()
+        self.comp.stream_class = MockStream
+        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
+        account11 = Account(user_jid = "user1@test.com", \
+                            name = "account11", \
+                            jid = "account11@jcl.test.com")
+        account12 = Account(user_jid = "user1@test.com", \
+                            name = "account12", \
+                            jid = "account12@jcl.test.com")
+        account2 = Account(user_jid = "user2@test.com", \
+                           name = "account2", \
+                           jid = "account2@jcl.test.com")
+        del account.hub.threadConnection
+        self.comp.handle_presence_available(Presence(\
+            stanza_type = "available", \
+            from_jid = "unknown@test.com",\
+            to_jid = "jcl.test.com"))
+        presence_sent = self.comp.stream.sent
+        self.assertEqual(len(presence_sent), 0)
+
     def test_handle_presence_available_to_account(self):
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
@@ -1004,6 +1047,48 @@ class JCLComponent_TestCase(unittest.TestCase):
         self.assertEqual(presence_sent[0].get_to(), "user1@test.com")
         self.assertEqual(presence_sent[0].get_from(), "account11@jcl.test.com")
         self.assertTrue(isinstance(presence_sent[0], Presence))
+
+    def test_handle_presence_available_to_account_unknown_user(self):
+        self.comp.stream = MockStream()
+        self.comp.stream_class = MockStream
+        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
+        account11 = Account(user_jid = "user1@test.com", \
+                            name = "account11", \
+                            jid = "account11@jcl.test.com")
+        account12 = Account(user_jid = "user1@test.com", \
+                            name = "account12", \
+                            jid = "account12@jcl.test.com")
+        account2 = Account(user_jid = "user2@test.com", \
+                           name = "account2", \
+                           jid = "account2@jcl.test.com")
+        del account.hub.threadConnection
+        self.comp.handle_presence_available(Presence(\
+            stanza_type = "available", \
+            from_jid = "unknown@test.com",\
+            to_jid = "account11@jcl.test.com"))
+        presence_sent = self.comp.stream.sent
+        self.assertEqual(len(presence_sent), 0)
+
+    def test_handle_presence_available_to_unknown_account(self):
+        self.comp.stream = MockStream()
+        self.comp.stream_class = MockStream
+        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
+        account11 = Account(user_jid = "user1@test.com", \
+                            name = "account11", \
+                            jid = "account11@jcl.test.com")
+        account12 = Account(user_jid = "user1@test.com", \
+                            name = "account12", \
+                            jid = "account12@jcl.test.com")
+        account2 = Account(user_jid = "user2@test.com", \
+                           name = "account2", \
+                           jid = "account2@jcl.test.com")
+        del account.hub.threadConnection
+        self.comp.handle_presence_available(Presence(\
+            stanza_type = "available", \
+            from_jid = "user1@test.com",\
+            to_jid = "unknown@jcl.test.com"))
+        presence_sent = self.comp.stream.sent
+        self.assertEqual(len(presence_sent), 0)
 
     def test_handle_presence_available_to_account_live_password(self):
         self.comp.stream = MockStream()
@@ -1125,6 +1210,26 @@ class JCLComponent_TestCase(unittest.TestCase):
                  == "unavailable"]), \
             1)
 
+    def test_handle_presence_unavailable_to_component_unknown_user(self):
+        self.comp.stream = MockStream()
+        self.comp.stream_class = MockStream
+        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
+        account11 = Account(user_jid = "user1@test.com", \
+                            name = "account11", \
+                            jid = "account11@jcl.test.com")
+        account12 = Account(user_jid = "user1@test.com", \
+                            name = "account12", \
+                            jid = "account12@jcl.test.com")
+        account2 = Account(user_jid = "user2@test.com", \
+                           name = "account2", \
+                           jid = "account2@jcl.test.com")
+        del account.hub.threadConnection
+        self.comp.handle_presence_unavailable(Presence(\
+            stanza_type = "unavailable", \
+            from_jid = "unknown@test.com",\
+            to_jid = "jcl.test.com"))
+        presence_sent = self.comp.stream.sent
+        self.assertEqual(len(presence_sent), 0)
 
     def test_handle_presence_unavailable_to_account(self):
         self.comp.stream = MockStream()
@@ -1152,9 +1257,62 @@ class JCLComponent_TestCase(unittest.TestCase):
             presence_sent[0].xpath_eval("@type")[0].get_content(), \
             "unavailable")
 
+    def test_handle_presence_unavailable_to_account_unknown_user(self):
+        self.comp.stream = MockStream()
+        self.comp.stream_class = MockStream
+        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
+        account11 = Account(user_jid = "user1@test.com", \
+                            name = "account11", \
+                            jid = "account11@jcl.test.com")
+        account12 = Account(user_jid = "user1@test.com", \
+                            name = "account12", \
+                            jid = "account12@jcl.test.com")
+        account2 = Account(user_jid = "user2@test.com", \
+                           name = "account2", \
+                           jid = "account2@jcl.test.com")
+        del account.hub.threadConnection
+        self.comp.handle_presence_unavailable(Presence(\
+            stanza_type = "unavailable", \
+            from_jid = "unknown@test.com",\
+            to_jid = "account11@jcl.test.com"))
+        presence_sent = self.comp.stream.sent
+        self.assertEqual(len(presence_sent), 0)
+
+    def test_handle_presence_unavailable_to_unknown_account(self):
+        self.comp.stream = MockStream()
+        self.comp.stream_class = MockStream
+        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
+        account11 = Account(user_jid = "user1@test.com", \
+                            name = "account11", \
+                            jid = "account11@jcl.test.com")
+        account12 = Account(user_jid = "user1@test.com", \
+                            name = "account12", \
+                            jid = "account12@jcl.test.com")
+        account2 = Account(user_jid = "user2@test.com", \
+                           name = "account2", \
+                           jid = "account2@jcl.test.com")
+        del account.hub.threadConnection
+        self.comp.handle_presence_unavailable(Presence(\
+            stanza_type = "unavailable", \
+            from_jid = "user1@test.com",\
+            to_jid = "unknown@jcl.test.com"))
+        presence_sent = self.comp.stream.sent
+        self.assertEqual(len(presence_sent), 0)
+
     def test_handle_presence_subscribe_to_component(self):
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
+        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
+        account11 = Account(user_jid = "user1@test.com", \
+                            name = "account11", \
+                            jid = "account11@jcl.test.com")
+        account12 = Account(user_jid = "user1@test.com", \
+                            name = "account12", \
+                            jid = "account12@jcl.test.com")
+        account2 = Account(user_jid = "user2@test.com", \
+                           name = "account2", \
+                           jid = "account2@jcl.test.com")
+        del account.hub.threadConnection
         self.comp.handle_presence_subscribe(Presence(\
             stanza_type = "subscribe", \
             from_jid = "user1@test.com",\
@@ -1167,9 +1325,41 @@ class JCLComponent_TestCase(unittest.TestCase):
             presence_sent[0].xpath_eval("@type")[0].get_content(), \
             "subscribed")
 
+    def test_handle_presence_subscribe_to_component_unknown_user(self):
+        self.comp.stream = MockStream()
+        self.comp.stream_class = MockStream
+        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
+        account11 = Account(user_jid = "user1@test.com", \
+                            name = "account11", \
+                            jid = "account11@jcl.test.com")
+        account12 = Account(user_jid = "user1@test.com", \
+                            name = "account12", \
+                            jid = "account12@jcl.test.com")
+        account2 = Account(user_jid = "user2@test.com", \
+                           name = "account2", \
+                           jid = "account2@jcl.test.com")
+        del account.hub.threadConnection
+        self.comp.handle_presence_subscribe(Presence(\
+            stanza_type = "subscribe", \
+            from_jid = "unknown@test.com",\
+            to_jid = "jcl.test.com"))
+        presence_sent = self.comp.stream.sent
+        self.assertEqual(len(presence_sent), 0)
+
     def test_handle_presence_subscribe_to_account(self):
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
+        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
+        account11 = Account(user_jid = "user1@test.com", \
+                            name = "account11", \
+                            jid = "account11@jcl.test.com")
+        account12 = Account(user_jid = "user1@test.com", \
+                            name = "account12", \
+                            jid = "account12@jcl.test.com")
+        account2 = Account(user_jid = "user2@test.com", \
+                           name = "account2", \
+                           jid = "account2@jcl.test.com")
+        del account.hub.threadConnection
         self.comp.handle_presence_subscribe(Presence(\
             stanza_type = "subscribe", \
             from_jid = "user1@test.com",\
@@ -1182,9 +1372,47 @@ class JCLComponent_TestCase(unittest.TestCase):
             presence_sent[0].xpath_eval("@type")[0].get_content(), \
             "subscribed")
 
-    def test_handle_presence_subscribed(self):
-        # TODO
-        pass
+    def test_handle_presence_subscribe_to_account_unknown_user(self):
+        self.comp.stream = MockStream()
+        self.comp.stream_class = MockStream
+        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
+        account11 = Account(user_jid = "user1@test.com", \
+                            name = "account11", \
+                            jid = "account11@jcl.test.com")
+        account12 = Account(user_jid = "user1@test.com", \
+                            name = "account12", \
+                            jid = "account12@jcl.test.com")
+        account2 = Account(user_jid = "user2@test.com", \
+                           name = "account2", \
+                           jid = "account2@jcl.test.com")
+        del account.hub.threadConnection
+        self.comp.handle_presence_subscribe(Presence(\
+            stanza_type = "subscribe", \
+            from_jid = "unknown@test.com",\
+            to_jid = "account11@jcl.test.com"))
+        presence_sent = self.comp.stream.sent
+        self.assertEqual(len(presence_sent), 0)
+
+    def test_handle_presence_subscribe_to_unknown_account(self):
+        self.comp.stream = MockStream()
+        self.comp.stream_class = MockStream
+        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
+        account11 = Account(user_jid = "user1@test.com", \
+                            name = "account11", \
+                            jid = "account11@jcl.test.com")
+        account12 = Account(user_jid = "user1@test.com", \
+                            name = "account12", \
+                            jid = "account12@jcl.test.com")
+        account2 = Account(user_jid = "user2@test.com", \
+                           name = "account2", \
+                           jid = "account2@jcl.test.com")
+        del account.hub.threadConnection
+        self.comp.handle_presence_subscribe(Presence(\
+            stanza_type = "subscribe", \
+            from_jid = "user1@test.com",\
+            to_jid = "unknown@jcl.test.com"))
+        presence_sent = self.comp.stream.sent
+        self.assertEqual(len(presence_sent), 0)
 
     def test_handle_presence_unsubscribe(self):
         self.comp.stream = MockStream()
@@ -1206,31 +1434,77 @@ class JCLComponent_TestCase(unittest.TestCase):
             to_jid = "account11@jcl.test.com"))
         presence_sent = self.comp.stream.sent
         self.assertEqual(len(presence_sent), 2)
-        self.assertEqual(len([presence \
-                              for presence in presence_sent \
-                              if presence.get_to_jid() == "user1@test.com"]), \
-                          2)
-        self.assertEqual(\
-            len([presence \
-                 for presence in presence_sent \
-                 if presence.get_from_jid() == \
-                 "account11@jcl.test.com" \
-                 and presence.xpath_eval("@type")[0].get_content() \
-                 == "unsubscribe"]), \
-            1)
-        self.assertEqual(\
-            len([presence \
-                 for presence in presence_sent \
-                 if presence.get_from_jid() == \
-                 "account11@jcl.test.com" \
-                 and presence.xpath_eval("@type")[0].get_content() \
-                 == "unsubscribed"]), \
-            1)
+        presence = presence_sent[0]
+        self.assertEqual(presence.get_from(), "account11@jcl.test.com")
+        self.assertEqual(presence.get_to(), "user1@test.com")
+        self.assertEqual(presence.xpath_eval("@type")[0].get_content(), \
+                         "unsubscribe")
+        presence = presence_sent[1]
+        self.assertEqual(presence.get_from(), "account11@jcl.test.com")
+        self.assertEqual(presence.get_to(), "user1@test.com")
+        self.assertEqual(presence.xpath_eval("@type")[0].get_content(), \
+                         "unsubscribed")
         account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
         self.assertEquals(self.comp.account_class.select(\
             self.comp.account_class.q.user_jid == "user1@test.com" \
             and self.comp.account_class.q.name == "account11").count(), \
                           0)
+        self.assertEquals(self.comp.account_class.select(\
+            self.comp.account_class.q.user_jid == "user1@test.com").count(), \
+                          1)
+        self.assertEquals(self.comp.account_class.select().count(), \
+                          2)
+        del account.hub.threadConnection
+
+    def test_handle_presence_unsubscribe_to_account_unknown_user(self):
+        self.comp.stream = MockStream()
+        self.comp.stream_class = MockStream
+        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
+        account11 = Account(user_jid = "user1@test.com", \
+                            name = "account11", \
+                            jid = "account11@jcl.test.com")
+        account12 = Account(user_jid = "user1@test.com", \
+                            name = "account12", \
+                            jid = "account12@jcl.test.com")
+        account2 = Account(user_jid = "user2@test.com", \
+                           name = "account2", \
+                           jid = "account2@jcl.test.com")
+        del account.hub.threadConnection
+        self.comp.handle_presence_unsubscribe(Presence(\
+            stanza_type = "unsubscribe", \
+            from_jid = "unknown@test.com",\
+            to_jid = "account11@jcl.test.com"))
+        presence_sent = self.comp.stream.sent
+        self.assertEqual(len(presence_sent), 0)
+        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
+        self.assertEquals(self.comp.account_class.select().count(), \
+                          3)
+        del account.hub.threadConnection
+
+
+    def test_handle_presence_unsubscribe_to_unknown_account(self):
+        self.comp.stream = MockStream()
+        self.comp.stream_class = MockStream
+        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
+        account11 = Account(user_jid = "user1@test.com", \
+                            name = "account11", \
+                            jid = "account11@jcl.test.com")
+        account12 = Account(user_jid = "user1@test.com", \
+                            name = "account12", \
+                            jid = "account12@jcl.test.com")
+        account2 = Account(user_jid = "user2@test.com", \
+                           name = "account2", \
+                           jid = "account2@jcl.test.com")
+        del account.hub.threadConnection
+        self.comp.handle_presence_unsubscribe(Presence(\
+            stanza_type = "unsubscribe", \
+            from_jid = "user1@test.com",\
+            to_jid = "unknown@jcl.test.com"))
+        presence_sent = self.comp.stream.sent
+        self.assertEqual(len(presence_sent), 0)
+        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
+        self.assertEquals(self.comp.account_class.select().count(), \
+                          3)
         del account.hub.threadConnection
 
     def test_handle_presence_unsubscribed(self):

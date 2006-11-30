@@ -302,7 +302,7 @@ class JCLComponent(Component, object):
         name = to_jid.node
         info_query = info_query.make_result_response()
         query = info_query.new_query("jabber:iq:register")
-        if to_jid and to_jid != self.jid:
+        if name is not None:
             self.db_connect()
             for _account in self.account_class.select(\
                 AND(self.account_class.q.name == name, \
@@ -439,14 +439,15 @@ class JCLComponent(Component, object):
             for _account in accounts:
                 accounts_length += 1
                 self._send_presence_available(_account, show, lang_class)
-            presence = Presence(from_jid = self.jid, \
-                                to_jid = from_jid, \
-                                status = \
-                                str(accounts_length) \
-                                + lang_class.message_status, \
-                                show = show, \
-                                stanza_type = "available")
-            self.stream.send(presence)
+            if (accounts_length > 0):
+                presence = Presence(from_jid = self.jid, \
+                                    to_jid = from_jid, \
+                                    status = \
+                                    str(accounts_length) \
+                                    + lang_class.message_status, \
+                                    show = show, \
+                                    stanza_type = "available")
+                self.stream.send(presence)
         else:
             accounts = self.account_class.select(\
                  AND(self.account_class.q.name == name, \
@@ -462,28 +463,55 @@ class JCLComponent(Component, object):
         self.__logger.debug("PRESENCE_UNAVAILABLE")
         from_jid = stanza.get_from()
         base_from_jid = unicode(from_jid.bare())
-        if stanza.get_to() == unicode(self.jid):
-            self.db_connect()
-            for _account in self.account_class.select(\
-                self.account_class.q.user_jid == base_from_jid):
+        name = stanza.get_to().node
+        self.db_connect()
+        if not name:
+            accounts = self.account_class.select(\
+                self.account_class.q.user_jid == base_from_jid)
+            for _account in accounts:
                 _account.status = jcl.model.account.OFFLINE
                 presence = Presence(from_jid = _account.jid, \
                                     to_jid = from_jid, \
                                     stanza_type = "unavailable")
                 self.stream.send(presence)
-            self.db_disconnect()
-        presence = Presence(from_jid = stanza.get_to(), \
-                            to_jid = from_jid, \
-                            stanza_type = "unavailable")
-        self.stream.send(presence)
+            if accounts.count() > 0:
+                presence = Presence(from_jid = stanza.get_to(), \
+                                    to_jid = from_jid, \
+                                    stanza_type = "unavailable")
+                self.stream.send(presence)
+        else:
+            accounts = self.account_class.select(\
+                 AND(self.account_class.q.name == name, \
+                     self.account_class.q.user_jid == base_from_jid))
+            if accounts.count() > 0:
+                presence = Presence(from_jid = stanza.get_to(), \
+                                    to_jid = from_jid, \
+                                    stanza_type = "unavailable")
+                self.stream.send(presence)          
+        self.db_disconnect()
         return 1
 
     def handle_presence_subscribe(self, stanza):
         """Handle subscribe presence from user
         """
         self.__logger.debug("PRESENCE_SUBSCRIBE")
-        presence = stanza.make_accept_response()
-        self.stream.send(presence)
+        from_jid = stanza.get_from()
+        base_from_jid = unicode(from_jid.bare())
+        name = stanza.get_to().node
+        accounts = None
+        self.db_connect()
+        if not name:
+            accounts = self.account_class.select(\
+                self.account_class.q.user_jid == base_from_jid)
+        else:
+            accounts = self.account_class.select(\
+                 AND(self.account_class.q.name == name, \
+                     self.account_class.q.user_jid == base_from_jid))
+        if (accounts is not None \
+            and accounts.count() > 0):
+            presence = stanza.make_accept_response()
+            self.stream.send(presence)
+        self.db_disconnect()
         return 1
 
     def handle_presence_subscribed(self, stanza):
@@ -510,17 +538,21 @@ class JCLComponent(Component, object):
         name = stanza.get_to().node
         from_jid = stanza.get_from()
         base_from_jid = unicode(from_jid.bare())
-        presence = Presence(from_jid = stanza.get_to(), to_jid = from_jid, \
-                            stanza_type = "unsubscribe")
-        self.stream.send(presence)
         self.db_connect()
-        for _account in self.account_class.select(\
-            self.account_class.q.user_jid == base_from_jid \
-            and self.account_class.q.name == name):
+        accounts = self.account_class.select(\
+                AND(self.account_class.q.name == name, \
+                    self.account_class.q.user_jid == base_from_jid))
+        for _account in accounts:
+            presence = Presence(from_jid = _account.jid, \
+                                to_jid = from_jid, \
+                                stanza_type = "unsubscribe")
+            self.stream.send(presence)
             _account.destroySelf()
+            presence = Presence(from_jid = _account.jid, \
+                                to_jid = from_jid, \
+                                stanza_type = "unsubscribed")
+            self.stream.send(presence)
         self.db_disconnect()
-        presence = stanza.make_accept_response()
-        self.stream.send(presence)
         return 1
 
     def handle_presence_unsubscribed(self, stanza):
