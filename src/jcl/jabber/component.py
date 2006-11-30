@@ -39,6 +39,7 @@ from Queue import Queue
 from sqlobject.sqlbuilder import AND
 from sqlobject.dbconnection import connectionForURI
 
+import pyxmpp.error as error
 from pyxmpp.jid import JID
 from pyxmpp.jabberd.component import Component
 from pyxmpp.jabber.disco import DiscoInfo, DiscoItems, DiscoItem
@@ -359,10 +360,14 @@ class JCLComponent(Component, object):
         x_data.from_xml(query.children)
 
         name = x_data.get_field_value("name")
-        if name is None:
-            info_query = info_query.make_error_response(\
-                "not-acceptable")
-            self.stream.send(info_query)
+        self.__logger.debug("Account name received = " + str(name))
+        if name is None or name == "":
+            iq_error = info_query.make_error_response("not-acceptable")
+            text = iq_error.get_error().xmlnode.newTextChild(None, \
+                "text", \
+                lang_class.mandatory_field % ("name"))
+            text.setNs(text.newNs(error.STANZA_ERROR_NS, None))
+            self.stream.send(iq_error)
             return            
         self.db_connect()
         accounts = self.account_class.select(\
@@ -382,6 +387,7 @@ class JCLComponent(Component, object):
             _account = self.account_class(user_jid = base_from_jid, \
                                           name = name, \
                                           jid = name + u"@"+unicode(self.jid))
+        field = None
         try:
             for (field, field_type, field_post_func, field_default_func) in \
                     self.account_class.get_register_fields():
@@ -391,8 +397,12 @@ class JCLComponent(Component, object):
                                                field_default_func))
         except FieldError, exception:
             _account.destroySelf()
-            info_query = info_query.make_error_response("not-acceptable")
-            self.stream.send(info_query)
+            iq_error = info_query.make_error_response("not-acceptable")
+            text = iq_error.get_error().xmlnode.newTextChild(None, \
+                "text", \
+                lang_class.mandatory_field % (field))
+            text.setNs(text.newNs(error.STANZA_ERROR_NS, None))
+            self.stream.send(iq_error)
             self.db_disconnect()
             return
         info_query = info_query.make_result_response()

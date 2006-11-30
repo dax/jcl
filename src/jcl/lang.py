@@ -78,7 +78,8 @@ class Lang:
                             "for account %s\n"
         new_account_message_subject = u"New account '%s' created"
         new_account_message_body = u"New account created"
-
+        mandatory_field = u"%s is required"
+        
 #         account_login = u"Login"
 #         account_password = u"Password"
 #         account_password_store = u"Store password on Jabber server?"

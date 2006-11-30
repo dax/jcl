@@ -32,6 +32,7 @@ import os
 from sqlobject import *
 from sqlobject.dbconnection import TheURIOpener
 
+import pyxmpp.error as error
 from pyxmpp.iq import Iq
 from pyxmpp.stanza import Stanza
 from pyxmpp.presence import Presence
@@ -776,8 +777,11 @@ class JCLComponent_TestCase(unittest.TestCase):
         self.assertEquals(len(stanza_sent), 1)
         self.assertTrue(isinstance(stanza_sent[0], Iq))
         self.assertEquals(stanza_sent[0].get_node().prop("type"), "error")
-        error = stanza_sent[0].get_error()
-        self.assertEquals(error.get_condition().name, "not-acceptable")
+        stanza_error = stanza_sent[0].get_error()
+        self.assertEquals(stanza_error.get_condition().name, \
+                          "not-acceptable")
+        self.assertEquals(stanza_error.get_text(), \
+                          Lang.en.mandatory_field % ("name"))
 
     def test_handle_set_register_new_field_mandatory(self):
         self.comp.account_class = AccountExample
@@ -807,8 +811,11 @@ class JCLComponent_TestCase(unittest.TestCase):
         self.assertEquals(len(stanza_sent), 1)
         self.assertTrue(isinstance(stanza_sent[0], Iq))
         self.assertEquals(stanza_sent[0].get_node().prop("type"), "error")
-        error = stanza_sent[0].get_error()
-        self.assertEquals(error.get_condition().name, "not-acceptable")
+        stanza_error = stanza_sent[0].get_error()
+        self.assertEquals(stanza_error.get_condition().name, \
+                          "not-acceptable")
+        self.assertEquals(stanza_error.get_text(), \
+                          Lang.en.mandatory_field % ("login"))
 
     def test_handle_set_register_update_complex(self):
         self.comp.account_class = AccountExample
