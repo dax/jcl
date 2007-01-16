@@ -26,8 +26,8 @@
 
 __revision__ = "$Id: account.py,v 1.3 2005/09/18 20:24:07 dax Exp $"
 
-from sqlobject.main import SQLObject
-from sqlobject.col import StringCol
+from sqlobject.inheritance import InheritableSQLObject
+from sqlobject.col import StringCol, EnumCol, IntCol
 from sqlobject.dbconnection import ConnectionHub
 
 from jcl.lang import Lang
@@ -63,7 +63,7 @@ def mandatory_field(field_name):
 # create a hub to attach a per thread connection
 hub = ConnectionHub()
 
-class Account(SQLObject):
+class Account(InheritableSQLObject):
     """Base Account class"""
     _cacheValue = False
     _connection = hub
@@ -72,7 +72,7 @@ class Account(SQLObject):
     jid = StringCol()
 ## Not yet used    first_check = BoolCol(default = True)
     __status = StringCol(default = OFFLINE, dbName = "status")
-
+    
 ## Use these attributs to support volatile password
 ##    login = StringCol(default = "")
 ##    password = StringCol(default = None)
@@ -80,7 +80,7 @@ class Account(SQLObject):
 ##    waiting_password_reply = BoolCol(default = False)
 
     default_lang_class = Lang.en
-    
+
     def get_long_name(self):
         """Return Human readable account name"""
         return self.name
@@ -114,7 +114,6 @@ class Account(SQLObject):
         
     status = property(get_status, set_status)
 
-
     def _get_register_fields(cls):
         """Return a list of tuples for X Data Form composition
         A tuple is composed of:
@@ -144,3 +143,45 @@ class Account(SQLObject):
     def get_update_message_body(self, lang_class):
         """Return localized message body for existing account"""
         return lang_class.new_account_message_body
+
+class PresenceAccount(Account):
+    DO_NOTHING = 0
+    DO_SOMETHING = 1
+
+    # Should use EnumCol but attribute redefinition is not supported
+    chat_action = IntCol(default = DO_NOTHING)
+    online_action = IntCol(default = DO_NOTHING)
+    away_action = IntCol(default = DO_NOTHING)
+    xa_action = IntCol(default = DO_NOTHING)
+    dnd_action = IntCol(default = DO_NOTHING)
+    offline_action = IntCol(default = DO_NOTHING)
+
+    possibles_actions = [DO_NOTHING, DO_SOMETHING]
+
+    def _get_presence_actions_fields(cls):
+        """Return a list of tuples for X Data Form composition
+        for actions asociated to a presence state.
+        A tuple is composed of:
+        - presence_state (related to an Account attribut): 'chat_action',
+        'online_action', 'away_action', 'xa_action', 'dnd_action',
+        'offline_action'
+        - possible_actions: list of possibles actions
+        - default_action: one of the possibles actions, 'None' for no default
+        if nothing is selected by the user, Account.DO_NOTHING will be used.
+        """
+        return {'chat_action': (cls.possibles_actions, \
+                 PresenceAccount.DO_SOMETHING), \
+                'online_action': (cls.possibles_actions, \
+                 PresenceAccount.DO_SOMETHING), \
+                'away_action': (cls.possibles_actions, \
+                 PresenceAccount.DO_NOTHING), \
+                'xa_action': (cls.possibles_actions, \
+                 PresenceAccount.DO_NOTHING), \
+                'dnd_action': (cls.possibles_actions, \
+                 PresenceAccount.DO_NOTHING), \
+                'offline_action': (cls.possibles_actions, \
+                 PresenceAccount.DO_NOTHING)}
+    
+    get_presence_actions_fields = classmethod(_get_presence_actions_fields)
+    
+

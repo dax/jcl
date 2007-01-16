@@ -26,7 +26,7 @@ from sqlobject.col import StringCol, BoolCol, EnumCol, IntCol
 from jcl.lang import Lang
 
 from jcl.model import account
-from jcl.model.account import Account
+from jcl.model.account import Account, PresenceAccount
 
 class AccountExample(Account):
     login = StringCol(default = "")
@@ -55,3 +55,26 @@ class AccountExample(Account):
                  lambda field_name: 44)]
     
     get_register_fields = classmethod(_get_register_fields)
+
+
+class PresenceAccountExample(PresenceAccount):
+    DO_SOMETHING_ELSE = 2
+    possibles_actions = [DO_SOMETHING_ELSE]
+    
+    def _get_presence_actions_fields(cls):
+        """See PresenceAccount._get_presence_actions_fields
+        """
+        return {'chat_action': (cls.possibles_actions, \
+                                PresenceAccountExample.DO_SOMETHING_ELSE), \
+                'online_action': (cls.possibles_actions, \
+                                  PresenceAccountExample.DO_SOMETHING_ELSE), \
+                'away_action': (cls.possibles_actions, \
+                                PresenceAccountExample.DO_SOMETHING_ELSE), \
+                'xa_action': (cls.possibles_actions, \
+                              PresenceAccountExample.DO_SOMETHING_ELSE), \
+                'dnd_action': (cls.possibles_actions, \
+                               PresenceAccountExample.DO_SOMETHING_ELSE), \
+                'offline_action': (cls.possibles_actions, \
+                                   PresenceAccountExample.DO_SOMETHING_ELSE)}
+    
+    get_presence_actions_fields = classmethod(_get_presence_actions_fields)

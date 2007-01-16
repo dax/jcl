@@ -29,9 +29,9 @@ from sqlobject.dbconnection import TheURIOpener
 
 from jcl.jabber.error import FieldError
 from jcl.model import account
-from jcl.model.account import Account
+from jcl.model.account import Account, PresenceAccount
 
-from tests.jcl.model.account import AccountExample
+from tests.jcl.model.account import AccountExample, PresenceAccountExample
 
 DB_PATH = "/tmp/test.db"
 DB_URL = DB_PATH# + "?debug=1&debugThreading=1"
@@ -92,6 +92,10 @@ class Account_TestCase(unittest.TestCase):
     def setUp(self):
         if os.path.exists(DB_PATH):
             os.unlink(DB_PATH)
+        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
+        Account.createTable(ifNotExists = True)
+        AccountExample.createTable(ifNotExists = True)
+        del account.hub.threadConnection
 
     def tearDown(self):
         account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
@@ -105,7 +109,6 @@ class Account_TestCase(unittest.TestCase):
         
     def test_set_status(self):
         account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
-        Account.createTable(ifNotExists = True)
         account11 = Account(user_jid = "test1@test.com", \
                             name = "account11", \
                             jid = "account11@jcl.test.com")
@@ -116,7 +119,6 @@ class Account_TestCase(unittest.TestCase):
 
     def test_set_status_live_password(self):
         account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
-        AccountExample.createTable(ifNotExists = True)
         account11 = AccountExample(user_jid = "test1@test.com", \
                                    name = "account11", \
                                    jid = "account11@jcl.test.com", \
@@ -131,4 +133,46 @@ class Account_TestCase(unittest.TestCase):
         self.assertEquals(account11.waiting_password_reply, False)
         self.assertEquals(account11.password, None)
         del account.hub.threadConnection
+
+class PresenceAccount_TestCase(unittest.TestCase):
+    def setUp(self):
+        if os.path.exists(DB_PATH):
+            os.unlink(DB_PATH)
+        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
+        Account.createTable(ifNotExists = True)
+        PresenceAccount.createTable(ifNotExists = True)
+        PresenceAccountExample.createTable(ifNotExists = True)
+        del account.hub.threadConnection
+
+    def tearDown(self):
+        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
+        PresenceAccountExample.dropTable(ifExists = True)
+        PresenceAccount.dropTable(ifExists = True)
+        Account.dropTable(ifExists = True)
+        del TheURIOpener.cachedURIs['sqlite://' + DB_URL]
+        account.hub.threadConnection.close()
+        del account.hub.threadConnection
+        if os.path.exists(DB_PATH):
+            os.unlink(DB_PATH)
         
+    def test_get_presence_actions_fields(self):
+        fields = PresenceAccount.get_presence_actions_fields()
+        (possibles_actions, chat_default_action) = fields["chat_action"]
+        self.assertEquals(chat_default_action, PresenceAccount.DO_SOMETHING)
+        self.assertEquals(possibles_actions, PresenceAccount.possibles_actions)
+        (possibles_actions, online_default_action) = fields["online_action"]
+        self.assertEquals(online_default_action, PresenceAccount.DO_SOMETHING)
+        self.assertEquals(possibles_actions, PresenceAccount.possibles_actions)
+
+    def test_possibles_actions(self):
+        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
+        account11 = PresenceAccountExample(\
+            user_jid = "test1@test.com", \
+            name = "account11", \
+            jid = "account11@jcl.test.com")
+        self.assertEquals(account11.possibles_actions, PresenceAccountExample.possibles_actions)
+        (possibles_actions, chat_default_action) = account11.get_presence_actions_fields()["chat_action"]
+        self.assertEquals(chat_default_action, PresenceAccountExample.DO_SOMETHING_ELSE)
+        self.assertEquals(possibles_actions, PresenceAccountExample.possibles_actions)
+        del account.hub.threadConnection
+    
