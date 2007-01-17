@@ -58,7 +58,8 @@ class FeederComponent(JCLComponent):
     def handle_tick(self):
         """Implement main feed/send behavior"""
         self.db_connect()
-        for _account in self.account_class.select(orderBy = "user_jid"):
+        for _account in self.account_class.select(clauseTables = ["account"], \
+                                                  orderBy = "user_jid"):
             for data in self.feeder.feed(_account):
                 self.sender.send(_account, data)
         self.db_disconnect()

@@ -63,7 +63,7 @@ if __name__ == '__main__':
     jcl_suite = unittest.TestSuite()
 #    jcl_suite.addTest(FeederComponent_TestCase('test_handle_tick'))
 #    jcl_suite.addTest(JCLComponent_TestCase('test_handle_set_register_new_field_mandatory'))
-#    jcl_suite = unittest.TestSuite((feeder_component_suite))
+#    jcl_suite = unittest.TestSuite((component_suite))
 #    jcl_suite = unittest.TestSuite((presence_account_suite))
     jcl_suite = unittest.TestSuite((component_suite, \
                                     feeder_component_suite, \
@@ -74,7 +74,8 @@ if __name__ == '__main__':
                                     option_suite, \
                                     lang_suite, \
                                     account_module_suite, \
-                                    account_suite))
+                                    account_suite, \
+                                    presence_account_suite))
     test_support.run_suite(jcl_suite)
 
 

@@ -43,7 +43,8 @@ class AccountExample(Account):
                 return None
             return password
         
-        return [("login", "text-single", account.string_not_null_post_func, \
+        return Account.get_register_fields() + \
+               [("login", "text-single", account.string_not_null_post_func, \
                  account.mandatory_field), \
                 ("password", "text-private", password_post_func, \
                  (lambda field_name: None)), \
@@ -78,3 +79,4 @@ class PresenceAccountExample(PresenceAccount):
                                    PresenceAccountExample.DO_SOMETHING_ELSE)}
     
     get_presence_actions_fields = classmethod(_get_presence_actions_fields)
+

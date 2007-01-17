@@ -183,5 +183,28 @@ class PresenceAccount(Account):
                  PresenceAccount.DO_NOTHING)}
     
     get_presence_actions_fields = classmethod(_get_presence_actions_fields)
-    
 
+    def _get_register_fields(cls):
+        """ See Account._get_register_fields """
+        def is_action_possible(action):
+            if action in cls.possibles_actions:
+                return action
+            raise FieldError # TODO : add translated message
+            
+        # TODO : check is_action_possible with presence_actions_fields (see partial eval function)
+        return Account.get_register_fields() + \
+               [(None, None, None, None), \
+                ("chat_action", "list-single", is_action_possible, \
+                 mandatory_field), \
+                ("online_action", "list-single", is_action_possible, \
+                 mandatory_field), \
+                ("away_action", "list-single", is_action_possible, \
+                 mandatory_field), \
+                ("xa_action", "list-single", is_action_possible, \
+                 mandatory_field), \
+                ("dnd_action", "list-single", is_action_possible, \
+                 mandatory_field), \
+                ("offline_action", "list-single", is_action_possible, \
+                 mandatory_field)]
+    
+    get_register_fields = classmethod(_get_register_fields)

@@ -36,6 +36,7 @@ import re
 
 from Queue import Queue
 
+from sqlobject.inheritance import InheritableSQLObject
 from sqlobject.sqlbuilder import AND
 from sqlobject.dbconnection import connectionForURI
 
@@ -108,7 +109,12 @@ class JCLComponent(Component, object):
         create associated table via SQLObject"""
         self.__account_class = account_class
         self.db_connect()
-        self.__account_class.createTable(ifNotExists = True)
+        if account_class._inheritable:
+            while account_class != InheritableSQLObject:
+                account_class.createTable(ifNotExists = True)
+                account_class = account_class.__base__
+        else:
+            self.__account_class.createTable(ifNotExists = True)
         self.db_disconnect()
 
     def get_account_class(self):
@@ -150,8 +156,11 @@ class JCLComponent(Component, object):
                    and self.stream.socket is not None:
                 current_user_jid = None
                 self.db_connect()
+                # Explicit reference to account table (clauseTables) to use
+                # "user_jid" column with Account subclasses
                 for _account in \
-                        self.account_class.select(orderBy = "user_jid"):
+                    self.account_class.select(clauseTables = ["account"], \
+                                              orderBy = "user_jid"):
                     if current_user_jid != _account.user_jid:
                         current_user_jid = _account.user_jid
                         self.stream.send(Presence(\
@@ -177,6 +186,7 @@ class JCLComponent(Component, object):
         pool) associated to the current thread"""
         account.hub.threadConnection = \
                      connectionForURI(self.db_connection_str)
+#        account.hub.threadConnection.debug = True
 
     def db_disconnect(self):
         """Delete connection associated to the current thread"""
@@ -239,7 +249,8 @@ class JCLComponent(Component, object):
                                         self.handle_message)
         current_jid = None
         self.db_connect()
-        for _account in self.account_class.select(orderBy = "user_jid"):
+        for _account in self.account_class.select(clauseTables = ["account"], \
+                                                  orderBy = "user_jid"):
             if _account.user_jid != current_jid:
                 presence = Presence(from_jid = unicode(self.jid), \
                                     to_jid = _account.user_jid, \
@@ -662,18 +673,21 @@ class JCLComponent(Component, object):
 
         for (field, field_type, post_func, default_func) in \
                 self.account_class.get_register_fields():
-            lang_label_attr = self.account_class.__name__.lower() \
-                              + "_" + field
-            if hasattr(lang_class, lang_label_attr):
-                label = getattr(lang_class, lang_label_attr)
+            if field is None:
+                # TODO : Add page when empty tuple given
+                pass
             else:
-                label = field
-            field = reg_form.add_field(field_type = field_type, \
-                                       label = label, \
-                                       var = field)
-            if default_func == account.mandatory_field:
-                field.required = True
-            ## TODO : Add page when empty tuple given
+                lang_label_attr = self.account_class.__name__.lower() \
+                                  + "_" + field
+                if hasattr(lang_class, lang_label_attr):
+                    label = getattr(lang_class, lang_label_attr)
+                else:
+                    label = field
+                    field = reg_form.add_field(field_type = field_type, \
+                                               label = label, \
+                                               var = field)
+                if default_func == account.mandatory_field:
+                    field.required = True
             ## TODO : get default value if any
         return reg_form
 
