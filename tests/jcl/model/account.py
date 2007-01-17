@@ -44,15 +44,16 @@ class AccountExample(Account):
             return password
         
         return Account.get_register_fields() + \
-               [("login", "text-single", account.string_not_null_post_func, \
+               [("login", "text-single", None, account.string_not_null_post_func, \
                  account.mandatory_field), \
-                ("password", "text-private", password_post_func, \
+                ("password", "text-private", None, password_post_func, \
                  (lambda field_name: None)), \
-                ("store_password", "boolean", account.boolean_post_func, \
+                ("store_password", "boolean", None, account.boolean_post_func, \
                  lambda field_name: True), \
-                ("test_enum", "list-single",account.string_not_null_post_func,\
+                ("test_enum", "list-single", ["choice1", "choice2", "choice3"], \
+                 account.string_not_null_post_func,\
                  lambda field_name: "choice2"), \
-                ("test_int", "text-single", account.int_post_func, \
+                ("test_int", "text-single", None, account.int_post_func, \
                  lambda field_name: 44)]
     
     get_register_fields = classmethod(_get_register_fields)
@@ -60,7 +61,9 @@ class AccountExample(Account):
 
 class PresenceAccountExample(PresenceAccount):
     DO_SOMETHING_ELSE = 2
-    possibles_actions = [DO_SOMETHING_ELSE]
+    possibles_actions = [PresenceAccount.DO_NOTHING, \
+                         PresenceAccount.DO_SOMETHING, \
+                         DO_SOMETHING_ELSE]
     
     def _get_presence_actions_fields(cls):
         """See PresenceAccount._get_presence_actions_fields

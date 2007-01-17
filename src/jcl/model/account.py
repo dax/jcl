@@ -120,6 +120,7 @@ class Account(InheritableSQLObject):
         - field_name: might be the name of one of the class attribut
         - field_type: 'text-single', 'hidden', 'text-private', 'boolean',
         'list-single', ...
+        - field_options: 
         - field_post_func: function called to process received field
         - field_default_func: function to return default value (or error if
         field is mandatory)
@@ -193,18 +194,24 @@ class PresenceAccount(Account):
             
         # TODO : check is_action_possible with presence_actions_fields (see partial eval function)
         return Account.get_register_fields() + \
-               [(None, None, None, None), \
-                ("chat_action", "list-single", is_action_possible, \
-                 mandatory_field), \
-                ("online_action", "list-single", is_action_possible, \
-                 mandatory_field), \
-                ("away_action", "list-single", is_action_possible, \
-                 mandatory_field), \
-                ("xa_action", "list-single", is_action_possible, \
-                 mandatory_field), \
-                ("dnd_action", "list-single", is_action_possible, \
-                 mandatory_field), \
-                ("offline_action", "list-single", is_action_possible, \
-                 mandatory_field)]
+               [(None, None, None, None, None), \
+                ("chat_action", "list-single", \
+                 [str(action) for action in cls.possibles_actions], \
+                 is_action_possible, mandatory_field), \
+                ("online_action", "list-single", \
+                 [str(action) for action in cls.possibles_actions], \
+                 is_action_possible, mandatory_field), \
+                ("away_action", "list-single", \
+                 [str(action) for action in cls.possibles_actions], \
+                 is_action_possible, mandatory_field), \
+                ("xa_action", "list-single", \
+                 [str(action) for action in cls.possibles_actions], \
+                 is_action_possible, mandatory_field), \
+                ("dnd_action", "list-single", \
+                 [str(action) for action in cls.possibles_actions], \
+                 is_action_possible, mandatory_field), \
+                ("offline_action", "list-single", \
+                 [str(action) for action in cls.possibles_actions], \
+                 is_action_possible, mandatory_field)]
     
     get_register_fields = classmethod(_get_register_fields)

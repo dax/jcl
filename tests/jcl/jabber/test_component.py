@@ -437,7 +437,8 @@ class JCLComponent_TestCase(unittest.TestCase):
         self.assertEquals(fields[4].prop("type"), "list-single")
         self.assertEquals(fields[4].prop("var"), "test_enum")
         self.assertEquals(fields[4].prop("label"), "test_enum")
-
+        # TODO : test options
+        
         self.assertEquals(fields[5].prop("type"), "text-single")
         self.assertEquals(fields[5].prop("var"), "test_int")
         self.assertEquals(fields[5].prop("label"), "test_int")
@@ -572,6 +573,7 @@ class JCLComponent_TestCase(unittest.TestCase):
         self.assertEquals(field.prop("label"), "test_enum")
         self.assertEquals(field.children.name, "value")
         self.assertEquals(field.children.content, "choice3")
+        # TODO : test options
         field = fields[5]
         self.assertEquals(field.prop("type"), "text-single")
         self.assertEquals(field.prop("var"), "test_int")

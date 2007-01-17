@@ -407,8 +407,8 @@ class JCLComponent(Component, object):
                                           jid = name + u"@"+unicode(self.jid))
         field = None
         try:
-            for (field, field_type, field_post_func, field_default_func) in \
-                    self.account_class.get_register_fields():
+            for (field, field_type, field_options, field_post_func, \
+                 field_default_func) in self.account_class.get_register_fields():
                 setattr(_account, field, \
                         x_data.get_field_value(field, \
                                                field_post_func, \
@@ -671,21 +671,31 @@ class JCLComponent(Component, object):
                            var = "name", \
                            required = True)
 
-        for (field, field_type, post_func, default_func) in \
+        for (field_name, field_type, field_options, post_func, default_func) in \
                 self.account_class.get_register_fields():
-            if field is None:
+            if field_name is None:
                 # TODO : Add page when empty tuple given
                 pass
             else:
                 lang_label_attr = self.account_class.__name__.lower() \
-                                  + "_" + field
+                                  + "_" + field_name
                 if hasattr(lang_class, lang_label_attr):
                     label = getattr(lang_class, lang_label_attr)
                 else:
-                    label = field
-                    field = reg_form.add_field(field_type = field_type, \
-                                               label = label, \
-                                               var = field)
+                    label = field_name
+                field = reg_form.add_field(field_type = field_type, \
+                                           label = label, \
+                                           var = field_name)
+                if field_options is not None:
+                    for option_value in field_options:
+                        lang_label_attr = self.account_class.__name__.lower() \
+                                          + "_" + field_name + "_" + option_value
+                        if hasattr(lang_class, lang_label_attr):
+                            label = getattr(lang_class, lang_label_attr)
+                        else:
+                            label = option_value
+                        field.add_option(label = label, \
+                                         value = option_value)
                 if default_func == account.mandatory_field:
                     field.required = True
             ## TODO : get default value if any
