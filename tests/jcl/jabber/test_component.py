@@ -437,8 +437,21 @@ class JCLComponent_TestCase(unittest.TestCase):
         self.assertEquals(fields[4].prop("type"), "list-single")
         self.assertEquals(fields[4].prop("var"), "test_enum")
         self.assertEquals(fields[4].prop("label"), "test_enum")
-        # TODO : test options
-        
+        # TODO : correct xpath expression (field[4])
+        options = iq_sent.xpath_eval("jir:query/jxd:x/jxd:field/jxd:option", \
+                                     {"jir" : "jabber:iq:register", \
+                                      "jxd" : "jabber:x:data"})
+
+        self.assertEquals(options[0].prop("label"), "choice1")
+        self.assertEquals(options[0].children.content, "choice1")
+        self.assertEquals(options[0].children.name, "value")
+        self.assertEquals(options[1].prop("label"), "choice2")
+        self.assertEquals(options[1].children.content, "choice2")
+        self.assertEquals(options[1].children.name, "value")
+        self.assertEquals(options[2].prop("label"), "choice3")
+        self.assertEquals(options[2].children.content, "choice3")
+        self.assertEquals(options[2].children.name, "value")
+
         self.assertEquals(fields[5].prop("type"), "text-single")
         self.assertEquals(fields[5].prop("var"), "test_int")
         self.assertEquals(fields[5].prop("label"), "test_int")
@@ -573,7 +586,21 @@ class JCLComponent_TestCase(unittest.TestCase):
         self.assertEquals(field.prop("label"), "test_enum")
         self.assertEquals(field.children.name, "value")
         self.assertEquals(field.children.content, "choice3")
-        # TODO : test options
+        # TODO : correct xpath expression (field[4])
+        options = iq_sent.xpath_eval("jir:query/jxd:x/jxd:field/jxd:option", \
+                                     {"jir" : "jabber:iq:register", \
+                                      "jxd" : "jabber:x:data"})
+
+        self.assertEquals(options[0].prop("label"), "choice1")
+        self.assertEquals(options[0].children.name, "value")
+        self.assertEquals(options[0].children.content, "choice1")
+        self.assertEquals(options[1].prop("label"), "choice2")
+        self.assertEquals(options[1].children.content, "choice2")
+        self.assertEquals(options[1].children.name, "value")
+        self.assertEquals(options[2].prop("label"), "choice3")
+        self.assertEquals(options[2].children.content, "choice3")
+        self.assertEquals(options[2].children.name, "value")
+
         field = fields[5]
         self.assertEquals(field.prop("type"), "text-single")
         self.assertEquals(field.prop("var"), "test_int")
