@@ -58,7 +58,6 @@ class AccountExample(Account):
     
     get_register_fields = classmethod(_get_register_fields)
 
-
 class PresenceAccountExample(PresenceAccount):
     DO_SOMETHING_ELSE = 2
     possibles_actions = [PresenceAccount.DO_NOTHING, \
