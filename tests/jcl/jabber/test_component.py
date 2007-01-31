@@ -44,7 +44,7 @@ from jcl.model.account import Account
 from jcl.lang import Lang
 from jcl.jabber.x import DataForm
 
-from tests.jcl.model.account import AccountExample
+from tests.jcl.model.account import ExampleAccount
 
 DB_PATH = "/tmp/test.db"
 DB_URL = DB_PATH# + "?debug=1&debugThreading=1"
@@ -124,14 +124,14 @@ class JCLComponent_TestCase(unittest.TestCase):
                                  'sqlite://' + DB_URL)
         account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
         Account.createTable(ifNotExists = True)
-        AccountExample.createTable(ifNotExists = True)
+        ExampleAccount.createTable(ifNotExists = True)
         del account.hub.threadConnection
         self.max_tick_count = 1
         self.saved_time_handler = None
 
     def tearDown(self):
         account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
-        AccountExample.dropTable(ifExists = True)
+        ExampleAccount.dropTable(ifExists = True)
         Account.dropTable(ifExists = True)
         del TheURIOpener.cachedURIs['sqlite://' + DB_URL]
         account.hub.threadConnection.close()
@@ -451,7 +451,7 @@ class JCLComponent_TestCase(unittest.TestCase):
     def test_handle_get_register_new_complex(self):
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
-        self.comp.account_classes = [AccountExample]
+        self.comp.account_classes = [ExampleAccount]
         self.comp.handle_get_register(Iq(stanza_type = "get", \
                                          from_jid = "user1@test.com", \
                                          to_jid = "jcl.test.com"))
@@ -564,7 +564,7 @@ class JCLComponent_TestCase(unittest.TestCase):
         account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
-        account1 = AccountExample(user_jid = "user1@test.com", \
+        account1 = ExampleAccount(user_jid = "user1@test.com", \
                                   name = "account1", \
                                   jid = "account1@jcl.test.com", \
                                   login = "mylogin", \
@@ -572,7 +572,7 @@ class JCLComponent_TestCase(unittest.TestCase):
                                   store_password = False, \
                                   test_enum = "choice3", \
                                   test_int = 21)
-        account11 = AccountExample(user_jid = "user1@test.com", \
+        account11 = ExampleAccount(user_jid = "user1@test.com", \
                                    name = "account11", \
                                    jid = "account11@jcl.test.com", \
                                    login = "mylogin", \
@@ -580,7 +580,7 @@ class JCLComponent_TestCase(unittest.TestCase):
                                    store_password = False, \
                                    test_enum = "choice3", \
                                    test_int = 21)
-        account21 = AccountExample(user_jid = "user2@test.com", \
+        account21 = ExampleAccount(user_jid = "user2@test.com", \
                                    name = "account21", \
                                    jid = "account21@jcl.test.com", \
                                    login = "mylogin", \
@@ -726,7 +726,7 @@ class JCLComponent_TestCase(unittest.TestCase):
     def test_handle_set_register_new_complex(self):
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
-        self.comp.account_classes = [AccountExample]
+        self.comp.account_classes = [ExampleAccount]
         x_data = DataForm()
         x_data.xmlns = "jabber:x:data"
         x_data.type = "submit"
@@ -805,7 +805,7 @@ class JCLComponent_TestCase(unittest.TestCase):
     def test_handle_set_register_new_default_values(self):
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
-        self.comp.account_classes = [AccountExample]
+        self.comp.account_classes = [ExampleAccount]
         x_data = DataForm()
         x_data.xmlns = "jabber:x:data"
         x_data.type = "submit"
@@ -871,7 +871,7 @@ class JCLComponent_TestCase(unittest.TestCase):
     def test_handle_set_register_new_field_mandatory(self):
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
-        self.comp.account_classes = [AccountExample]
+        self.comp.account_classes = [ExampleAccount]
         x_data = DataForm()
         x_data.xmlns = "jabber:x:data"
         x_data.type = "submit"
@@ -906,7 +906,7 @@ class JCLComponent_TestCase(unittest.TestCase):
         account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
-        existing_account = AccountExample(user_jid = "user1@test.com", \
+        existing_account = ExampleAccount(user_jid = "user1@test.com", \
                                           name = "account1", \
                                           jid = "account1@jcl.test.com", \
                                           login = "mylogin", \
@@ -914,7 +914,7 @@ class JCLComponent_TestCase(unittest.TestCase):
                                           store_password = True, \
                                           test_enum = "choice1", \
                                           test_int = 21)
-        another_account = AccountExample(user_jid = "user1@test.com", \
+        another_account = ExampleAccount(user_jid = "user1@test.com", \
                                          name = "account2", \
                                          jid = "account2@jcl.test.com", \
                                          login = "mylogin", \
@@ -1212,14 +1212,14 @@ class JCLComponent_TestCase(unittest.TestCase):
         account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
-        account11 = AccountExample(user_jid = "user1@test.com", \
+        account11 = ExampleAccount(user_jid = "user1@test.com", \
                                    name = "account11", \
                                    jid = "account11@jcl.test.com")
         account11.store_password = False
-        account12 = AccountExample(user_jid = "user1@test.com", \
+        account12 = ExampleAccount(user_jid = "user1@test.com", \
                                    name = "account12", \
                                    jid = "account12@jcl.test.com")
-        account2 = AccountExample(user_jid = "user2@test.com", \
+        account2 = ExampleAccount(user_jid = "user2@test.com", \
                                   name = "account2", \
                                   jid = "account2@jcl.test.com")
         del account.hub.threadConnection
@@ -1645,14 +1645,14 @@ class JCLComponent_TestCase(unittest.TestCase):
         account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
-        account11 = AccountExample(user_jid = "user1@test.com", \
+        account11 = ExampleAccount(user_jid = "user1@test.com", \
                                    name = "account11", \
                                    jid = "account11@jcl.test.com")
         account11.waiting_password_reply = True
-        account12 = AccountExample(user_jid = "user1@test.com", \
+        account12 = ExampleAccount(user_jid = "user1@test.com", \
                                    name = "account12", \
                                    jid = "account12@jcl.test.com")
-        account2 = AccountExample(user_jid = "user2@test.com", \
+        account2 = ExampleAccount(user_jid = "user2@test.com", \
                                   name = "account2", \
                                   jid = "account2@jcl.test.com")
         del account.hub.threadConnection

@@ -28,7 +28,7 @@ from jcl.lang import Lang
 from jcl.model import account
 from jcl.model.account import Account, PresenceAccount
 
-class AccountExample(Account):
+class ExampleAccount(Account):
     login = StringCol(default = "")
     password = StringCol(default = None)
     store_password = BoolCol(default = True)

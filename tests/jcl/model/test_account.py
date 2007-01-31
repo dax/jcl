@@ -31,7 +31,7 @@ from jcl.jabber.error import FieldError
 from jcl.model import account
 from jcl.model.account import Account, PresenceAccount
 
-from tests.jcl.model.account import AccountExample, PresenceAccountExample
+from tests.jcl.model.account import ExampleAccount, PresenceAccountExample
 
 DB_PATH = "/tmp/test.db"
 DB_URL = DB_PATH# + "?debug=1&debugThreading=1"
@@ -94,12 +94,12 @@ class Account_TestCase(unittest.TestCase):
             os.unlink(DB_PATH)
         account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
         Account.createTable(ifNotExists = True)
-        AccountExample.createTable(ifNotExists = True)
+        ExampleAccount.createTable(ifNotExists = True)
         del account.hub.threadConnection
 
     def tearDown(self):
         account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
-        AccountExample.dropTable(ifExists = True)
+        ExampleAccount.dropTable(ifExists = True)
         Account.dropTable(ifExists = True)
         del TheURIOpener.cachedURIs['sqlite://' + DB_URL]
         account.hub.threadConnection.close()
@@ -119,7 +119,7 @@ class Account_TestCase(unittest.TestCase):
 
     def test_set_status_live_password(self):
         account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
-        account11 = AccountExample(user_jid = "test1@test.com", \
+        account11 = ExampleAccount(user_jid = "test1@test.com", \
                                    name = "account11", \
                                    jid = "account11@jcl.test.com", \
                                    login = "mylogin", \
