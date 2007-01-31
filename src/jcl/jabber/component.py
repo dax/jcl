@@ -50,7 +50,7 @@ from pyxmpp.presence import Presence
 import jcl
 from jcl.jabber.x import DataForm
 from jcl.jabber.error import FieldError
-from jcl.model import account, default_account_factory
+from jcl.model import account
 from jcl.model.account import Account
 from jcl.lang import Lang
 
@@ -89,7 +89,6 @@ class JCLComponent(Component, object):
         self.spool_dir = "."
         self.db_connection_str = db_connection_str
         self.account_classes = [Account]
-        self.account_factory = default_account_factory.create
         self.version = VERSION
         self.accounts = []
         self.time_unit = 60
