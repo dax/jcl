@@ -38,7 +38,7 @@ from jcl.jabber.feeder import FeederComponent, Feeder, Sender
 from jcl.model.account import Account
 from jcl.model import account
 
-from tests.jcl.model.account import ExampleAccount
+from tests.jcl.model.account import ExampleAccount, Example2Account
 
 DB_PATH = "/tmp/test.db"
 DB_URL = DB_PATH #+ "?debug=1&debugThreading=1"
@@ -55,12 +55,14 @@ class FeederComponent_TestCase(JCLComponent_TestCase):
         account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
         Account.createTable(ifNotExists = True)
         ExampleAccount.createTable(ifNotExists = True)
+        Example2Account.createTable(ifNotExists = True)
         del account.hub.threadConnection
         
     def tearDown(self):
         account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
         Account.dropTable(ifExists = True)
         ExampleAccount.dropTable(ifExists = True)
+        Example2Account.dropTable(ifExists = True)
         del TheURIOpener.cachedURIs['sqlite://' + DB_URL]
         account.hub.threadConnection.close()
         del account.hub.threadConnection

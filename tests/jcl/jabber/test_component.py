@@ -44,7 +44,7 @@ from jcl.model.account import Account
 from jcl.lang import Lang
 from jcl.jabber.x import DataForm
 
-from tests.jcl.model.account import ExampleAccount
+from tests.jcl.model.account import ExampleAccount, Example2Account
 
 DB_PATH = "/tmp/test.db"
 DB_URL = DB_PATH# + "?debug=1&debugThreading=1"
@@ -125,12 +125,14 @@ class JCLComponent_TestCase(unittest.TestCase):
         account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
         Account.createTable(ifNotExists = True)
         ExampleAccount.createTable(ifNotExists = True)
+        Example2Account.createTable(ifNotExists = True)
         del account.hub.threadConnection
         self.max_tick_count = 1
         self.saved_time_handler = None
 
     def tearDown(self):
         account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
+        Example2Account.dropTable(ifExists = True)
         ExampleAccount.dropTable(ifExists = True)
         Account.dropTable(ifExists = True)
         del TheURIOpener.cachedURIs['sqlite://' + DB_URL]
@@ -348,56 +350,103 @@ class JCLComponent_TestCase(unittest.TestCase):
         disco_items = self.comp.disco_get_items("account1", info_query)
         self.assertEquals(disco_items.get_items(), [])
 
-    # TODO : test get_items with multiple account_classes
     def test_disco_get_items_2types_no_node(self):
+        self.comp.account_classes = [ExampleAccount, Example2Account]
         account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
-        account1 = Account(user_jid = "user1@test.com", \
-                           name = "account1", \
-                           jid = "account1@jcl.test.com")
+        account11 = ExampleAccount(user_jid = "user1@test.com", \
+                                   name = "account11", \
+                                   jid = "account11@jcl.test.com")
+        account21 = Example2Account(user_jid = "user1@test.com", \
+                                    name = "account21", \
+                                    jid = "account21@jcl.test.com")
         del account.hub.threadConnection
         info_query = Iq(stanza_type = "get", \
                         from_jid = "user1@test.com")
         disco_items = self.comp.disco_get_items(None, info_query)
+        self.assertEquals(len(disco_items.get_items()), 2)
+        disco_item = disco_items.get_items()[0]
+        self.assertEquals(disco_item.get_jid(), self.comp.jid)
+        self.assertEquals(disco_item.get_node(), "Example")
+        self.assertEquals(disco_item.get_name(), "Example")
+        disco_item = disco_items.get_items()[1]
+        self.assertEquals(disco_item.get_jid(), self.comp.jid)
+        self.assertEquals(disco_item.get_node(), "Example2")
+        self.assertEquals(disco_item.get_name(), "Example2")
+
+    # Be careful, account_classes cannot contains parent classes
+    # 
+    def test_disco_get_items_2types_with_node(self):
+        self.comp.account_classes = [ExampleAccount, Example2Account]
+        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
+        account11 = ExampleAccount(user_jid = "user1@test.com", \
+                                   name = "account11", \
+                                   jid = "account11@jcl.test.com")
+        account12 = ExampleAccount(user_jid = "user2@test.com", \
+                                   name = "account12", \
+                                   jid = "account12@jcl.test.com")
+        account21 = Example2Account(user_jid = "user1@test.com", \
+                                    name = "account21", \
+                                    jid = "account21@jcl.test.com")
+        account22 = Example2Account(user_jid = "user2@test.com", \
+                                    name = "account22", \
+                                    jid = "account22@jcl.test.com")
+        del account.hub.threadConnection
+        info_query = Iq(stanza_type = "get", \
+                        from_jid = "user1@test.com")
+        disco_items = self.comp.disco_get_items("Example", info_query)
         self.assertEquals(len(disco_items.get_items()), 1)
         disco_item = disco_items.get_items()[0]
-        self.assertEquals(disco_item.get_jid(), account1.jid)
-        self.assertEquals(disco_item.get_node(), account1.name)
-        self.assertEquals(disco_item.get_name(), account1.long_name)
+        self.assertEquals(disco_item.get_jid(), account11.jid)
+        self.assertEquals(disco_item.get_node(), "Example/" + account11.name)
+        self.assertEquals(disco_item.get_name(), account11.long_name)
 
-    # TODO
-    def test_disco_get_items_2types_with_node(self):
+    def test_disco_get_items_2types_with_node2(self):
+        self.comp.account_classes = [ExampleAccount, Example2Account]
         account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
-        account1 = Account(user_jid = "user1@test.com", \
-                           name = "account1", \
-                           jid = "account1@jcl.test.com")
+        account11 = ExampleAccount(user_jid = "user1@test.com", \
+                                   name = "account11", \
+                                   jid = "account11@jcl.test.com")
+        account12 = ExampleAccount(user_jid = "user2@test.com", \
+                                   name = "account12", \
+                                   jid = "account12@jcl.test.com")
+        account21 = Example2Account(user_jid = "user1@test.com", \
+                                    name = "account21", \
+                                    jid = "account21@jcl.test.com")
+        account22 = Example2Account(user_jid = "user2@test.com", \
+                                    name = "account22", \
+                                    jid = "account22@jcl.test.com")
         del account.hub.threadConnection
         info_query = Iq(stanza_type = "get", \
-                        from_jid = "user1@test.com")
-        disco_items = self.comp.disco_get_items("account1", info_query)
-        self.assertEquals(disco_items.get_items(), [])
+                        from_jid = "user2@test.com")
+        disco_items = self.comp.disco_get_items("Example2", info_query)
+        self.assertEquals(len(disco_items.get_items()), 1)
+        disco_item = disco_items.get_items()[0]
+        self.assertEquals(disco_item.get_jid(), account22.jid)
+        self.assertEquals(disco_item.get_node(), "Example2/" + account22.name)
+        self.assertEquals(disco_item.get_name(), account22.long_name)
 
-    # TODO
     def test_disco_get_items_2types_with_long_node(self):
+        self.comp.account_classes = [ExampleAccount, Example2Account]
         account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
-        account1 = Account(user_jid = "user1@test.com", \
-                           name = "account1", \
-                           jid = "account1@jcl.test.com")
+        account1 = ExampleAccount(user_jid = "user1@test.com", \
+                                  name = "account1", \
+                                  jid = "account1@jcl.test.com")
         del account.hub.threadConnection
         info_query = Iq(stanza_type = "get", \
                         from_jid = "user1@test.com")
-        disco_items = self.comp.disco_get_items("type1/account1", info_query)
+        disco_items = self.comp.disco_get_items("Example/account1", info_query)
         self.assertEquals(disco_items.get_items(), [])
 
-    # TODO
     def test_disco_get_items_2types_with_long_node2(self):
+        self.comp.account_classes = [ExampleAccount, Example2Account]
         account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
-        account1 = Account(user_jid = "user1@test.com", \
-                           name = "account1", \
-                           jid = "account1@jcl.test.com")
+        account1 = Example2Account(user_jid = "user1@test.com", \
+                                   name = "account1", \
+                                   jid = "account1@jcl.test.com")
         del account.hub.threadConnection
         info_query = Iq(stanza_type = "get", \
                         from_jid = "user1@test.com")
-        disco_items = self.comp.disco_get_items("type2/account1", info_query)
+        disco_items = self.comp.disco_get_items("Example2/account1", info_query)
         self.assertEquals(disco_items.get_items(), [])
 
     def test_handle_get_version(self):

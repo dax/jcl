@@ -278,7 +278,7 @@ class JCLComponent(Component, object):
                     if match is not None:
                         account_type = match.group(1)
                         DiscoItem(disco_items, \
-                                  JID(account_type + "@" + unicode(self.jid)), \
+                                  self.jid, \
                                   account_type, \
                                   account_type)
         else:
@@ -290,7 +290,8 @@ class JCLComponent(Component, object):
                 if account_class is not None:
                     self._list_accounts(disco_items, \
                                         account_class, \
-                                        base_from_jid)
+                                        base_from_jid,
+                                        account_type = nodes[0])
                 else:
                     print >> sys.stderr, "Error: " + account_class.__name__ \
                           + " class not in account_classes"
@@ -649,15 +650,18 @@ class JCLComponent(Component, object):
                 return _account_class
         return None
 
-    def _list_accounts(self, disco_items, _account_class, base_from_jid):
+    def _list_accounts(self, disco_items, _account_class, base_from_jid, account_type = ""):
         """List accounts in disco_items for given _account_class and user jid"""
+        if account_type != "":
+            account_type = account_type + "/"
         self.db_connect()
         for _account in _account_class.select(_account_class.q.user_jid == \
                                               base_from_jid):
             self.__logger.debug(str(_account))
             DiscoItem(disco_items, \
                       JID(_account.jid), \
-                      _account.name, _account.long_name)
+                      account_type + _account.name, \
+                      _account.long_name)
         self.db_disconnect()
 
     def _send_presence_available(self, _account, show, lang_class):

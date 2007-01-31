@@ -58,6 +58,15 @@ class ExampleAccount(Account):
     
     get_register_fields = classmethod(_get_register_fields)
 
+class Example2Account(Account):
+    test_new_int = IntCol(default = 42)
+
+    def _get_register_fields(cls):
+        return Account.get_register_fields() + \
+               [("test_new_int", "text-single", None, account_int_post_func, \
+                 lambda field_name: 43)]
+    get_register_fields = classmethod(_get_register_fields)
+    
 class PresenceAccountExample(PresenceAccount):
     DO_SOMETHING_ELSE = 2
     possibles_actions = [PresenceAccount.DO_NOTHING, \
