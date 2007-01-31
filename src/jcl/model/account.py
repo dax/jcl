@@ -188,8 +188,8 @@ class PresenceAccount(Account):
     def _get_register_fields(cls):
         """ See Account._get_register_fields """
         def is_action_possible(action):
-            if action in cls.possibles_actions:
-                return action
+            if int(action) in cls.possibles_actions:
+                return int(action)
             raise FieldError # TODO : add translated message
             
         # TODO : check is_action_possible with presence_actions_fields (see partial eval function)

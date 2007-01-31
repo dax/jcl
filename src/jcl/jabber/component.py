@@ -43,7 +43,7 @@ from sqlobject.dbconnection import connectionForURI
 import pyxmpp.error as error
 from pyxmpp.jid import JID
 from pyxmpp.jabberd.component import Component
-from pyxmpp.jabber.disco import DiscoInfo, DiscoItems, DiscoItem
+from pyxmpp.jabber.disco import DiscoInfo, DiscoItems, DiscoItem, DiscoIdentity
 from pyxmpp.message import Message
 from pyxmpp.presence import Presence
 
@@ -88,15 +88,13 @@ class JCLComponent(Component, object):
         self.name = "Jabber Component Library generic component"
         self.spool_dir = "."
         self.db_connection_str = db_connection_str
-        self.default_account_class = Account
+        self.account_classes = [Account]
         self.account_factory = default_account_factory.create
         self.version = VERSION
         self.accounts = []
         self.time_unit = 60
         self.queue = Queue(100)
 
-        self.disco_info.add_feature("jabber:iq:version")
-        self.disco_info.add_feature("jabber:iq:register")
         self.__logger = logging.getLogger("jcl.jabber.JCLComponent")
         self.lang = Lang()
         self.running = False
@@ -104,7 +102,7 @@ class JCLComponent(Component, object):
 
         signal.signal(signal.SIGINT, self.signal_handler)
         signal.signal(signal.SIGTERM, self.signal_handler)
-    
+
     def run(self):
         """Main loop
         Connect to Jabber server
@@ -139,7 +137,7 @@ class JCLComponent(Component, object):
                 # Explicit reference to account table (clauseTables) to use
                 # "user_jid" column with Account subclasses
                 for _account in \
-                    self.default_account_class.select(clauseTables = ["account"], \
+                    self.account_classes[0].select(clauseTables = ["account"], \
                                                       orderBy = "user_jid"):
                     if current_user_jid != _account.user_jid:
                         current_user_jid = _account.user_jid
@@ -229,7 +227,7 @@ class JCLComponent(Component, object):
                                         self.handle_message)
         current_jid = None
         self.db_connect()
-        for _account in self.default_account_class.select(clauseTables = ["account"], \
+        for _account in self.account_classes[0].select(clauseTables = ["account"], \
                                                           orderBy = "user_jid"):
             if _account.user_jid != current_jid:
                 presence = Presence(from_jid = unicode(self.jid), \
@@ -253,12 +251,17 @@ class JCLComponent(Component, object):
         """Discovery get info handler
         """
         self.__logger.debug("DISCO_GET_INFO")
+        disco_info = DiscoInfo()
         if node is not None:
-            disco_info = DiscoInfo()
             disco_info.add_feature("jabber:iq:register")
-            return disco_info
         else:
-            return self.disco_info
+            disco_info.add_feature("jabber:iq:version")
+            if len(self.account_classes) == 1:
+                disco_info.add_feature("jabber:iq:register")
+            DiscoIdentity(disco_info, self.disco_identity.name,
+                          self.disco_identity.category,
+                          self.disco_identity.type)
+        return disco_info
 
     def disco_get_items(self, node, info_query):
         """Discovery get nested nodes handler
@@ -267,14 +270,31 @@ class JCLComponent(Component, object):
         base_from_jid = unicode(info_query.get_from().bare())
         disco_items = DiscoItems()
         if not node:
-            self.db_connect()
-            for _account in self.default_account_class.select(Account.q.user_jid == \
-                                                      base_from_jid):
-                self.__logger.debug(str(_account))
-                DiscoItem(disco_items, \
-                          JID(_account.jid), \
-                          _account.name, _account.long_name)
-            self.db_disconnect()
+            if len(self.account_classes) == 1:
+                self._list_accounts(disco_items, self.account_classes[0], base_from_jid)
+            else:
+                for account_class in self.account_classes:
+                    regexp_type = re.compile("(.*)Account$")
+                    match = regexp_type.search(account_class.__name__)
+                    if match is not None:
+                        account_type = match.group(1)
+                        DiscoItem(disco_items, \
+                                  JID(account_type + "@" + unicode(self.jid)), \
+                                  account_type, \
+                                  account_type)
+        else:
+            nodes = node.split("/");
+            if len(nodes) == 1 \
+                   and len(self.account_classes) > 1:
+                self.__logger.debug("Listing account for " + nodes[0]) # for p1 TODO add type to get_items
+                account_class = self._get_account_class(nodes[0] + "Account")
+                if account_class is not None:
+                    self._list_accounts(disco_items, \
+                                        account_class, \
+                                        base_from_jid)
+                else:
+                    print >> sys.stderr, "Error: " + account_class.__name__ \
+                          + " class not in account_classes"
         return disco_items
 
     def handle_get_version(self, info_query):
@@ -300,12 +320,19 @@ class JCLComponent(Component, object):
         query = info_query.new_query("jabber:iq:register")
         if to_jid.node is not None:
             node_list = to_jid.node.split("/")
-            if (len(node_list) == 2):
-                _account_class = globals()[node_list[0] + "Account"]
+            name = None
+            if len(node_list) == 2:
+                _account_class = self._get_account_class(node_list[0] + "Account")
                 name = node_list[1]
             else:
-                _account_class = self.default_account_class
-                name = node_list[0]
+                if len(node_list) == 1:
+                    if len(self.account_classes) == 1:
+                        _account_class = self.account_classes[0]
+                        name = node_list[0]
+                    else:
+                        _account_class = self._get_account_class(node_list[0] + "Account")
+                        self.get_reg_form(lang_class, \
+                                          _account_class).attach_xml(query)
             self.db_connect()
             for _account in _account_class.select(\
                 AND(_account_class.q.name == name, \
@@ -315,7 +342,7 @@ class JCLComponent(Component, object):
             self.db_disconnect()
         else:
             self.get_reg_form(lang_class, \
-                              self.default_account_class).attach_xml(query)
+                              self.account_classes[0]).attach_xml(query)
         self.stream.send(info_query)
         return 1
 
@@ -323,8 +350,8 @@ class JCLComponent(Component, object):
         """Unsubscribe all accounts associated to 'user_jid' then delete
         those accounts from the DataBase"""
         self.db_connect()
-        for _account in self.default_account_class.select(\
-            self.default_account_class.q.user_jid == user_jid):
+        for _account in self.account_classes[0].select(\
+            self.account_classes[0].q.user_jid == user_jid):
             self.__logger.debug("Deleting " + _account.name \
                                 + " for " + user_jid)
             presence = Presence(from_jid = self.get_jid(_account), \
@@ -343,7 +370,7 @@ class JCLComponent(Component, object):
                             stanza_type = "unsubscribed")
         self.stream.send(presence)
         self.db_disconnect()
-    
+
     def handle_set_register(self, info_query):
         """Handle user registration response
         """
@@ -374,14 +401,14 @@ class JCLComponent(Component, object):
                 lang_class.mandatory_field % ("name"))
             text.setNs(text.newNs(error.STANZA_ERROR_NS, None))
             self.stream.send(iq_error)
-            return            
+            return
         self.db_connect()
-        accounts = self.default_account_class.select(\
-            AND(self.default_account_class.q.name == name, \
-                self.default_account_class.q.user_jid == base_from_jid))
+        accounts = Account.select(\
+            AND(Account.q.name == name, \
+                Account.q.user_jid == base_from_jid))
         accounts_count = accounts.count()
-        all_accounts = self.default_account_class.select(\
-            self.default_account_class.q.user_jid == base_from_jid)
+        all_accounts = Account.select(\
+            Account.q.user_jid == base_from_jid)
         all_accounts_count = all_accounts.count()
         if accounts_count > 1:
             # Just print a warning, only the first account will be use
@@ -390,21 +417,27 @@ class JCLComponent(Component, object):
         if accounts_count >= 1:
             _account = list(accounts)[0]
         else:
-            _account = self.account_factory(\
-                user_jid = base_from_jid, \
-                name = name, \
-                jid = name + u"@" + unicode(self.jid), \
-                x_data = x_data)
+            if info_query.get_to().node is None:
+                if len(self.account_classes) > 1:
+                    print >>sys.stderr, "There should be only one account class declared"
+                new_account_class = self.account_classes[0]
+            else:
+                new_account_class = self._get_account_class(info_query.get_to().node + "Account")
+            _account = new_account_class(user_jid = unicode(base_from_jid), \
+                                         name = name, \
+                                         jid = name + u"@" + unicode(self.jid))
         field = None
         try:
             for (field, field_type, field_options, field_post_func, \
                  field_default_func) in _account.get_register_fields():
-                setattr(_account, field, \
-                        x_data.get_field_value(field, \
-                                               field_post_func, \
-                                               field_default_func))
+                if field is not None:
+                    setattr(_account, field, \
+                            x_data.get_field_value(field, \
+                                                   field_post_func, \
+                                                   field_default_func))
         except FieldError, exception:
             _account.destroySelf()
+            print >>sys.stderr, str(exception)
             iq_error = info_query.make_error_response("not-acceptable")
             text = iq_error.get_error().xmlnode.newTextChild(None, \
                 "text", \
@@ -441,7 +474,7 @@ class JCLComponent(Component, object):
         """Handle presence availability
         if presence sent to the component ('if not name'), presence is sent to
         all accounts for current user. Otherwise, send presence from current account.
-        
+
         """
         self.__logger.debug("PRESENCE_AVAILABLE")
         from_jid = stanza.get_from()
@@ -454,8 +487,8 @@ class JCLComponent(Component, object):
             self.__logger.debug("TO : " + name + " " + base_from_jid)
         self.db_connect()
         if not name:
-            accounts = self.default_account_class.select(\
-                self.default_account_class.q.user_jid == base_from_jid)
+            accounts = self.account_classes[0].select(\
+                self.account_classes[0].q.user_jid == base_from_jid)
             accounts_length = 0
             for _account in accounts:
                 accounts_length += 1
@@ -470,9 +503,9 @@ class JCLComponent(Component, object):
                                     stanza_type = "available")
                 self.stream.send(presence)
         else:
-            accounts = self.default_account_class.select(\
-                 AND(self.default_account_class.q.name == name, \
-                     self.default_account_class.q.user_jid == base_from_jid))
+            accounts = self.account_classes[0].select(\
+                 AND(self.account_classes[0].q.name == name, \
+                     self.account_classes[0].q.user_jid == base_from_jid))
             if accounts.count() > 0:
                 self._send_presence_available(accounts[0], show, lang_class)
         self.db_disconnect()
@@ -487,8 +520,8 @@ class JCLComponent(Component, object):
         name = stanza.get_to().node
         self.db_connect()
         if not name:
-            accounts = self.default_account_class.select(\
-                self.default_account_class.q.user_jid == base_from_jid)
+            accounts = self.account_classes[0].select(\
+                self.account_classes[0].q.user_jid == base_from_jid)
             for _account in accounts:
                 _account.status = jcl.model.account.OFFLINE
                 presence = Presence(from_jid = _account.jid, \
@@ -501,14 +534,14 @@ class JCLComponent(Component, object):
                                     stanza_type = "unavailable")
                 self.stream.send(presence)
         else:
-            accounts = self.default_account_class.select(\
-                 AND(self.default_account_class.q.name == name, \
-                     self.default_account_class.q.user_jid == base_from_jid))
+            accounts = self.account_classes[0].select(\
+                 AND(self.account_classes[0].q.name == name, \
+                     self.account_classes[0].q.user_jid == base_from_jid))
             if accounts.count() > 0:
                 presence = Presence(from_jid = stanza.get_to(), \
                                     to_jid = from_jid, \
                                     stanza_type = "unavailable")
-                self.stream.send(presence)          
+                self.stream.send(presence)
         self.db_disconnect()
         return 1
 
@@ -522,12 +555,12 @@ class JCLComponent(Component, object):
         accounts = None
         self.db_connect()
         if not name:
-            accounts = self.default_account_class.select(\
-                self.default_account_class.q.user_jid == base_from_jid)
+            accounts = self.account_classes[0].select(\
+                self.account_classes[0].q.user_jid == base_from_jid)
         else:
-            accounts = self.default_account_class.select(\
-                 AND(self.default_account_class.q.name == name, \
-                     self.default_account_class.q.user_jid == base_from_jid))
+            accounts = self.account_classes[0].select(\
+                 AND(self.account_classes[0].q.name == name, \
+                     self.account_classes[0].q.user_jid == base_from_jid))
         if (accounts is not None \
             and accounts.count() > 0):
             presence = stanza.make_accept_response()
@@ -549,9 +582,9 @@ class JCLComponent(Component, object):
         from_jid = stanza.get_from()
         base_from_jid = unicode(from_jid.bare())
         self.db_connect()
-        accounts = self.default_account_class.select(\
-                AND(self.default_account_class.q.name == name, \
-                    self.default_account_class.q.user_jid == base_from_jid))
+        accounts = self.account_classes[0].select(\
+                AND(self.account_classes[0].q.name == name, \
+                    self.account_classes[0].q.user_jid == base_from_jid))
         for _account in accounts:
             presence = Presence(from_jid = _account.jid, \
                                 to_jid = from_jid, \
@@ -584,9 +617,9 @@ class JCLComponent(Component, object):
         name = message.get_to().node
         base_from_jid = unicode(message.get_from().bare())
         self.db_connect()
-        accounts = self.default_account_class.select(\
-            AND(self.default_account_class.q.name == name, \
-                self.default_account_class.q.user_jid == base_from_jid))
+        accounts = self.account_classes[0].select(\
+            AND(self.account_classes[0].q.name == name, \
+                self.account_classes[0].q.user_jid == base_from_jid))
         if accounts.count() == 1:
             _account = list(accounts)[0]
             if hasattr(_account, 'password') \
@@ -607,6 +640,27 @@ class JCLComponent(Component, object):
     ###########################################################################
     # Utils
     ###########################################################################
+    def _get_account_class(self, account_class_name):
+        """Return account class definition from declared classes in
+        account_classes from its class name"""
+        self.__logger.debug("Looking for " + account_class_name)
+        for _account_class in self.account_classes:
+            if _account_class.__name__.lower() == account_class_name.lower():
+                self.__logger.debug(account_class_name + " found")
+                return _account_class
+        return None
+
+    def _list_accounts(self, disco_items, _account_class, base_from_jid):
+        """List accounts in disco_items for given _account_class and user jid"""
+        self.db_connect()
+        for _account in _account_class.select(_account_class.q.user_jid == \
+                                              base_from_jid):
+            self.__logger.debug(str(_account))
+            DiscoItem(disco_items, \
+                      JID(_account.jid), \
+                      _account.name, _account.long_name)
+        self.db_disconnect()
+
     def _send_presence_available(self, _account, show, lang_class):
         """Send available presence to account's user and ask for password
         if necessary"""

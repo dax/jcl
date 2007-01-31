@@ -79,6 +79,9 @@ class Lang:
         new_account_message_subject = u"New account '%s' created"
         new_account_message_body = u"New account created"
         mandatory_field = u"%s is required"
+
+        presence_action_0 = u"Do nothing"
+        presence_chat_action_0 = presence_action_0
         
 #         account_login = u"Login"
 #         account_password = u"Password"
