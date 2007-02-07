@@ -33,6 +33,7 @@ from sqlobject import *
 from sqlobject.dbconnection import TheURIOpener
 
 import pyxmpp.error as error
+from pyxmpp.jid import JID
 from pyxmpp.iq import Iq
 from pyxmpp.stanza import Stanza
 from pyxmpp.presence import Presence
@@ -114,6 +115,9 @@ class MockStreamNoConnect(MockStream):
         self.eof = True
 
 class JCLComponent_TestCase(unittest.TestCase):
+    ###########################################################################
+    # Utility methods
+    ###########################################################################
     def setUp(self):
         if os.path.exists(DB_PATH):
             os.unlink(DB_PATH)
@@ -141,11 +145,17 @@ class JCLComponent_TestCase(unittest.TestCase):
         if os.path.exists(DB_PATH):
             os.unlink(DB_PATH)
 
+    ###########################################################################
+    # Constructor tests
+    ###########################################################################
     def test_constructor(self):
         account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
         self.assertTrue(Account._connection.tableExists("account"))
         del account.hub.threadConnection
 
+    ###########################################################################
+    # 'run' tests
+    ###########################################################################
     def __comp_run(self):
         try:
             self.comp.run()
@@ -245,6 +255,9 @@ class JCLComponent_TestCase(unittest.TestCase):
         self.assertEquals(presence.get_to(), "test2@test.com")
         self.assertEquals(presence.get_node().prop("type"), "unavailable")
         
+    ###########################################################################
+    # 'time_handler' tests
+    ###########################################################################
     def __handle_tick_test_time_handler(self):
         self.max_tick_count -= 1
         if self.max_tick_count == 0:
@@ -260,6 +273,9 @@ class JCLComponent_TestCase(unittest.TestCase):
         self.assertEquals(self.max_tick_count, 0)
         self.assertFalse(self.comp.running)
 
+    ###########################################################################
+    # 'authenticated handler' tests
+    ###########################################################################
     def test_authenticated_handler(self):
         self.comp.stream = MockStream()
         self.comp.authenticated()
@@ -306,32 +322,50 @@ class JCLComponent_TestCase(unittest.TestCase):
         self.assertEquals(presence.get_to(), "test2@test.com")
         self.assertEquals(presence.get_node().prop("type"), "probe")
 
+    ###########################################################################
+    # 'signal_handler' tests
+    ###########################################################################
     def test_signal_handler(self):
         self.comp.running = True
         self.comp.signal_handler(42, None)
         self.assertFalse(self.comp.running)
 
+    ###########################################################################
+    # 'disco_get_info' tests
+    ###########################################################################
     def test_disco_get_info(self):
         disco_info = self.comp.disco_get_info(None, None)
         self.assertTrue(disco_info.has_feature("jabber:iq:version"))
         self.assertTrue(disco_info.has_feature("jabber:iq:register"))
+
+    def test_disco_get_info_multiple_account_type(self):
+        self.comp.account_classes = [ExampleAccount, Example2Account]
+        disco_info = self.comp.disco_get_info(None, None)
+        self.assertTrue(disco_info.has_feature("jabber:iq:version"))
+        self.assertFalse(disco_info.has_feature("jabber:iq:register"))
 
     def test_disco_get_info_node(self):
         disco_info = self.comp.disco_get_info("node_test", None)
         self.assertTrue(disco_info.has_feature("jabber:iq:register"))
         
     def test_disco_get_info_long_node(self):
+        self.comp.account_classes = [ExampleAccount, Example2Account]
         disco_info = self.comp.disco_get_info("node_type/node_test", None)
         self.assertTrue(disco_info.has_feature("jabber:iq:register"))
 
+    ###########################################################################
+    # 'disco_get_items' tests
+    ###########################################################################
     def test_disco_get_items_1type_no_node(self):
+        """get_items on main entity. Must list accounts"""
         account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
         account1 = Account(user_jid = "user1@test.com", \
                            name = "account1", \
                            jid = "account1@jcl.test.com")
         del account.hub.threadConnection
         info_query = Iq(stanza_type = "get", \
-                        from_jid = "user1@test.com")
+                        from_jid = "user1@test.com", \
+                        to_jid = "jcl.test.com")
         disco_items = self.comp.disco_get_items(None, info_query)
         self.assertEquals(len(disco_items.get_items()), 1)
         disco_item = disco_items.get_items()[0]
@@ -340,17 +374,20 @@ class JCLComponent_TestCase(unittest.TestCase):
         self.assertEquals(disco_item.get_name(), account1.long_name)
 
     def test_disco_get_items_1type_with_node(self):
+        """get_items on an account. Must return nothing"""
         account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
         account1 = Account(user_jid = "user1@test.com", \
                            name = "account1", \
                            jid = "account1@jcl.test.com")
         del account.hub.threadConnection
         info_query = Iq(stanza_type = "get", \
-                        from_jid = "user1@test.com")
+                        from_jid = "user1@test.com", \
+                        to_jid = "account1@jcl.test.com")
         disco_items = self.comp.disco_get_items("account1", info_query)
         self.assertEquals(disco_items.get_items(), [])
 
     def test_disco_get_items_2types_no_node(self):
+        """get_items on main entity. Must account types"""
         self.comp.account_classes = [ExampleAccount, Example2Account]
         account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
         account11 = ExampleAccount(user_jid = "user1@test.com", \
@@ -361,21 +398,24 @@ class JCLComponent_TestCase(unittest.TestCase):
                                     jid = "account21@jcl.test.com")
         del account.hub.threadConnection
         info_query = Iq(stanza_type = "get", \
-                        from_jid = "user1@test.com")
+                        from_jid = "user1@test.com", \
+                        to_jid = "jcl.test.com")
         disco_items = self.comp.disco_get_items(None, info_query)
         self.assertEquals(len(disco_items.get_items()), 2)
         disco_item = disco_items.get_items()[0]
-        self.assertEquals(disco_item.get_jid(), self.comp.jid)
+        self.assertEquals(unicode(disco_item.get_jid()), unicode(self.comp.jid) + "/Example")
         self.assertEquals(disco_item.get_node(), "Example")
         self.assertEquals(disco_item.get_name(), "Example")
         disco_item = disco_items.get_items()[1]
-        self.assertEquals(disco_item.get_jid(), self.comp.jid)
+        self.assertEquals(unicode(disco_item.get_jid()), unicode(self.comp.jid) + "/Example2")
         self.assertEquals(disco_item.get_node(), "Example2")
         self.assertEquals(disco_item.get_name(), "Example2")
 
     # Be careful, account_classes cannot contains parent classes
     # 
     def test_disco_get_items_2types_with_node(self):
+        """get_items on the first account type node. Must return account list of
+        that type for the current user"""
         self.comp.account_classes = [ExampleAccount, Example2Account]
         account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
         account11 = ExampleAccount(user_jid = "user1@test.com", \
@@ -392,15 +432,18 @@ class JCLComponent_TestCase(unittest.TestCase):
                                     jid = "account22@jcl.test.com")
         del account.hub.threadConnection
         info_query = Iq(stanza_type = "get", \
-                        from_jid = "user1@test.com")
+                        from_jid = "user1@test.com", \
+                        to_jid = "jcl.test.com/Example")
         disco_items = self.comp.disco_get_items("Example", info_query)
         self.assertEquals(len(disco_items.get_items()), 1)
         disco_item = disco_items.get_items()[0]
-        self.assertEquals(disco_item.get_jid(), account11.jid)
+        self.assertEquals(unicode(disco_item.get_jid()), unicode(account11.jid) + "/Example")
         self.assertEquals(disco_item.get_node(), "Example/" + account11.name)
         self.assertEquals(disco_item.get_name(), account11.long_name)
 
     def test_disco_get_items_2types_with_node2(self):
+        """get_items on the second account type node. Must return account list of
+        that type for the current user"""
         self.comp.account_classes = [ExampleAccount, Example2Account]
         account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
         account11 = ExampleAccount(user_jid = "user1@test.com", \
@@ -417,15 +460,17 @@ class JCLComponent_TestCase(unittest.TestCase):
                                     jid = "account22@jcl.test.com")
         del account.hub.threadConnection
         info_query = Iq(stanza_type = "get", \
-                        from_jid = "user2@test.com")
+                        from_jid = "user2@test.com", \
+                        to_jid = "jcl.test.com/Example2")
         disco_items = self.comp.disco_get_items("Example2", info_query)
         self.assertEquals(len(disco_items.get_items()), 1)
         disco_item = disco_items.get_items()[0]
-        self.assertEquals(disco_item.get_jid(), account22.jid)
+        self.assertEquals(unicode(disco_item.get_jid()), unicode(account22.jid) + "/Example2")
         self.assertEquals(disco_item.get_node(), "Example2/" + account22.name)
         self.assertEquals(disco_item.get_name(), account22.long_name)
 
     def test_disco_get_items_2types_with_long_node(self):
+        """get_items on a first type account. Must return nothing"""
         self.comp.account_classes = [ExampleAccount, Example2Account]
         account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
         account1 = ExampleAccount(user_jid = "user1@test.com", \
@@ -433,11 +478,13 @@ class JCLComponent_TestCase(unittest.TestCase):
                                   jid = "account1@jcl.test.com")
         del account.hub.threadConnection
         info_query = Iq(stanza_type = "get", \
-                        from_jid = "user1@test.com")
+                        from_jid = "user1@test.com", \
+                        to_jid = "account1@jcl.test.com/Example")
         disco_items = self.comp.disco_get_items("Example/account1", info_query)
         self.assertEquals(disco_items.get_items(), [])
 
     def test_disco_get_items_2types_with_long_node2(self):
+        """get_items on a second type account. Must return nothing"""
         self.comp.account_classes = [ExampleAccount, Example2Account]
         account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
         account1 = Example2Account(user_jid = "user1@test.com", \
@@ -445,10 +492,14 @@ class JCLComponent_TestCase(unittest.TestCase):
                                    jid = "account1@jcl.test.com")
         del account.hub.threadConnection
         info_query = Iq(stanza_type = "get", \
-                        from_jid = "user1@test.com")
+                        from_jid = "user1@test.com", \
+                        to_jid = "account1@jcl.test.com/Example2")
         disco_items = self.comp.disco_get_items("Example2/account1", info_query)
         self.assertEquals(disco_items.get_items(), [])
 
+    ###########################################################################
+    # 'handle_get_version' tests
+    ###########################################################################
     def test_handle_get_version(self):
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
@@ -467,6 +518,9 @@ class JCLComponent_TestCase(unittest.TestCase):
         self.assertEquals(len(version_nodes), 1)
         self.assertEquals(version_nodes[0].content, self.comp.version)
 
+    ###########################################################################
+    # 'handle_get_register' tests
+    ###########################################################################
     def test_handle_get_register_new(self):
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
@@ -497,13 +551,7 @@ class JCLComponent_TestCase(unittest.TestCase):
         self.assertEquals(fields[0].prop("label"), Lang.en.account_name)
         self.assertEquals(fields[0].children.name, "required")
 
-    def test_handle_get_register_new_complex(self):
-        self.comp.stream = MockStream()
-        self.comp.stream_class = MockStream
-        self.comp.account_classes = [ExampleAccount]
-        self.comp.handle_get_register(Iq(stanza_type = "get", \
-                                         from_jid = "user1@test.com", \
-                                         to_jid = "jcl.test.com"))
+    def __check_get_register_new_type(self):
         self.assertEquals(len(self.comp.stream.sent), 1)
         iq_sent = self.comp.stream.sent[0]
         self.assertEquals(iq_sent.get_to(), "user1@test.com")
@@ -562,6 +610,15 @@ class JCLComponent_TestCase(unittest.TestCase):
         self.assertEquals(fields[5].prop("type"), "text-single")
         self.assertEquals(fields[5].prop("var"), "test_int")
         self.assertEquals(fields[5].prop("label"), "test_int")
+        
+    def test_handle_get_register_new_complex(self):
+        self.comp.stream = MockStream()
+        self.comp.stream_class = MockStream
+        self.comp.account_classes = [ExampleAccount]
+        self.comp.handle_get_register(Iq(stanza_type = "get", \
+                                         from_jid = "user1@test.com", \
+                                         to_jid = "jcl.test.com"))
+        self.__check_get_register_new_type()
 
     def test_handle_get_register_exist(self):
         self.comp.stream = MockStream()
@@ -714,6 +771,54 @@ class JCLComponent_TestCase(unittest.TestCase):
         self.assertEquals(field.children.name, "value")
         self.assertEquals(field.children.content, "21")
 
+    def test_handle_get_register_new_type1(self):
+        self.comp.stream = MockStream()
+        self.comp.stream_class = MockStream
+        self.comp.account_classes = [ExampleAccount, Example2Account]
+        self.comp.handle_get_register(Iq(stanza_type = "get", \
+                                         from_jid = "user1@test.com", \
+                                         to_jid = "jcl.test.com/example"))
+        self.__check_get_register_new_type()
+
+    # TODO
+    def test_handle_get_register_new_type2(self):
+        self.comp.stream = MockStream()
+        self.comp.stream_class = MockStream
+        self.comp.account_classes = [ExampleAccount, Example2Account]
+        self.comp.handle_get_register(Iq(stanza_type = "get", \
+                                         from_jid = JID("user1@test.com"), \
+                                         to_jid = JID("jcl.test.com/example2")))
+        self.assertEquals(len(self.comp.stream.sent), 1)
+        iq_sent = self.comp.stream.sent[0]
+        self.assertEquals(iq_sent.get_to(), "user1@test.com")
+        titles = iq_sent.xpath_eval("jir:query/jxd:x/jxd:title", \
+                                    {"jir" : "jabber:iq:register", \
+                                     "jxd" : "jabber:x:data"})
+        self.assertEquals(len(titles), 1)
+        self.assertEquals(titles[0].content, \
+                          Lang.en.register_title)
+        instructions = iq_sent.xpath_eval("jir:query/jxd:x/jxd:instructions", \
+                                          {"jir" : "jabber:iq:register", \
+                                           "jxd" : "jabber:x:data"})
+        self.assertEquals(len(instructions), 1)
+        self.assertEquals(instructions[0].content, \
+                          Lang.en.register_instructions)
+        fields = iq_sent.xpath_eval("jir:query/jxd:x/jxd:field", \
+                                    {"jir" : "jabber:iq:register", \
+                                     "jxd" : "jabber:x:data"})
+        self.assertEquals(len(fields), 2)
+        self.assertEquals(fields[0].prop("type"), "text-single")
+        self.assertEquals(fields[0].prop("var"), "name")
+        self.assertEquals(fields[0].prop("label"), Lang.en.account_name)
+        self.assertEquals(fields[0].children.name, "required")
+
+        self.assertEquals(fields[1].prop("type"), "text-single")
+        self.assertEquals(fields[1].prop("var"), "test_new_int")
+        self.assertEquals(fields[1].prop("label"), "test_new_int")
+
+    ###########################################################################
+    # 'handle_set_register' tests
+    ###########################################################################
     def test_handle_set_register_new(self):
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream

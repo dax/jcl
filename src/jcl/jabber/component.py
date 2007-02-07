@@ -268,24 +268,36 @@ class JCLComponent(Component, object):
         self.__logger.debug("DISCO_GET_ITEMS")
         base_from_jid = unicode(info_query.get_from().bare())
         disco_items = DiscoItems()
-        if not node:
-            if len(self.account_classes) == 1:
-                self._list_accounts(disco_items, self.account_classes[0], base_from_jid)
-            else:
+        if not node: # first level
+            if len(self.account_classes) == 1: # list accounts with only one type declared
+                regexp_type = re.compile("(.*)Account$")
+                match = regexp_type.search(self.account_classes[0].__name__)
+                if match is not None:
+                    account_type = match.group(1)
+                    self._list_accounts(disco_items, self.account_classes[0], \
+                                        base_from_jid, account_type)
+                else:
+                    print >>sys.stderr, self.account_classes[0].__name__ + \
+                          " name not well formed"
+            else: # list account types (when multiples accounts types)
                 for account_class in self.account_classes:
                     regexp_type = re.compile("(.*)Account$")
                     match = regexp_type.search(account_class.__name__)
                     if match is not None:
                         account_type = match.group(1)
+                        item_jid = JID(unicode(self.jid) + "/" + account_type)
                         DiscoItem(disco_items, \
-                                  self.jid, \
+                                  item_jid, \
                                   account_type, \
                                   account_type)
-        else:
+                    else:
+                        print >>sys.stderr, account_class.__name__ + \
+                              " name not well formed"
+        else: # second level
             nodes = node.split("/");
             if len(nodes) == 1 \
-                   and len(self.account_classes) > 1:
-                self.__logger.debug("Listing account for " + nodes[0]) # for p1 TODO add type to get_items
+                   and len(self.account_classes) > 1: # second level only with multiples account types
+                self.__logger.debug("Listing account for " + nodes[0])
                 account_class = self._get_account_class(nodes[0] + "Account")
                 if account_class is not None:
                     self._list_accounts(disco_items, \
@@ -312,37 +324,39 @@ class JCLComponent(Component, object):
         """Send back register form to user
         see node structure in disco_get_items()
         """
-        self.__logger.debug("GET_REGISTER")
-        lang_class = self.lang.get_lang_class_from_node(info_query.get_node())
-        base_from_jid = unicode(info_query.get_from().bare())
-        to_jid = info_query.get_to()
-        info_query = info_query.make_result_response()
-        query = info_query.new_query("jabber:iq:register")
-        if to_jid.node is not None:
-            node_list = to_jid.node.split("/")
-            name = None
-            if len(node_list) == 2:
-                _account_class = self._get_account_class(node_list[0] + "Account")
-                name = node_list[1]
-            else:
-                if len(node_list) == 1:
-                    if len(self.account_classes) == 1:
-                        _account_class = self.account_classes[0]
-                        name = node_list[0]
-                    else:
-                        _account_class = self._get_account_class(node_list[0] + "Account")
-                        self.get_reg_form(lang_class, \
-                                          _account_class).attach_xml(query)
+        def get_reg_form_for_account(_account_class, name, base_from_jid): 
             self.db_connect()
+            # TODO : do it only one time
             for _account in _account_class.select(\
                 AND(_account_class.q.name == name, \
                     _account_class.q.user_jid == base_from_jid)):
                 self.get_reg_form_init(lang_class, \
                                        _account).attach_xml(query)
             self.db_disconnect()
+           
+        self.__logger.debug("GET_REGISTER")
+        lang_class = self.lang.get_lang_class_from_node(info_query.get_node())
+        base_from_jid = unicode(info_query.get_from().bare())
+        to_jid = info_query.get_to()
+        info_query = info_query.make_result_response()
+        query = info_query.new_query("jabber:iq:register")
+        if to_jid.resource is None:
+            account_type = ""
         else:
+            account_type = to_jid.resource
+        if to_jid.node is not None:
+            # get_register on an existing account of type resource + "Account"
+            get_reg_form_for_account(self._get_account_class(account_type + "Account"), \
+                                     to_jid.node, \
+                                     base_from_jid)
+        else:
+            if to_jid.resource is None: # get_register on main entity (1 account type)
+                _account_class = self.account_classes[0]
+            else: # get_register new account of type node_list[0] + "Account"
+                _account_class = self._get_account_class(account_type + "Account")
             self.get_reg_form(lang_class, \
-                              self.account_classes[0]).attach_xml(query)
+                              _account_class).attach_xml(query)
+                
         self.stream.send(info_query)
         return 1
 
@@ -652,14 +666,17 @@ class JCLComponent(Component, object):
 
     def _list_accounts(self, disco_items, _account_class, base_from_jid, account_type = ""):
         """List accounts in disco_items for given _account_class and user jid"""
-        if account_type != "":
+        if account_type is not None and account_type != "":
+            resource = "/" + account_type
             account_type = account_type + "/"
+        else:
+            resource = ""
         self.db_connect()
         for _account in _account_class.select(_account_class.q.user_jid == \
                                               base_from_jid):
             self.__logger.debug(str(_account))
             DiscoItem(disco_items, \
-                      JID(_account.jid), \
+                      JID(unicode(_account.jid) + resource), \
                       account_type + _account.name, \
                       _account.long_name)
         self.db_disconnect()
