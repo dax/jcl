@@ -46,9 +46,9 @@ from pyxmpp.jabberd.component import Component
 from pyxmpp.jabber.disco import DiscoInfo, DiscoItems, DiscoItem, DiscoIdentity
 from pyxmpp.message import Message
 from pyxmpp.presence import Presence
+from pyxmpp.jabber.dataforms import Form, Field, Option
 
 import jcl
-from jcl.jabber.x import DataForm
 from jcl.jabber.error import FieldError
 from jcl.model import account
 from jcl.model.account import Account
@@ -129,6 +129,7 @@ class JCLComponent(Component, object):
                 self.queue.put(exception)
                 raise
         finally:
+#            self.running = False
             if self.stream and not self.stream.eof \
                    and self.stream.socket is not None:
                 current_user_jid = None
@@ -277,8 +278,8 @@ class JCLComponent(Component, object):
                     self._list_accounts(disco_items, self.account_classes[0], \
                                         base_from_jid, account_type)
                 else:
-                    print >>sys.stderr, self.account_classes[0].__name__ + \
-                          " name not well formed"
+                    self.__logger.error(self.account_classes[0].__name__ + \
+                          " name not well formed")
             else: # list account types (when multiples accounts types)
                 for account_class in self.account_classes:
                     regexp_type = re.compile("(.*)Account$")
@@ -291,8 +292,8 @@ class JCLComponent(Component, object):
                                   account_type, \
                                   account_type)
                     else:
-                        print >>sys.stderr, account_class.__name__ + \
-                              " name not well formed"
+                        self.__logger.error(account_class.__name__ + \
+                              " name not well formed")
         else: # second level
             nodes = node.split("/");
             if len(nodes) == 1 \
@@ -305,8 +306,8 @@ class JCLComponent(Component, object):
                                         base_from_jid,
                                         account_type = nodes[0])
                 else:
-                    print >> sys.stderr, "Error: " + account_class.__name__ \
-                          + " class not in account_classes"
+                    self.__logger.error("Error: " + account_class.__name__ \
+                          + " class not in account_classes")
         return disco_items
 
     def handle_get_version(self, info_query):
@@ -331,7 +332,7 @@ class JCLComponent(Component, object):
                 AND(_account_class.q.name == name, \
                     _account_class.q.user_jid == base_from_jid)):
                 self.get_reg_form_init(lang_class, \
-                                       _account).attach_xml(query)
+                                       _account).as_xml(query)
             self.db_disconnect()
            
         self.__logger.debug("GET_REGISTER")
@@ -355,7 +356,7 @@ class JCLComponent(Component, object):
             else: # get_register new account of type node_list[0] + "Account"
                 _account_class = self._get_account_class(account_type + "Account")
             self.get_reg_form(lang_class, \
-                              _account_class).attach_xml(query)
+                              _account_class).as_xml(query)
                 
         self.stream.send(info_query)
         return 1
@@ -403,12 +404,8 @@ class JCLComponent(Component, object):
                                        {"jir" : "jabber:iq:register", \
                                         "jxd" : "jabber:x:data"})[0]
 
-        x_data = DataForm()
-        x_data.from_xml(x_node)
-
-        name = x_data.get_field_value("name")
-        self.__logger.debug("Account name received = " + str(name))
-        if name is None or name == "":
+        x_data = Form(x_node)
+        if not "name" in x_data or x_data["name"].value == "":
             iq_error = info_query.make_error_response("not-acceptable")
             text = iq_error.get_error().xmlnode.newTextChild(None, \
                 "text", \
@@ -416,6 +413,8 @@ class JCLComponent(Component, object):
             text.setNs(text.newNs(error.STANZA_ERROR_NS, None))
             self.stream.send(iq_error)
             return
+        name = x_data["name"].value
+        self.__logger.debug("Account name received = " + str(name))
         self.db_connect()
         accounts = Account.select(\
             AND(Account.q.name == name, \
@@ -426,14 +425,14 @@ class JCLComponent(Component, object):
         all_accounts_count = all_accounts.count()
         if accounts_count > 1:
             # Just print a warning, only the first account will be use
-            print >> sys.stderr, "There might not exist 2 accounts for " + \
-                  base_from_jid + " and named " + name
+            self.__logger.error("There might not exist 2 accounts for " + \
+                  base_from_jid + " and named " + name)
         if accounts_count >= 1:
             _account = list(accounts)[0]
         else:
             if info_query.get_to().node is None:
                 if len(self.account_classes) > 1:
-                    print >>sys.stderr, "There should be only one account class declared"
+                    self.__logger.error("There should be only one account class declared")
                 new_account_class = self.account_classes[0]
             else:
                 new_account_class = self._get_account_class(info_query.get_to().node + "Account")
@@ -445,13 +444,15 @@ class JCLComponent(Component, object):
             for (field, field_type, field_options, field_post_func, \
                  field_default_func) in _account.get_register_fields():
                 if field is not None:
-                    setattr(_account, field, \
-                            x_data.get_field_value(field, \
-                                                   field_post_func, \
-                                                   field_default_func))
+                    if field in x_data:
+                        setattr(_account, field, \
+                                field_post_func(x_data[field].value))
+                    else:
+                        setattr(_account, field, \
+                                field_default_func(field))
         except FieldError, exception:
             _account.destroySelf()
-            print >>sys.stderr, str(exception)
+            self.__logger.error(str(exception))
             iq_error = info_query.make_error_response("not-acceptable")
             text = iq_error.get_error().xmlnode.newTextChild(None, \
                 "text", \
@@ -726,16 +727,12 @@ class JCLComponent(Component, object):
     def get_reg_form(self, lang_class, _account_class):
         """Return register form based on language and account class
         """
-        reg_form = DataForm()
-        reg_form.xmlns = "jabber:x:data"
-        reg_form.title = lang_class.register_title
-        reg_form.instructions = lang_class.register_instructions
-        reg_form.type = "form"
-
+        reg_form = Form(title = lang_class.register_title, \
+                        instructions = lang_class.register_instructions)
         # "name" field is mandatory
         reg_form.add_field(field_type = "text-single", \
                            label = lang_class.account_name, \
-                           var = "name", \
+                           name = "name", \
                            required = True)
 
         for (field_name, field_type, field_options, post_func, default_func) in \
@@ -752,7 +749,7 @@ class JCLComponent(Component, object):
                     label = field_name
                 field = reg_form.add_field(field_type = field_type, \
                                            label = label, \
-                                           var = field_name)
+                                           name = field_name)
                 if field_options is not None:
                     for option_value in field_options:
                         lang_label_attr = _account_class.__name__.lower() \
@@ -762,7 +759,7 @@ class JCLComponent(Component, object):
                         else:
                             label = option_value
                         field.add_option(label = label, \
-                                         value = option_value)
+                                         values = [option_value])
                 if default_func == account.mandatory_field:
                     field.required = True
             ## TODO : get default value if any
@@ -772,11 +769,11 @@ class JCLComponent(Component, object):
         """Return register form for an existing account (update)
         """
         reg_form = self.get_reg_form(lang_class, _account.__class__)
-        reg_form.fields["name"].value = _account.name
-        reg_form.fields["name"].type = "hidden"
-        for (field_name, field) in reg_form.fields.items():
-            if hasattr(_account, field_name):
-                field.value = str(getattr(_account, field_name))
+        reg_form["name"].value = _account.name
+        reg_form["name"].type = "hidden"
+        for field in reg_form.fields: # TODO
+            if hasattr(_account, field.name):
+                field.value = getattr(_account, field.name)
         return reg_form
 
     ###########################################################################

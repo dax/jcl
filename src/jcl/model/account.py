@@ -41,10 +41,6 @@ def default_post_func(field_value):
     """Default post process function: do nothing"""
     return field_value
 
-def boolean_post_func(field_value):
-    """Return a boolean from boolean field value"""
-    return (field_value == "1" or field_value.lower() == "true")
-
 def int_post_func(field_value):
     """Return an integer from integer field value"""
     return int(field_value)

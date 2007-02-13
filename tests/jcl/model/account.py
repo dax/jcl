@@ -48,7 +48,7 @@ class ExampleAccount(Account):
                  account.mandatory_field), \
                 ("password", "text-private", None, password_post_func, \
                  (lambda field_name: None)), \
-                ("store_password", "boolean", None, account.boolean_post_func, \
+                ("store_password", "boolean", None, account.default_post_func, \
                  lambda field_name: True), \
                 ("test_enum", "list-single", ["choice1", "choice2", "choice3"], \
                  account.string_not_null_post_func,\

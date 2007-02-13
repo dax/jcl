@@ -38,12 +38,12 @@ from pyxmpp.iq import Iq
 from pyxmpp.stanza import Stanza
 from pyxmpp.presence import Presence
 from pyxmpp.message import Message
+from pyxmpp.jabber.dataforms import Form, Field, Option
 
 from jcl.jabber.component import JCLComponent
 from jcl.model import account
 from jcl.model.account import Account
 from jcl.lang import Lang
-from jcl.jabber.x import DataForm
 
 from tests.jcl.model.account import ExampleAccount, Example2Account
 
@@ -114,6 +114,10 @@ class MockStreamNoConnect(MockStream):
         self.connection_started = True
         self.eof = True
 
+class MockStreamRaiseException(MockStream):
+    def connect(self):
+        raise Error("Test error")
+
 class JCLComponent_TestCase(unittest.TestCase):
     ###########################################################################
     # Utility methods
@@ -171,6 +175,7 @@ class JCLComponent_TestCase(unittest.TestCase):
             pass
 
     def test_run(self):
+        """Test basic main loop execution"""
         self.comp.time_unit = 1
         # Do not loop, handle_tick is virtual
         # Tests in subclasses might be more precise
@@ -184,7 +189,22 @@ class JCLComponent_TestCase(unittest.TestCase):
         if self.comp.queue.qsize():
             raise self.comp.queue.get(0)
 
+    def test_run_unhandled_error(self):
+        """Test main loop unhandled error from a component handler"""
+        # TODO
+        self.comp.time_unit = 1
+        self.comp.stream = MockStreamNoConnect()
+        self.comp.stream_class = MockStreamNoConnect
+        self.comp.run()
+        self.assertTrue(self.comp.stream.connection_started)
+        threads = threading.enumerate()
+        self.assertEquals(len(threads), 1)
+        self.assertTrue(self.comp.stream.connection_stopped)
+        if self.comp.queue.qsize():
+            raise self.comp.queue.get(0)
+
     def test_run_ni_handle_tick(self):
+        """Test JCLComponent 'NotImplemented' error from handle_tick method"""
         self.comp.time_unit = 1
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
@@ -205,6 +225,7 @@ class JCLComponent_TestCase(unittest.TestCase):
                                    NotImplementedError))
 
     def test_run_go_offline(self):
+        """Test main loop send offline presence when exiting"""
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
         self.comp.time_unit = 1
@@ -677,22 +698,22 @@ class JCLComponent_TestCase(unittest.TestCase):
                                   password = "mypassword", \
                                   store_password = False, \
                                   test_enum = "choice3", \
-                                  test_int = 21)
+                                  test_int = 1)
         account11 = ExampleAccount(user_jid = "user1@test.com", \
                                    name = "account11", \
                                    jid = "account11@jcl.test.com", \
-                                   login = "mylogin", \
-                                   password = "mypassword", \
+                                   login = "mylogin11", \
+                                   password = "mypassword11", \
                                    store_password = False, \
-                                   test_enum = "choice3", \
-                                   test_int = 21)
+                                   test_enum = "choice2", \
+                                   test_int = 11)
         account21 = ExampleAccount(user_jid = "user2@test.com", \
                                    name = "account21", \
                                    jid = "account21@jcl.test.com", \
-                                   login = "mylogin", \
-                                   password = "mypassword", \
+                                   login = "mylogin21", \
+                                   password = "mypassword21", \
                                    store_password = False, \
-                                   test_enum = "choice3", \
+                                   test_enum = "choice1", \
                                    test_int = 21)
         del account.hub.threadConnection
         self.comp.handle_get_register(Iq(stanza_type = "get", \
@@ -742,7 +763,7 @@ class JCLComponent_TestCase(unittest.TestCase):
         self.assertEquals(field.prop("var"), "store_password")
         self.assertEquals(field.prop("label"), "store_password")
         self.assertEquals(field.children.name, "value")
-        self.assertEquals(field.children.content, "False")
+        self.assertEquals(field.children.content, "0")
         field = fields[4]
         self.assertEquals(field.prop("type"), "list-single")
         self.assertEquals(field.prop("var"), "test_enum")
@@ -769,7 +790,7 @@ class JCLComponent_TestCase(unittest.TestCase):
         self.assertEquals(field.prop("var"), "test_int")
         self.assertEquals(field.prop("label"), "test_int")
         self.assertEquals(field.children.name, "value")
-        self.assertEquals(field.children.content, "21")
+        self.assertEquals(field.children.content, "1")
 
     def test_handle_get_register_new_type1(self):
         self.comp.stream = MockStream()
@@ -780,7 +801,6 @@ class JCLComponent_TestCase(unittest.TestCase):
                                          to_jid = "jcl.test.com/example"))
         self.__check_get_register_new_type()
 
-    # TODO
     def test_handle_get_register_new_type2(self):
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
@@ -822,17 +842,15 @@ class JCLComponent_TestCase(unittest.TestCase):
     def test_handle_set_register_new(self):
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
-        x_data = DataForm()
-        x_data.xmlns = "jabber:x:data"
-        x_data.type = "submit"
-        x_data.add_field(field_type = "text-single", \
-                         var = "name", \
-                         value = "account1")
+        x_data = Form("submit")
+        x_data.add_field(name = "name", \
+                         value = "account1", \
+                         field_type = "text-single")
         iq_set = Iq(stanza_type = "set", \
                     from_jid = "user1@test.com", \
                     to_jid = "jcl.test.com")
         query = iq_set.new_query("jabber:iq:register")
-        x_data.attach_xml(query)
+        x_data.as_xml(query, None)
         self.comp.handle_set_register(iq_set)
 
         account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
@@ -881,32 +899,30 @@ class JCLComponent_TestCase(unittest.TestCase):
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
         self.comp.account_classes = [ExampleAccount]
-        x_data = DataForm()
-        x_data.xmlns = "jabber:x:data"
-        x_data.type = "submit"
-        x_data.add_field(field_type = "text-single", \
-                         var = "name", \
-                         value = "account1")
-        x_data.add_field(field_type = "text-single", \
-                         var = "login", \
-                         value = "mylogin")
-        x_data.add_field(field_type = "text-private", \
-                         var = "password", \
-                         value = "mypassword")
-        x_data.add_field(field_type = "boolean", \
-                         var = "store_password", \
-                         value = "false")
-        x_data.add_field(field_type = "list-single", \
-                         var = "test_enum", \
-                         value = "choice3")
-        x_data.add_field(field_type = "text-single", \
-                         var = "test_int", \
-                         value = "43")
+        x_data = Form("submit")
+        x_data.add_field(name = "name", \
+                         value = "account1", \
+                         field_type = "text-single")
+        x_data.add_field(name = "login", \
+                         value = "mylogin", \
+                         field_type = "text-single")
+        x_data.add_field(name = "password", \
+                         value = "mypassword", \
+                         field_type = "text-private")
+        x_data.add_field(name = "store_password", \
+                         value = False, \
+                         field_type = "boolean")
+        x_data.add_field(name = "test_enum", \
+                         value = "choice3", \
+                         field_type = "list-single")
+        x_data.add_field(name = "test_int", \
+                         value = 43, \
+                         field_type = "text-single")
         iq_set = Iq(stanza_type = "set", \
                     from_jid = "user1@test.com", \
                     to_jid = "jcl.test.com")
         query = iq_set.new_query("jabber:iq:register")
-        x_data.attach_xml(query)
+        x_data.as_xml(query, None)
         self.comp.handle_set_register(iq_set)
 
         account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
@@ -960,20 +976,18 @@ class JCLComponent_TestCase(unittest.TestCase):
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
         self.comp.account_classes = [ExampleAccount]
-        x_data = DataForm()
-        x_data.xmlns = "jabber:x:data"
-        x_data.type = "submit"
-        x_data.add_field(field_type = "text-single", \
-                         var = "name", \
-                         value = "account1")
-        x_data.add_field(field_type = "text-single", \
-                         var = "login", \
-                         value = "mylogin")
+        x_data = Form("submit")
+        x_data.add_field(name = "name", \
+                         value = "account1", \
+                         field_type = "text-single")
+        x_data.add_field(name = "login", \
+                         value = "mylogin", \
+                         field_type = "text-single")
         iq_set = Iq(stanza_type = "set", \
                     from_jid = "user1@test.com", \
                     to_jid = "jcl.test.com")
         query = iq_set.new_query("jabber:iq:register")
-        x_data.attach_xml(query)
+        x_data.as_xml(query)
         self.comp.handle_set_register(iq_set)
 
         account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
@@ -995,14 +1009,12 @@ class JCLComponent_TestCase(unittest.TestCase):
     def test_handle_set_register_new_name_mandatory(self):
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
-        x_data = DataForm()
-        x_data.xmlns = "jabber:x:data"
-        x_data.type = "submit"
+        x_data = Form("submit")
         iq_set = Iq(stanza_type = "set", \
                     from_jid = "user1@test.com", \
                     to_jid = "jcl.test.com")
         query = iq_set.new_query("jabber:iq:register")
-        x_data.attach_xml(query)
+        x_data.as_xml(query)
         self.comp.handle_set_register(iq_set)
 
         account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
@@ -1026,17 +1038,15 @@ class JCLComponent_TestCase(unittest.TestCase):
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
         self.comp.account_classes = [ExampleAccount]
-        x_data = DataForm()
-        x_data.xmlns = "jabber:x:data"
-        x_data.type = "submit"
-        x_data.add_field(field_type = "text-single", \
-                         var = "name", \
-                         value = "account1")
+        x_data = Form("submit")
+        x_data.add_field(name = "name", \
+                         value = "account1", \
+                         field_type = "text-single")
         iq_set = Iq(stanza_type = "set", \
                     from_jid = "user1@test.com", \
                     to_jid = "jcl.test.com")
         query = iq_set.new_query("jabber:iq:register")
-        x_data.attach_xml(query)
+        x_data.as_xml(query)
         self.comp.handle_set_register(iq_set)
 
         account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
@@ -1077,32 +1087,30 @@ class JCLComponent_TestCase(unittest.TestCase):
                                          test_enum = "choice1", \
                                          test_int = 21)
         del account.hub.threadConnection
-        x_data = DataForm()
-        x_data.xmlns = "jabber:x:data"
-        x_data.type = "submit"
-        x_data.add_field(field_type = "text-single", \
-                         var = "name", \
-                         value = "account1")
-        x_data.add_field(field_type = "text-single", \
-                         var = "login", \
-                         value = "mylogin2")
-        x_data.add_field(field_type = "text-private", \
-                         var = "password", \
-                         value = "mypassword2")
-        x_data.add_field(field_type = "boolean", \
-                         var = "store_password", \
-                         value = "false")
-        x_data.add_field(field_type = "list-single", \
-                         var = "test_enum", \
-                         value = "choice3")
-        x_data.add_field(field_type = "text-single", \
-                         var = "test_int", \
-                         value = "43")
+        x_data = Form("submit")
+        x_data.add_field(name = "name", \
+                         value = "account1", \
+                         field_type = "text-single")
+        x_data.add_field(name = "login", \
+                         value = "mylogin2", \
+                         field_type = "text-single")
+        x_data.add_field(name = "password", \
+                         value = "mypassword2", \
+                         field_type = "text-private")
+        x_data.add_field(name = "store_password", \
+                         value = False, \
+                         field_type = "boolean")
+        x_data.add_field(name = "test_enum", \
+                         value = "choice3", \
+                         field_type = "list-single")
+        x_data.add_field(name = "test_int", \
+                         value = 43, \
+                         field_type = "text-single")
         iq_set = Iq(stanza_type = "set", \
                     from_jid = "user1@test.com", \
                     to_jid = "jcl.test.com")
         query = iq_set.new_query("jabber:iq:register")
-        x_data.attach_xml(query)
+        x_data.as_xml(query)
         self.comp.handle_set_register(iq_set)
 
         account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)

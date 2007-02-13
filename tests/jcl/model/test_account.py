@@ -41,30 +41,6 @@ class AccountModule_TestCase(unittest.TestCase):
         result = account.default_post_func("test")
         self.assertEquals(result, "test")
 
-    def test_boolean_post_func_1(self):
-        result = account.boolean_post_func("1")
-        self.assertTrue(result)
-
-    def test_boolean_post_func_0(self):
-        result = account.boolean_post_func("0")
-        self.assertFalse(result)
-
-    def test_boolean_post_func_True(self):
-        result = account.boolean_post_func("True")
-        self.assertTrue(result)
-        
-    def test_boolean_post_func_true(self):
-        result = account.boolean_post_func("true")
-        self.assertTrue(result)
-
-    def test_boolean_post_func_False(self):
-        result = account.boolean_post_func("False")
-        self.assertFalse(result)
-
-    def test_boolean_post_func_false(self):
-        result = account.boolean_post_func("false")
-        self.assertFalse(result)
-
     def test_int_post_func(self):
         result = account.int_post_func("42")
         self.assertEquals(result, 42)
