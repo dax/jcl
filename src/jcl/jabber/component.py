@@ -703,9 +703,9 @@ class JCLComponent(Component, object):
                and _account.store_password == False \
                and old_status == account.OFFLINE \
                and _account.password == None :
-            self._ask_password(_account, lang_class)
+            self.ask_password(_account, lang_class)
 
-    def _ask_password(self, _account, lang_class):
+    def ask_password(self, _account, lang_class):
         """Send a Jabber message to ask for account password
         """
         if hasattr(_account, 'waiting_password_reply') \
