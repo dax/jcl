@@ -33,6 +33,7 @@ import time
 import logging
 import signal
 import re
+import traceback
 
 from Queue import Queue
 
@@ -328,11 +329,12 @@ class JCLComponent(Component, object):
         def get_reg_form_for_account(_account_class, name, base_from_jid): 
             self.db_connect()
             # TODO : do it only one time
-            for _account in _account_class.select(\
+            _accounts = _account_class.select(\
                 AND(_account_class.q.name == name, \
-                    _account_class.q.user_jid == base_from_jid)):
+                    _account_class.q.user_jid == base_from_jid))
+            if _accounts is not None:
                 self.get_reg_form_init(lang_class, \
-                                       _account).as_xml(query)
+                                       _accounts[0]).as_xml(query)
             self.db_disconnect()
            
         self.__logger.debug("GET_REGISTER")
@@ -719,6 +721,23 @@ class JCLComponent(Component, object):
                           (_account.name))
             self.stream.send(msg)
 
+    def _send_error(self, _account, exception):
+        """Send an error message only one time until _account.in_error
+        has been reset to False"""
+        if _account.in_error == False:
+            _account.in_error = True
+            msg = Message(from_jid = _account.jid, \
+                          to_jid = _account.user_jid, \
+                          stanza_type = "error", \
+                          subject = _account.default_lang_class.check_error_subject, \
+                          body = _account.default_lang_class.check_error_body \
+                          % (exception))
+            self.stream.send(msg)
+        type, value, stack = sys.exc_info()
+        self.__logger.debug("Error while first checking mail : %s\n%s" \
+                            % (exception, "".join(traceback.format_exception
+                                                  (type, value, stack, 5))))
+        
     def get_jid(self, _account):
         """Return account jid based on account instance and component jid
         """

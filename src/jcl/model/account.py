@@ -27,7 +27,7 @@
 __revision__ = "$Id: account.py,v 1.3 2005/09/18 20:24:07 dax Exp $"
 
 from sqlobject.inheritance import InheritableSQLObject
-from sqlobject.col import StringCol, EnumCol, IntCol
+from sqlobject.col import StringCol, EnumCol, IntCol, BoolCol
 from sqlobject.dbconnection import ConnectionHub
 
 from jcl.lang import Lang
@@ -68,6 +68,7 @@ class Account(InheritableSQLObject):
     jid = StringCol()
 ## Not yet used    first_check = BoolCol(default = True)
     __status = StringCol(default = OFFLINE, dbName = "status")
+    in_error = BoolCol(default = False)
     
 ## Use these attributs to support volatile password
 ##    login = StringCol(default = "")
@@ -211,3 +212,17 @@ class PresenceAccount(Account):
                  is_action_possible, mandatory_field)]
     
     get_register_fields = classmethod(_get_register_fields)
+
+    def get_action(self):
+        """Get apropriate action depending on current status"""
+        mapping = {"online": self.online_action,
+                   "chat": self.chat_action,
+                   "away": self.away_action,
+                   "xa": self.xa_action,
+                   "dnd": self.dnd_action,
+                   "offline": self.offline_action}
+        if mapping.has_key(self.status):
+            return mapping[self.status]
+        return PresenceAccount.DO_NOTHING
+        
+    action = property(get_action)

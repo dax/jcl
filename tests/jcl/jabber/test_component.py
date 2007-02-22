@@ -1836,3 +1836,34 @@ class JCLComponent_TestCase(unittest.TestCase):
         
     def test_handle_tick(self):
         self.assertRaises(NotImplementedError, self.comp.handle_tick)
+
+    def test_send_error_first(self):
+        self.comp.stream = MockStream()
+        self.comp.stream_class = MockStream
+        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
+        _account = Account(user_jid = "user1@test.com", \
+                           name = "account11", \
+                           jid = "account11@jcl.test.com")
+        exception = Exception("test exception")
+        self.comp._send_error(_account, exception)
+        self.assertEqual(len(self.comp.stream.sent), 1)
+        error_sent = self.comp.stream.sent[0]
+        self.assertEqual(error_sent.get_to(), _account.user_jid)
+        self.assertEqual(error_sent.get_from(), _account.jid)
+        self.assertEqual(error_sent.get_type(), "error")
+        self.assertEqual(error_sent.get_subject(), _account.default_lang_class.check_error_subject)
+        self.assertEqual(error_sent.get_body(), _account.default_lang_class.check_error_body \
+                         % (exception))
+        del account.hub.threadConnection
+        
+    def test_send_error_second(self):
+        self.comp.stream = MockStream()
+        self.comp.stream_class = MockStream
+        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
+        _account = Account(user_jid = "user1@test.com", \
+                           name = "account11", \
+                           jid = "account11@jcl.test.com")
+        _account.in_error = True
+        exception = Exception("test exception")
+        self.comp._send_error(_account, exception)
+        self.assertEqual(len(self.comp.stream.sent), 0)

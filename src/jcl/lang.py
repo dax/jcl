@@ -107,8 +107,8 @@ class Lang:
 #         connection_label = u"%s connection '%s'"
 #         update_account_message_subject = u"Updated account '%s'"
 #         update_account_message_body = u"Updated account"
-#         check_error_subject = u"Error while checking emails."
-#         check_error_body = u"An error appears while checking emails:\n\t%s"
+        check_error_subject = u"Error while checking emails."
+        check_error_body = u"An error appears while checking emails:\n\t%s"
 #         new_mail_subject = u"New email from %s"
 #         new_digest_subject = u"%i new email(s)"
 
