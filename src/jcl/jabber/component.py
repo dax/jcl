@@ -721,7 +721,7 @@ class JCLComponent(Component, object):
                           (_account.name))
             self.stream.send(msg)
 
-    def _send_error(self, _account, exception):
+    def send_error(self, _account, exception):
         """Send an error message only one time until _account.in_error
         has been reset to False"""
         if _account.in_error == False:

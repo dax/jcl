@@ -1845,7 +1845,7 @@ class JCLComponent_TestCase(unittest.TestCase):
                            name = "account11", \
                            jid = "account11@jcl.test.com")
         exception = Exception("test exception")
-        self.comp._send_error(_account, exception)
+        self.comp.send_error(_account, exception)
         self.assertEqual(len(self.comp.stream.sent), 1)
         error_sent = self.comp.stream.sent[0]
         self.assertEqual(error_sent.get_to(), _account.user_jid)
@@ -1865,5 +1865,5 @@ class JCLComponent_TestCase(unittest.TestCase):
                            jid = "account11@jcl.test.com")
         _account.in_error = True
         exception = Exception("test exception")
-        self.comp._send_error(_account, exception)
+        self.comp.send_error(_account, exception)
         self.assertEqual(len(self.comp.stream.sent), 0)
