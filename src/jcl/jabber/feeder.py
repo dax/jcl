@@ -52,8 +52,8 @@ class FeederComponent(JCLComponent):
                               lang)
         self.name = "Generic Feeder Component"
         # Define default feeder and sender, can be override
-        self.feeder = Feeder()
-        self.sender = Sender()
+        self.feeder = Feeder(self)
+        self.sender = Sender(self)
         self.check_interval = 1
 
         self.__logger = logging.getLogger("jcl.jabber.FeederComponent")
