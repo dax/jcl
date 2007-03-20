@@ -29,6 +29,7 @@ __revision__ = "$Id: feeder.py,v 1.3 2005/09/18 20:24:07 dax Exp $"
 import logging
 
 from jcl.jabber.component import JCLComponent
+from jcl.lang import Lang
 
 class FeederComponent(JCLComponent):
     """Implement a feeder sender behavior based on the
@@ -40,13 +41,15 @@ class FeederComponent(JCLComponent):
                  secret,
                  server,
                  port,
-                 db_connection_str):
+                 db_connection_str,
+                 lang = Lang()):
         JCLComponent.__init__(self, \
                               jid, \
                               secret, \
                               server, \
                               port, \
-                              db_connection_str)
+                              db_connection_str, \
+                              lang)
         self.name = "Generic Feeder Component"
         # Define default feeder and sender, can be override
         self.feeder = Feeder()

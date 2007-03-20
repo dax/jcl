@@ -54,9 +54,9 @@ class Lang:
         """
         if lang is not None:
             lang = lang[:2]
-        if hasattr(Lang, lang):
-            return getattr(Lang, lang)
-        return getattr(Lang, self.default_lang)
+        if hasattr(self.__class__, lang):
+            return getattr(self.__class__, lang)
+        return getattr(self.__class__, self.default_lang)
 
     def get_lang_class_from_node(self, node):
         """Return lang class from XML node.

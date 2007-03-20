@@ -77,7 +77,8 @@ class JCLComponent(Component, object):
                  port,
                  db_connection_str,
                  disco_category = "gateway",
-                 disco_type = "headline"):
+                 disco_type = "headline",
+                 lang = Lang()):
         Component.__init__(self, \
                            JID(jid), \
                            secret, \
@@ -96,7 +97,7 @@ class JCLComponent(Component, object):
         self.queue = Queue(100)
 
         self.__logger = logging.getLogger("jcl.jabber.JCLComponent")
-        self.lang = Lang()
+        self.lang = lang
         self.running = False
         self.wait_event = threading.Event()
 
