@@ -118,20 +118,14 @@ class JCLComponent(Component, object):
                                         name = "TimerThread")
         timer_thread.start()
         try:
-            try:
-                while (self.running and self.stream \
-                       and not self.stream.eof \
-                       and self.stream.socket is not None):
-                    self.stream.loop_iter(JCLComponent.timeout)
-                    if self.queue.qsize():
-                        raise self.queue.get(0)
-            except Exception, exception:
-                #self.__logger.exception("Exception cought:")
-                # put Exception in queue to be use by unit tests
-                self.queue.put(exception)
-                raise
+            while (self.running and self.stream \
+                   and not self.stream.eof \
+                   and self.stream.socket is not None):
+                self.stream.loop_iter(JCLComponent.timeout)
+                if self.queue.qsize():
+                    raise self.queue.get(0)
         finally:
-#            self.running = False
+            self.running = False
             if self.stream and not self.stream.eof \
                    and self.stream.socket is not None:
                 current_user_jid = None
@@ -190,7 +184,6 @@ class JCLComponent(Component, object):
                 self.wait_event.wait(self.time_unit)
         except Exception, exception:
             self.queue.put(exception)
-            raise
         self.__logger.info("Timer thread terminated...")
 
     def authenticated(self):

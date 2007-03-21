@@ -45,7 +45,7 @@ import jcl
 if __name__ == '__main__':
     logger = logging.getLogger()
     logger.addHandler(logging.StreamHandler())
-    logger.setLevel(logging.INFO)
+    logger.setLevel(logging.CRITICAL)
     
     component_suite = unittest.makeSuite(JCLComponent_TestCase, "test")
     feeder_component_suite = unittest.makeSuite(FeederComponent_TestCase, "test")
@@ -58,7 +58,7 @@ if __name__ == '__main__':
     
     jcl_suite = unittest.TestSuite()
 #    jcl_suite.addTest(FeederComponent_TestCase('test_handle_tick'))
-#    jcl_suite.addTest(JCLComponent_TestCase('test_send_error_second'))
+#    jcl_suite.addTest(JCLComponent_TestCase('test_run_unhandled_error'))
 #    jcl_suite = unittest.TestSuite((component_suite))
 #    jcl_suite = unittest.TestSuite((presence_account_suite))
     jcl_suite = unittest.TestSuite((component_suite, \
