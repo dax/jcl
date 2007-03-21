@@ -353,12 +353,14 @@ class JCLComponent_TestCase(unittest.TestCase):
     ###########################################################################
     def test_disco_get_info(self):
         disco_info = self.comp.disco_get_info(None, None)
+        self.assertEquals(disco_info.get_identities()[0].get_name(), self.comp.name)
         self.assertTrue(disco_info.has_feature("jabber:iq:version"))
         self.assertTrue(disco_info.has_feature("jabber:iq:register"))
 
     def test_disco_get_info_multiple_account_type(self):
         self.comp.account_classes = [ExampleAccount, Example2Account]
         disco_info = self.comp.disco_get_info(None, None)
+        self.assertEquals(disco_info.get_identities()[0].get_name(), self.comp.name)
         self.assertTrue(disco_info.has_feature("jabber:iq:version"))
         self.assertFalse(disco_info.has_feature("jabber:iq:register"))
 

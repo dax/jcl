@@ -253,7 +253,7 @@ class JCLComponent(Component, object):
             disco_info.add_feature("jabber:iq:version")
             if len(self.account_classes) == 1:
                 disco_info.add_feature("jabber:iq:register")
-            DiscoIdentity(disco_info, self.disco_identity.name,
+            DiscoIdentity(disco_info, self.name,
                           self.disco_identity.category,
                           self.disco_identity.type)
         return disco_info
