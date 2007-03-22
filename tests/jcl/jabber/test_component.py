@@ -894,6 +894,63 @@ class JCLComponent_TestCase(unittest.TestCase):
         self.assertEquals(presence_account.get_node().prop("type"), \
                           "subscribe")
 
+    def test_handle_set_register_new_multiple_types(self):
+        self.comp.stream = MockStream()
+        self.comp.stream_class = MockStream
+        self.comp.account_classes = [ExampleAccount, Example2Account]
+        x_data = Form("submit")
+        x_data.add_field(name = "name", \
+                         value = "account1", \
+                         field_type = "text-single")
+        iq_set = Iq(stanza_type = "set", \
+                    from_jid = "user1@test.com", \
+                    to_jid = "jcl.test.com/Example2")
+        query = iq_set.new_query("jabber:iq:register")
+        x_data.as_xml(query, None)
+        self.comp.handle_set_register(iq_set)
+
+        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
+        accounts = self.comp.account_classes[1].select(\
+            self.comp.account_classes[1].q.user_jid == "user1@test.com" \
+            and self.comp.account_classes[1].q.name == "account1")
+        self.assertEquals(accounts.count(), 1)
+        _account = accounts[0]
+        self.assertEquals(_account.user_jid, "user1@test.com")
+        self.assertEquals(_account.name, "account1")
+        self.assertEquals(_account.jid, "account1@jcl.test.com")
+        del account.hub.threadConnection
+        
+        stanza_sent = self.comp.stream.sent
+        self.assertEquals(len(stanza_sent), 4)
+        iq_result = stanza_sent[0]
+        self.assertTrue(isinstance(iq_result, Iq))
+        self.assertEquals(iq_result.get_node().prop("type"), "result")
+        self.assertEquals(iq_result.get_from(), "jcl.test.com/Example2")
+        self.assertEquals(iq_result.get_to(), "user1@test.com")
+
+        presence_component = stanza_sent[1]
+        self.assertTrue(isinstance(presence_component, Presence))
+        self.assertEquals(presence_component.get_from(), "jcl.test.com")
+        self.assertEquals(presence_component.get_to(), "user1@test.com")
+        self.assertEquals(presence_component.get_node().prop("type"), \
+                          "subscribe")
+        
+        message = stanza_sent[2]
+        self.assertTrue(isinstance(message, Message))
+        self.assertEquals(message.get_from(), "jcl.test.com")
+        self.assertEquals(message.get_to(), "user1@test.com")
+        self.assertEquals(message.get_subject(), \
+                          _account.get_new_message_subject(Lang.en))
+        self.assertEquals(message.get_body(), \
+                          _account.get_new_message_body(Lang.en))
+
+        presence_account = stanza_sent[3]
+        self.assertTrue(isinstance(presence_account, Presence))
+        self.assertEquals(presence_account.get_from(), "account1@jcl.test.com")
+        self.assertEquals(presence_account.get_to(), "user1@test.com")
+        self.assertEquals(presence_account.get_node().prop("type"), \
+                          "subscribe")
+
     def test_handle_set_register_new_complex(self):
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream

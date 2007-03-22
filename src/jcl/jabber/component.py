@@ -426,29 +426,34 @@ class JCLComponent(Component, object):
         if accounts_count >= 1:
             _account = list(accounts)[0]
         else:
-            if info_query.get_to().node is None:
+            if info_query.get_to().resource is None:
                 if len(self.account_classes) > 1:
-                    self.__logger.error("There should be only one account class declared")
+                    self.__logger.error("There might be only one account class declared")
                 new_account_class = self.account_classes[0]
             else:
-                new_account_class = self._get_account_class(info_query.get_to().node + "Account")
+                new_account_class = self._get_account_class(info_query.get_to().resource + "Account")
             _account = new_account_class(user_jid = unicode(base_from_jid), \
                                          name = name, \
                                          jid = name + u"@" + unicode(self.jid))
         field = None
         try:
+            self.__logger.debug("Populating " + str(_account))
             for (field, field_type, field_options, field_post_func, \
                  field_default_func) in _account.get_register_fields():
+                self.__logger.debug("Testing " + field)
                 if field is not None:
                     if field in x_data:
-                        setattr(_account, field, \
-                                field_post_func(x_data[field].value))
+                        value = x_data[field].value
                     else:
-                        setattr(_account, field, \
-                                field_default_func(field))
+                        value = None
+                    setattr(_account, field, \
+                            field_post_func(value, field_default_func))
         except FieldError, exception:
             _account.destroySelf()
-            self.__logger.error(str(exception))
+            type, value, stack = sys.exc_info()
+            self.__logger.error("Error while populating account: %s\n%s" % \
+                                (exception, "".join(traceback.format_exception
+                                                    (type, value, stack, 5))))
             iq_error = info_query.make_error_response("not-acceptable")
             text = iq_error.get_error().xmlnode.newTextChild(None, \
                 "text", \
@@ -659,6 +664,7 @@ class JCLComponent(Component, object):
             if _account_class.__name__.lower() == account_class_name.lower():
                 self.__logger.debug(account_class_name + " found")
                 return _account_class
+        self.__logger.debug(account_class_name + " not found")
         return None
 
     def _list_accounts(self, disco_items, _account_class, base_from_jid, account_type = ""):
@@ -728,6 +734,7 @@ class JCLComponent(Component, object):
                           % (exception))
             self.stream.send(msg)
         type, value, stack = sys.exc_info()
+        # TODO : not checking email here
         self.__logger.debug("Error while first checking mail : %s\n%s" \
                             % (exception, "".join(traceback.format_exception
                                                   (type, value, stack, 5))))
@@ -748,7 +755,11 @@ class JCLComponent(Component, object):
                            name = "name", \
                            required = True)
 
-        for (field_name, field_type, field_options, post_func, default_func) in \
+        for (field_name, \
+             field_type, \
+             field_options, \
+             post_func, \
+             default_func) in \
                 _account_class.get_register_fields():
             if field_name is None:
                 # TODO : Add page when empty tuple given
@@ -760,9 +771,11 @@ class JCLComponent(Component, object):
                     label = getattr(lang_class, lang_label_attr)
                 else:
                     label = field_name
+                self.__logger.debug("Adding field " + field_name + " to registration form")
                 field = reg_form.add_field(field_type = field_type, \
                                            label = label, \
-                                           name = field_name)
+                                           name = field_name, \
+                                           value = default_func())
                 if field_options is not None:
                     for option_value in field_options:
                         lang_label_attr = _account_class.__name__.lower() \
@@ -773,7 +786,10 @@ class JCLComponent(Component, object):
                             label = option_value
                         field.add_option(label = label, \
                                          values = [option_value])
-                if default_func == account.mandatory_field:
+                try:
+                    post_func(None, default_func)
+                except:
+                    self.__logger.debug("Setting field " + field_name + " required")
                     field.required = True
             ## TODO : get default value if any
         return reg_form

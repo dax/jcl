@@ -58,9 +58,11 @@ if __name__ == '__main__':
     
     jcl_suite = unittest.TestSuite()
 #    jcl_suite.addTest(FeederComponent_TestCase('test_handle_tick'))
-#    jcl_suite.addTest(JCLComponent_TestCase('test_run_unhandled_error'))
-#    jcl_suite = unittest.TestSuite((component_suite))
+#    jcl_suite.addTest(JCLComponent_TestCase('test_handle_get_register_exist_complex'))
+#    jcl_suite.addTest(AccountModule_TestCase('test_mandatory_field'))
+#    jcl_suite = unittest.TestSuite((account_module_suite))
 #    jcl_suite = unittest.TestSuite((presence_account_suite))
+
     jcl_suite = unittest.TestSuite((component_suite, \
                                     feeder_component_suite, \
                                     feeder_suite, \
@@ -69,6 +71,7 @@ if __name__ == '__main__':
                                     account_module_suite, \
                                     account_suite, \
                                     presence_account_suite))
+
     test_support.run_suite(jcl_suite)
 
 

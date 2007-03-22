@@ -37,24 +37,24 @@ OFFLINE = "offline"
 ONLINE = "online"
 
 
-def default_post_func(field_value):
+def default_post_func(field_value, default_func):
     """Default post process function: do nothing"""
+    if field_value is None or str(field_value) == "":
+        return default_func()
     return field_value
 
-def int_post_func(field_value):
+def int_post_func(field_value, default_func):
     """Return an integer from integer field value"""
+    if field_value is None or str(field_value) == "":
+        return int(default_func())
     return int(field_value)
 
-def string_not_null_post_func(field_value):
-    """Post process function for not null/empty string"""
-    if field_value is None or field_value == "":
+def mandatory_field(field_name, field_value, default_func):
+    """Used as default function for field that must be specified
+    and cannot have an empty value"""
+    if field_value is None or str(field_value) == "":
         raise FieldError # TODO : add translated message
     return field_value
-
-def mandatory_field(field_name):
-    """Used as default function for field that must be specified
-    and cannot have default value"""
-    raise FieldError # TODO : add translated message
 
 # create a hub to attach a per thread connection
 hub = ConnectionHub()
@@ -119,8 +119,7 @@ class Account(InheritableSQLObject):
         'list-single', ...
         - field_options: 
         - field_post_func: function called to process received field
-        - field_default_func: function to return default value (or error if
-        field is mandatory)
+        - field_default_func: function to return default value
         """
         return [] # "name" field is mandatory
     
@@ -184,32 +183,55 @@ class PresenceAccount(Account):
 
     def _get_register_fields(cls):
         """ See Account._get_register_fields """
-        def is_action_possible(action):
-            if int(action) in cls.possibles_actions:
-                return int(action)
-            raise FieldError # TODO : add translated message
+        def get_possibles_actions(presence_action_field):
+            return cls.get_presence_actions_fields()[presence_action_field][0]
             
-        # TODO : check is_action_possible with presence_actions_fields (see partial eval function)
+        def is_action_possible(presence_action_field, action, default_func):
+            if int(action) in get_possibles_actions(presence_action_field):
+                return int(action)
+            raise default_func()
+
+        def get_default_presence_action(presence_action_field):
+            return cls.get_presence_actions_fields()[presence_action_field][1]
+
         return Account.get_register_fields() + \
                [(None, None, None, None, None), \
                 ("chat_action", "list-single", \
-                 [str(action) for action in cls.possibles_actions], \
-                 is_action_possible, mandatory_field), \
+                 [str(action) for action in get_possibles_actions("chat_action")], \
+                 lambda action, default_func: is_action_possible("chat_action", \
+                                                                 action, \
+                                                                 default_func), \
+                 lambda : get_default_presence_action("chat_action")), \
                 ("online_action", "list-single", \
-                 [str(action) for action in cls.possibles_actions], \
-                 is_action_possible, mandatory_field), \
+                 [str(action) for action in get_possibles_actions("online_action")], \
+                 lambda action, default_func: is_action_possible("online_action", \
+                                                                 action, \
+                                                                 default_func), \
+                 lambda : get_default_presence_action("online_action")), \
                 ("away_action", "list-single", \
-                 [str(action) for action in cls.possibles_actions], \
-                 is_action_possible, mandatory_field), \
+                 [str(action) for action in get_possibles_actions("away_action")], \
+                 lambda action, default_func: is_action_possible("away_action", \
+                                                                 action, \
+                                                                 default_func), \
+                 lambda : get_default_presence_action("away_action")), \
                 ("xa_action", "list-single", \
-                 [str(action) for action in cls.possibles_actions], \
-                 is_action_possible, mandatory_field), \
+                 [str(action) for action in get_possibles_actions("xa_action")], \
+                 lambda action, default_func: is_action_possible("xa_action", \
+                                                                 action, \
+                                                                 default_func), \
+                 lambda : get_default_presence_action("xa_action")), \
                 ("dnd_action", "list-single", \
-                 [str(action) for action in cls.possibles_actions], \
-                 is_action_possible, mandatory_field), \
+                 [str(action) for action in get_possibles_actions("dnd_action")], \
+                 lambda action, default_func: is_action_possible("dnd_action", \
+                                                                 action, \
+                                                                 default_func), \
+                 lambda : get_default_presence_action("dnd_action")), \
                 ("offline_action", "list-single", \
-                 [str(action) for action in cls.possibles_actions], \
-                 is_action_possible, mandatory_field)]
+                 [str(action) for action in get_possibles_actions("offline_action")], \
+                 lambda action, default_func: is_action_possible("offline_action", \
+                                                                 action, \
+                                                                 default_func), \
+                 lambda : get_default_presence_action("offline_action"))]
     
     get_register_fields = classmethod(_get_register_fields)
 

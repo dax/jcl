@@ -38,23 +38,26 @@ class ExampleAccount(Account):
     test_int = IntCol(default = 42)
     
     def _get_register_fields(cls):
-        def password_post_func(password):
+        def password_post_func(password, default_func):
             if password is None or password == "":
                 return None
             return password
-        
+
         return Account.get_register_fields() + \
-               [("login", "text-single", None, account.string_not_null_post_func, \
-                 account.mandatory_field), \
+               [("login", "text-single", None, \
+                 lambda field_value, default_func: account.mandatory_field("login", \
+                                                                           field_value, \
+                                                                           default_func), \
+                 lambda : ""), \
                 ("password", "text-private", None, password_post_func, \
-                 (lambda field_name: None)), \
+                 lambda : ""), \
                 ("store_password", "boolean", None, account.default_post_func, \
-                 lambda field_name: True), \
+                 lambda : True), \
                 ("test_enum", "list-single", ["choice1", "choice2", "choice3"], \
-                 account.string_not_null_post_func,\
-                 lambda field_name: "choice2"), \
+                 account.default_post_func, \
+                 lambda : "choice2"), \
                 ("test_int", "text-single", None, account.int_post_func, \
-                 lambda field_name: 44)]
+                 lambda : 44)]
     
     get_register_fields = classmethod(_get_register_fields)
 
@@ -64,7 +67,7 @@ class Example2Account(Account):
     def _get_register_fields(cls):
         return Account.get_register_fields() + \
                [("test_new_int", "text-single", None, account.int_post_func, \
-                 lambda field_name: 43)]
+                 lambda : 43)]
     get_register_fields = classmethod(_get_register_fields)
     
 class PresenceAccountExample(PresenceAccount):

@@ -38,31 +38,42 @@ DB_URL = DB_PATH# + "?debug=1&debugThreading=1"
 
 class AccountModule_TestCase(unittest.TestCase):
     def test_default_post_func(self):
-        result = account.default_post_func("test")
+        result = account.default_post_func("test", None)
+        self.assertEquals(result, "test")
+
+    def test_default_post_func_default_value(self):
+        result = account.default_post_func("", lambda : "test")
+        self.assertEquals(result, "test")
+
+    def test_default_post_func_default_value2(self):
+        result = account.default_post_func(None, lambda : "test")
         self.assertEquals(result, "test")
 
     def test_int_post_func(self):
-        result = account.int_post_func("42")
+        result = account.int_post_func("42", None)
         self.assertEquals(result, 42)
 
-    def test_string_not_null_post_func_not_null(self):
-        result = account.string_not_null_post_func("ok")
-        self.assertEquals(result, "ok")
+    def test_int_post_func_default_value(self):
+        result = account.int_post_func("", lambda : 42)
+        self.assertEquals(result, 42)
 
-    def test_string_not_null_post_func_none(self):
-        self.assertRaises(FieldError, \
-                          account.string_not_null_post_func, \
-                          None)
+    def test_int_post_func_default_value(self):
+        result = account.int_post_func(None, lambda : 42)
+        self.assertEquals(result, 42)
 
-    def test_string_not_null_post_func_empty(self):
-        self.assertRaises(FieldError, \
-                          account.string_not_null_post_func, \
-                          "")
-
-    def test_mandatory_field(self):
+    def test_mandatory_field_empty(self):
         self.assertRaises(FieldError, \
                           account.mandatory_field, \
-                          "")
+                          "field", "", None)
+
+    def test_mandatory_field_none(self):
+        self.assertRaises(FieldError, \
+                          account.mandatory_field, \
+                          "field", None, None)
+
+    def test_mandatory_field_empty(self):
+        self.assertEquals(account.mandatory_field("field", "value", None), \
+                          "value")
         
 class Account_TestCase(unittest.TestCase):
     def setUp(self):
@@ -146,9 +157,14 @@ class PresenceAccount_TestCase(unittest.TestCase):
             user_jid = "test1@test.com", \
             name = "account11", \
             jid = "account11@jcl.test.com")
-        self.assertEquals(account11.possibles_actions, PresenceAccountExample.possibles_actions)
-        (possibles_actions, chat_default_action) = account11.get_presence_actions_fields()["chat_action"]
-        self.assertEquals(chat_default_action, PresenceAccountExample.DO_SOMETHING_ELSE)
-        self.assertEquals(possibles_actions, PresenceAccountExample.possibles_actions)
+        for (field_name, \
+             field_type, \
+             possibles_actions, \
+             post_func, \
+             default_func) in account11.get_register_fields()[1:]:
+            for possible_action in possibles_actions:
+                self.assertEquals(post_func(possible_action, default_func),
+                                  int(possible_action))
+            self.assertTrue(str(default_func()) in possibles_actions)
         del account.hub.threadConnection
     
