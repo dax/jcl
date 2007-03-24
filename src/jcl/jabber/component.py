@@ -765,8 +765,7 @@ class JCLComponent(Component, object):
                 # TODO : Add page when empty tuple given
                 pass
             else:
-                lang_label_attr = _account_class.__name__.lower() \
-                                  + "_" + field_name
+                lang_label_attr = "field_" + field_name
                 if hasattr(lang_class, lang_label_attr):
                     label = getattr(lang_class, lang_label_attr)
                 else:
@@ -778,8 +777,7 @@ class JCLComponent(Component, object):
                                            value = default_func())
                 if field_options is not None:
                     for option_value in field_options:
-                        lang_label_attr = _account_class.__name__.lower() \
-                                          + "_" + field_name + "_" + option_value
+                        lang_label_attr = "field_" + field_name + "_" + option_value
                         if hasattr(lang_class, lang_label_attr):
                             label = getattr(lang_class, lang_label_attr)
                         else:

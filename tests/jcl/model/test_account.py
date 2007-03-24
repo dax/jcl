@@ -168,3 +168,4 @@ class PresenceAccount_TestCase(unittest.TestCase):
             self.assertTrue(str(default_func()) in possibles_actions)
         del account.hub.threadConnection
     
+    #TODO: test get_register_field with cls.possible_actions inheritance

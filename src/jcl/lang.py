@@ -80,9 +80,14 @@ class Lang:
         new_account_message_body = u"New account created"
         mandatory_field = u"%s is required"
 
-        presence_action_0 = u"Do nothing"
-        presence_chat_action_0 = presence_action_0
-        
+        field_action_0 = u"Do nothing"
+        field_chat_action_0 = field_action_0
+        field_online_action_0 = field_action_0
+        field_away_action_0 = field_action_0
+        field_xa_action_0 = field_action_0
+        field_dnd_action_0 = field_action_0
+        field_offline_action_0 = field_action_0
+
 #         account_login = u"Login"
 #         account_password = u"Password"
 #         account_password_store = u"Store password on Jabber server?"

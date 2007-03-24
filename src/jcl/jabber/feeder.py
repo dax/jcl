@@ -49,7 +49,7 @@ class FeederComponent(JCLComponent):
                               server, \
                               port, \
                               db_connection_str, \
-                              lang)
+                              lang = lang)
         self.name = "Generic Feeder Component"
         # Define default feeder and sender, can be override
         self.feeder = Feeder(self)
