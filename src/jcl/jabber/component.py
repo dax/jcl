@@ -435,12 +435,11 @@ class JCLComponent(Component, object):
             _account = new_account_class(user_jid = unicode(base_from_jid), \
                                          name = name, \
                                          jid = name + u"@" + unicode(self.jid))
+        self.__logger.debug("Account '" + str(name) + "' created: " + str(_account))
         field = None
         try:
-            self.__logger.debug("Populating " + str(_account))
             for (field, field_type, field_options, field_post_func, \
                  field_default_func) in _account.get_register_fields():
-                self.__logger.debug("Testing " + field)
                 if field is not None:
                     if field in x_data:
                         value = x_data[field].value
@@ -571,9 +570,11 @@ class JCLComponent(Component, object):
         accounts = None
         self.db_connect()
         if not name:
+            self.__logger.debug("subscribe request on main jid")
             accounts = self.account_classes[0].select(\
                 self.account_classes[0].q.user_jid == base_from_jid)
         else:
+            self.__logger.debug("subscribe request on '" + name + "' account")
             accounts = self.account_classes[0].select(\
                  AND(self.account_classes[0].q.name == name, \
                      self.account_classes[0].q.user_jid == base_from_jid))
@@ -581,6 +582,10 @@ class JCLComponent(Component, object):
             and accounts.count() > 0):
             presence = stanza.make_accept_response()
             self.stream.send(presence)
+        else:
+            self.__logger.debug("Account '" + str(name) + "' for user '" + \
+                                str(base_from_jid) + "' was not found. " + \
+                                "Refusing subscription")
         self.db_disconnect()
         return 1
 

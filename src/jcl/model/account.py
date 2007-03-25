@@ -25,7 +25,7 @@
 """
 
 __revision__ = "$Id: account.py,v 1.3 2005/09/18 20:24:07 dax Exp $"
-
+2
 from sqlobject.inheritance import InheritableSQLObject
 from sqlobject.col import StringCol, EnumCol, IntCol, BoolCol
 from sqlobject.dbconnection import ConnectionHub
@@ -111,7 +111,7 @@ class Account(InheritableSQLObject):
         
     status = property(get_status, set_status)
 
-    def _get_register_fields(cls):
+    def _get_register_fields(cls, real_class = None):
         """Return a list of tuples for X Data Form composition
         A tuple is composed of:
         - field_name: might be the name of one of the class attribut
@@ -181,10 +181,10 @@ class PresenceAccount(Account):
     
     get_presence_actions_fields = classmethod(_get_presence_actions_fields)
 
-    def _get_register_fields(cls):
+    def _get_register_fields(cls, real_class = None):
         """ See Account._get_register_fields """
         def get_possibles_actions(presence_action_field):
-            return cls.get_presence_actions_fields()[presence_action_field][0]
+            return real_class.get_presence_actions_fields()[presence_action_field][0]
             
         def is_action_possible(presence_action_field, action, default_func):
             if int(action) in get_possibles_actions(presence_action_field):
@@ -192,9 +192,11 @@ class PresenceAccount(Account):
             raise default_func()
 
         def get_default_presence_action(presence_action_field):
-            return cls.get_presence_actions_fields()[presence_action_field][1]
+            return real_class.get_presence_actions_fields()[presence_action_field][1]
 
-        return Account.get_register_fields() + \
+        if real_class is None:
+            real_class = cls
+        return Account.get_register_fields(real_class) + \
                [(None, None, None, None, None), \
                 ("chat_action", "list-single", \
                  [str(action) for action in get_possibles_actions("chat_action")], \

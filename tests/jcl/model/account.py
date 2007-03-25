@@ -37,13 +37,15 @@ class ExampleAccount(Account):
     test_enum = EnumCol(default = "choice1", enumValues = ["choice1", "choice2", "choice3"])
     test_int = IntCol(default = 42)
     
-    def _get_register_fields(cls):
+    def _get_register_fields(cls, real_class = None):
         def password_post_func(password, default_func):
             if password is None or password == "":
                 return None
             return password
 
-        return Account.get_register_fields() + \
+        if real_class is None:
+            real_class = cls
+        return Account.get_register_fields(real_class) + \
                [("login", "text-single", None, \
                  lambda field_value, default_func: account.mandatory_field("login", \
                                                                            field_value, \
@@ -64,8 +66,10 @@ class ExampleAccount(Account):
 class Example2Account(Account):
     test_new_int = IntCol(default = 42)
 
-    def _get_register_fields(cls):
-        return Account.get_register_fields() + \
+    def _get_register_fields(cls, real_class = None):
+        if real_class is None:
+            real_class = cls
+        return Account.get_register_fields(real_class) + \
                [("test_new_int", "text-single", None, account.int_post_func, \
                  lambda : 43)]
     get_register_fields = classmethod(_get_register_fields)
@@ -94,3 +98,12 @@ class PresenceAccountExample(PresenceAccount):
     
     get_presence_actions_fields = classmethod(_get_presence_actions_fields)
 
+    test_new_int = IntCol(default = 42)
+
+    def _get_register_fields(cls, real_class = None):
+        if real_class is None:
+            real_class = cls
+        return PresenceAccount.get_register_fields(real_class) + \
+               [("test_new_int", "text-single", None, account.int_post_func, \
+                 lambda : 43)]
+    get_register_fields = classmethod(_get_register_fields)

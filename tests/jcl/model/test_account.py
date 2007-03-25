@@ -162,10 +162,9 @@ class PresenceAccount_TestCase(unittest.TestCase):
              possibles_actions, \
              post_func, \
              default_func) in account11.get_register_fields()[1:]:
-            for possible_action in possibles_actions:
-                self.assertEquals(post_func(possible_action, default_func),
-                                  int(possible_action))
-            self.assertTrue(str(default_func()) in possibles_actions)
+            if possibles_actions is not None:
+                for possible_action in possibles_actions:
+                    self.assertEquals(post_func(possible_action, default_func),
+                                      int(possible_action))
+                self.assertTrue(str(default_func()) in possibles_actions)
         del account.hub.threadConnection
-    
-    #TODO: test get_register_field with cls.possible_actions inheritance
