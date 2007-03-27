@@ -352,25 +352,39 @@ class JCLComponent_TestCase(unittest.TestCase):
     # 'disco_get_info' tests
     ###########################################################################
     def test_disco_get_info(self):
-        disco_info = self.comp.disco_get_info(None, None)
+        info_query = Iq(stanza_type = "get", \
+                        from_jid = "user1@test.com", \
+                        to_jid = "jcl.test.com")
+        disco_info = self.comp.disco_get_info(None, info_query)
         self.assertEquals(disco_info.get_identities()[0].get_name(), self.comp.name)
         self.assertTrue(disco_info.has_feature("jabber:iq:version"))
         self.assertTrue(disco_info.has_feature("jabber:iq:register"))
 
     def test_disco_get_info_multiple_account_type(self):
-        self.comp.account_classes = [ExampleAccount, Example2Account]
-        disco_info = self.comp.disco_get_info(None, None)
-        self.assertEquals(disco_info.get_identities()[0].get_name(), self.comp.name)
+        self.comp.account_manager.account_classes = (ExampleAccount, Example2Account)
+        info_query = Iq(stanza_type = "get", \
+                        from_jid = "user1@test.com", \
+                        to_jid = "jcl.test.com")        
+        disco_info = self.comp.disco_get_info(None, info_query)
+        self.assertEquals(disco_info.get_identities()[0].get_name(), \
+                          self.comp.name)
         self.assertTrue(disco_info.has_feature("jabber:iq:version"))
         self.assertFalse(disco_info.has_feature("jabber:iq:register"))
 
     def test_disco_get_info_node(self):
-        disco_info = self.comp.disco_get_info("node_test", None)
+        info_query = Iq(stanza_type = "get", \
+                        from_jid = "user1@test.com", \
+                        to_jid = "node_test@jcl.test.com")
+        disco_info = self.comp.disco_get_info("node_test", info_query)
         self.assertTrue(disco_info.has_feature("jabber:iq:register"))
         
     def test_disco_get_info_long_node(self):
-        self.comp.account_classes = [ExampleAccount, Example2Account]
-        disco_info = self.comp.disco_get_info("node_type/node_test", None)
+        self.comp.account_manager.account_classes = (ExampleAccount, Example2Account)
+        info_query = Iq(stanza_type = "get", \
+                        from_jid = "user1@test.com", \
+                        to_jid = "node_test@jcl.test.com/node_type")
+        disco_info = self.comp.disco_get_info("node_type/node_test", \
+                                              info_query)
         self.assertTrue(disco_info.has_feature("jabber:iq:register"))
 
     ###########################################################################
@@ -408,7 +422,7 @@ class JCLComponent_TestCase(unittest.TestCase):
 
     def test_disco_get_items_2types_no_node(self):
         """get_items on main entity. Must account types"""
-        self.comp.account_classes = [ExampleAccount, Example2Account]
+        self.comp.account_manager.account_classes = (ExampleAccount, Example2Account)
         account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
         account11 = ExampleAccount(user_jid = "user1@test.com", \
                                    name = "account11", \
@@ -436,7 +450,7 @@ class JCLComponent_TestCase(unittest.TestCase):
     def test_disco_get_items_2types_with_node(self):
         """get_items on the first account type node. Must return account list of
         that type for the current user"""
-        self.comp.account_classes = [ExampleAccount, Example2Account]
+        self.comp.account_manager.account_classes = (ExampleAccount, Example2Account)
         account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
         account11 = ExampleAccount(user_jid = "user1@test.com", \
                                    name = "account11", \
@@ -464,7 +478,7 @@ class JCLComponent_TestCase(unittest.TestCase):
     def test_disco_get_items_2types_with_node2(self):
         """get_items on the second account type node. Must return account list of
         that type for the current user"""
-        self.comp.account_classes = [ExampleAccount, Example2Account]
+        self.comp.account_manager.account_classes = (ExampleAccount, Example2Account)
         account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
         account11 = ExampleAccount(user_jid = "user1@test.com", \
                                    name = "account11", \
@@ -491,7 +505,7 @@ class JCLComponent_TestCase(unittest.TestCase):
 
     def test_disco_get_items_2types_with_long_node(self):
         """get_items on a first type account. Must return nothing"""
-        self.comp.account_classes = [ExampleAccount, Example2Account]
+        self.comp.account_manager.account_classes = (ExampleAccount, Example2Account)
         account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
         account1 = ExampleAccount(user_jid = "user1@test.com", \
                                   name = "account1", \
@@ -505,7 +519,7 @@ class JCLComponent_TestCase(unittest.TestCase):
 
     def test_disco_get_items_2types_with_long_node2(self):
         """get_items on a second type account. Must return nothing"""
-        self.comp.account_classes = [ExampleAccount, Example2Account]
+        self.comp.account_manager.account_classes = (ExampleAccount, Example2Account)
         account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
         account1 = Example2Account(user_jid = "user1@test.com", \
                                    name = "account1", \

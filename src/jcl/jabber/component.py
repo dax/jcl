@@ -90,12 +90,11 @@ class JCLComponent(Component, object):
         self.name = "Jabber Component Library generic component"
         self.spool_dir = "."
         self.db_connection_str = db_connection_str
-        self.account_classes = [Account]
         self.version = VERSION
-        self.accounts = []
         self.time_unit = 60
         self.queue = Queue(100)
-
+        self.account_manager = AccountManager(self)
+        
         self.__logger = logging.getLogger("jcl.jabber.JCLComponent")
         self.lang = lang
         self.running = False
@@ -103,6 +102,9 @@ class JCLComponent(Component, object):
 
         signal.signal(signal.SIGINT, self.signal_handler)
         signal.signal(signal.SIGTERM, self.signal_handler)
+
+        # TODO : delete
+        self.account_classes = (Account,)
 
     def run(self):
         """Main loop
@@ -242,68 +244,52 @@ class JCLComponent(Component, object):
         self.__logger.debug("Signal %i received, shutting down..." % (signum,))
         self.running = False
 
+    def apply_behavior(self, info_query, \
+                       account_handler, \
+                       account_type_handler, \
+                       root_handler, \
+                       send_result = False):
+        bare_from_jid = info_query.get_from().bare()
+        to_jid = info_query.get_to()
+        name = to_jid.node
+        account_type = to_jid.resource
+        if name is not None: # account
+            self.__logger.debug("Applying behavior on account " + name)
+            result = account_handler(name, bare_from_jid, account_type)
+        elif account_type is None: # root
+            self.__logger.debug("Applying behavior on root node")
+            result = root_handler(name, bare_from_jid, account_type)
+        else: # account type
+            self.__logger.debug("Applying behavior on account type " + account_type)
+            result = account_type_handler(name, bare_from_jid, account_type)
+        if send_result:
+            self._logger.debug("Sending responses")
+            for stanza in result:
+                self.stream.send(stanza)
+        return result
+        
     def disco_get_info(self, node, info_query):
         """Discovery get info handler
         """
-        self.__logger.debug("DISCO_GET_INFO")
-        disco_info = DiscoInfo()
-        if node is not None:
-            disco_info.add_feature("jabber:iq:register")
-        else:
-            disco_info.add_feature("jabber:iq:version")
-            if len(self.account_classes) == 1:
-                disco_info.add_feature("jabber:iq:register")
-            DiscoIdentity(disco_info, self.name,
-                          self.disco_identity.category,
-                          self.disco_identity.type)
-        return disco_info
+        return self.apply_behavior(info_query, \
+                                   lambda name, bare_from_jid, account_type: \
+                                   self.account_manager.account_disco_get_info(), \
+                                   lambda name, bare_from_jid, account_type: \
+                                   self.account_manager.account_type_disco_get_info, \
+                                   lambda name, bare_from_jid, account_type: \
+                                   self.account_manager.root_disco_get_info(self.name, \
+                                                                            self.disco_identity.category, \
+                                                                            self.disco_identity.type))
 
     def disco_get_items(self, node, info_query):
         """Discovery get nested nodes handler
         """
-        self.__logger.debug("DISCO_GET_ITEMS")
-        base_from_jid = unicode(info_query.get_from().bare())
-        disco_items = DiscoItems()
-        if not node: # first level
-            if len(self.account_classes) == 1: # list accounts with only one type declared
-                regexp_type = re.compile("(.*)Account$")
-                match = regexp_type.search(self.account_classes[0].__name__)
-                if match is not None:
-                    account_type = match.group(1)
-                    self._list_accounts(disco_items, self.account_classes[0], \
-                                        base_from_jid, account_type)
-                else:
-                    self.__logger.error(self.account_classes[0].__name__ + \
-                          " name not well formed")
-            else: # list account types (when multiples accounts types)
-                for account_class in self.account_classes:
-                    regexp_type = re.compile("(.*)Account$")
-                    match = regexp_type.search(account_class.__name__)
-                    if match is not None:
-                        account_type = match.group(1)
-                        item_jid = JID(unicode(self.jid) + "/" + account_type)
-                        DiscoItem(disco_items, \
-                                  item_jid, \
-                                  account_type, \
-                                  account_type)
-                    else:
-                        self.__logger.error(account_class.__name__ + \
-                              " name not well formed")
-        else: # second level
-            nodes = node.split("/");
-            if len(nodes) == 1 \
-                   and len(self.account_classes) > 1: # second level only with multiples account types
-                self.__logger.debug("Listing account for " + nodes[0])
-                account_class = self._get_account_class(nodes[0] + "Account")
-                if account_class is not None:
-                    self._list_accounts(disco_items, \
-                                        account_class, \
-                                        base_from_jid,
-                                        account_type = nodes[0])
-                else:
-                    self.__logger.error("Error: " + account_class.__name__ \
-                          + " class not in account_classes")
-        return disco_items
+        return self.apply_behavior(info_query, \
+                                   lambda name, bare_from_jid, account_type: DiscoItems(), \
+                                   lambda name, bare_from_jid, account_type: \
+                                   self.account_manager.account_type_disco_get_items(bare_from_jid, account_type), \
+                                   lambda name, bare_from_jid, account_type:
+                                   self.account_manager.root_disco_get_items(bare_from_jid))
 
     def handle_get_version(self, info_query):
         """Get Version handler
@@ -661,6 +647,7 @@ class JCLComponent(Component, object):
     ###########################################################################
     # Utils
     ###########################################################################
+    # TODO : delete
     def _get_account_class(self, account_class_name):
         """Return account class definition from declared classes in
         account_classes from its class name"""
@@ -671,23 +658,6 @@ class JCLComponent(Component, object):
                 return _account_class
         self.__logger.debug(account_class_name + " not found")
         return None
-
-    def _list_accounts(self, disco_items, _account_class, base_from_jid, account_type = ""):
-        """List accounts in disco_items for given _account_class and user jid"""
-        if account_type is not None and account_type != "":
-            resource = "/" + account_type
-            account_type = account_type + "/"
-        else:
-            resource = ""
-        self.db_connect()
-        for _account in _account_class.select(_account_class.q.user_jid == \
-                                              base_from_jid):
-            self.__logger.debug(str(_account))
-            DiscoItem(disco_items, \
-                      JID(unicode(_account.jid) + resource), \
-                      account_type + _account.name, \
-                      _account.long_name)
-        self.db_disconnect()
 
     def _send_presence_available(self, _account, show, lang_class):
         """Send available presence to account's user and ask for password
@@ -816,3 +786,129 @@ class JCLComponent(Component, object):
         Called regularly
         """
         raise NotImplementedError
+
+
+class AccountManager(object):
+    """Implement component account behavior"""
+
+    def __init__(self, component):
+        """AccountManager constructor"""
+        self.__logger = logging.getLogger("jcl.jabber.JCLComponent")
+        self.account_classes = (Account,)
+        self.component = component
+
+    def _get_account_classes(self):
+        """account_classes getter"""
+        return self._account_classes
+
+    def _set_account_classes(self, account_classes):
+        """account_classes setter"""
+        self._account_classes = account_classes
+        self.has_multiple_account_type = (len(self._account_classes) > 1)
+        
+    account_classes = property(_get_account_classes, _set_account_classes)
+    
+    ###### disco_get_info handlers ######
+    def account_disco_get_info(self):
+        """Implement discovery get_info on an account node"""
+        self.__logger.debug("account_disco_get_info")
+        disco_info = DiscoInfo()
+        disco_info.add_feature("jabber:iq:register")
+        return disco_info
+
+    def account_type_disco_get_info(self):
+        """Implement discovery get_info on an account type node"""
+        self.__logger.debug("account_type_disco_get_info")
+        return self.account_disco_get_info()
+
+    def root_disco_get_info(self, name, category, type):
+        """Implement discovery get_info on main component JID"""
+        self.__logger.debug("root_disco_get_info")
+        disco_info = DiscoInfo()
+        disco_info.add_feature("jabber:iq:version")
+        if not self.has_multiple_account_type:
+            disco_info.add_feature("jabber:iq:register")
+        DiscoIdentity(disco_info, name, \
+                      category, \
+                      type)
+        return disco_info
+
+    ###### disco_get_items handlers ######
+    def account_type_disco_get_items(self, bare_from_jid, account_type):
+        """Discovery get_items on an account type node"""
+        self.__logger.debug("Listing account for " + account_type)
+        disco_items = DiscoItems()
+        account_class = self._get_account_class(account_type + "Account")
+        if account_class is not None:
+            self._list_accounts(disco_items, \
+                                account_class, \
+                                bare_from_jid, \
+                                account_type = account_type)
+        else:
+            self.__logger.error("Error: " + account_class.__name__ \
+                                + " class not in account_classes")
+        return disco_items
+        
+    def root_disco_get_items(self, bare_from_jid):
+        """Discovery get_items on root node"""
+        disco_items = DiscoItems()
+        regexp_type = re.compile("(.*)Account$")
+        if self.has_multiple_account_type: # list accounts with only one type declared
+            list_func = lambda disco_items, account_class, bare_from_jid, account_type: \
+                        DiscoItem(disco_items, \
+                                  JID(unicode(self.component.jid) + "/" + account_type), \
+                                  account_type, \
+                                  account_type)
+        else:
+            list_func = self._list_accounts
+
+        for account_class in self.account_classes:
+            match = regexp_type.search(account_class.__name__)
+            if match is not None:
+                account_type = match.group(1)
+                list_func(disco_items, account_class, \
+                          bare_from_jid, account_type)
+            else:
+                self.__logger.error(account_class.__name__ + \
+                                    " name not well formed")
+        return disco_items
+
+    ###### Utils methods ######
+    def _list_accounts(self, disco_items, _account_class, bare_from_jid, account_type = ""):
+        """List accounts in disco_items for given _account_class and user jid"""
+        if account_type is not None and account_type != "":
+            resource = "/" + account_type
+            account_type = account_type + "/"
+        else:
+            resource = ""
+        self.db_connect()
+        for _account in _account_class.select(_account_class.q.user_jid == \
+                                              unicode(bare_from_jid)):
+            self.__logger.debug(str(_account))
+            DiscoItem(disco_items, \
+                      JID(unicode(_account.jid) + resource), \
+                      account_type + _account.name, \
+                      _account.long_name)
+        self.db_disconnect()
+
+    def _get_account_class(self, account_class_name):
+        """Return account class definition from declared classes in
+        account_classes from its class name"""
+        self.__logger.debug("Looking for " + account_class_name)
+        for _account_class in self.account_classes:
+            if _account_class.__name__.lower() == account_class_name.lower():
+                self.__logger.debug(account_class_name + " found")
+                return _account_class
+        self.__logger.debug(account_class_name + " not found")
+        return None
+
+    def db_connect(self):
+        """Create a new connection to the DataBase (SQLObject use connection
+        pool) associated to the current thread"""
+        account.hub.threadConnection = \
+                     connectionForURI(self.component.db_connection_str) # TODO : move db_connection_str to AccountManager
+#        account.hub.threadConnection.debug = True
+
+    def db_disconnect(self):
+        """Delete connection associated to the current thread"""
+        del account.hub.threadConnection
