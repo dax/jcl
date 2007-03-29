@@ -256,20 +256,20 @@ class JCLComponent(Component, object):
                        root_handler, \
                        send_result = False):
         """Apply given handler depending on info_query receiver"""
-        bare_from_jid = info_query.get_from().bare()
+        from_jid = info_query.get_from()
         to_jid = info_query.get_to()
         name = to_jid.node
         account_type = to_jid.resource
         lang_class = self.lang.get_lang_class_from_node(info_query.get_node())
         if name is not None: # account
             self.__logger.debug("Applying behavior on account " + name)
-            result = account_handler(name, bare_from_jid, account_type or "", lang_class)
+            result = account_handler(name, from_jid, account_type or "", lang_class)
         elif account_type is None: # root
             self.__logger.debug("Applying behavior on root node")
-            result = root_handler(name, bare_from_jid, "", lang_class) # TODO : account_type not needed
+            result = root_handler(name, from_jid, "", lang_class) # TODO : account_type not needed
         else: # account type
             self.__logger.debug("Applying behavior on account type " + account_type)
-            result = account_type_handler(name, bare_from_jid, account_type, lang_class)
+            result = account_type_handler(name, from_jid, account_type, lang_class)
         if send_result:
             self.send_stanzas(result)
         return result
@@ -278,11 +278,11 @@ class JCLComponent(Component, object):
         """Discovery get info handler
         """
         return self.apply_behavior(info_query, \
-                                   lambda name, bare_from_jid, account_type, lang_class: \
+                                   lambda name, from_jid, account_type, lang_class: \
                                    self.account_manager.account_disco_get_info(), \
-                                   lambda name, bare_from_jid, account_type, lang_class: \
+                                   lambda name, from_jid, account_type, lang_class: \
                                    self.account_manager.account_type_disco_get_info(), \
-                                   lambda name, bare_from_jid, account_type, lang_class: \
+                                   lambda name, from_jid, account_type, lang_class: \
                                    self.account_manager.root_disco_get_info(self.name, \
                                                                             self.disco_identity.category, \
                                                                             self.disco_identity.type))
@@ -291,12 +291,12 @@ class JCLComponent(Component, object):
         """Discovery get nested nodes handler
         """
         return self.apply_behavior(info_query, \
-                                   lambda name, bare_from_jid, account_type, lang_class: \
+                                   lambda name, from_jid, account_type, lang_class: \
                                    DiscoItems(), \
-                                   lambda name, bare_from_jid, account_type, lang_class: \
-                                   self.account_manager.account_type_disco_get_items(bare_from_jid, account_type), \
-                                   lambda name, bare_from_jid, account_type, lang_class: \
-                                   self.account_manager.root_disco_get_items(bare_from_jid))
+                                   lambda name, from_jid, account_type, lang_class: \
+                                   self.account_manager.account_type_disco_get_items(from_jid, account_type), \
+                                   lambda name, from_jid, account_type, lang_class: \
+                                   self.account_manager.root_disco_get_items(from_jid))
 
     def handle_get_version(self, info_query):
         """Get Version handler
@@ -315,17 +315,17 @@ class JCLComponent(Component, object):
         """
         self.__logger.debug("GET_REGISTER")
         self.apply_behavior(info_query, \
-                            lambda name, bare_from_jid, account_type, lang_class: \
+                            lambda name, from_jid, account_type, lang_class: \
                             self.account_manager.account_get_register(info_query, \
                                                                       name, \
-                                                                      bare_from_jid, \
+                                                                      from_jid, \
                                                                       account_type, \
                                                                       lang_class), \
-                            lambda name, bare_from_jid, account_type, lang_class: \
+                            lambda name, from_jid, account_type, lang_class: \
                             self.account_manager.account_type_get_register(info_query, \
                                                                            account_type, \
                                                                            lang_class), \
-                            lambda name, bare_from_jid, account_type, lang_class: \
+                            lambda name, from_jid, account_type, lang_class: \
                             self.account_manager.root_get_register(info_query, \
                                                                    lang_class), \
                             send_result = True)
@@ -359,28 +359,27 @@ class JCLComponent(Component, object):
             self.stream.send(iq_error)
             return
         account_name = x_data["name"].value
-        self.apply_behavior(info_query, \
-                            lambda name, bare_from_jid, account_type, lang_class: \
-                            self.account_manager.account_set_register(name, \
-                                                                      bare_from_jid, \
-                                                                      lang_class, \
-                                                                      x_data, \
-                                                                      info_query), \
-                            lambda name, bare_from_jid, account_type, lang_class: \
-                            self.account_manager.account_type_set_register(account_name, \
-                                                                           bare_from_jid, \
-                                                                           account_type, \
-                                                                           lang_class, \
-                                                                           x_data, \
-                                                                           info_query), \
-                            lambda name, bare_from_jid, account_type, lang_class: \
-                            self.account_manager.root_set_register(account_name, \
-                                                                   bare_from_jid, \
-                                                                   lang_class, \
-                                                                   x_data, \
-                                                                   info_query), \
-                            send_result = True)
-        return
+        return self.apply_behavior(info_query, \
+                                   lambda name, from_jid, account_type, lang_class: \
+                                   self.account_manager.account_set_register(name, \
+                                                                             from_jid, \
+                                                                             lang_class, \
+                                                                             x_data, \
+                                                                             info_query), \
+                                   lambda name, from_jid, account_type, lang_class: \
+                                   self.account_manager.account_type_set_register(account_name, \
+                                                                                  from_jid, \
+                                                                                  account_type, \
+                                                                                  lang_class, \
+                                                                                  x_data, \
+                                                                                  info_query), \
+                                   lambda name, from_jid, account_type, lang_class: \
+                                   self.account_manager.root_set_register(account_name, \
+                                                                          from_jid, \
+                                                                          lang_class, \
+                                                                          x_data, \
+                                                                          info_query), \
+                                   send_result = True)
 
     def handle_presence_available(self, stanza):
         """Handle presence availability
@@ -388,40 +387,20 @@ class JCLComponent(Component, object):
         all accounts for current user. Otherwise, send presence from current account.
 
         """
-        self.__logger.debug("PRESENCE_AVAILABLE")
-        from_jid = stanza.get_from()
-        base_from_jid = unicode(from_jid.bare())
-        name = stanza.get_to().node
-        lang_class = self.lang.get_lang_class_from_node(stanza.get_node())
-        show = stanza.get_show()
-        self.__logger.debug("SHOW : " + str(show))
-        if name:
-            self.__logger.debug("TO : " + name + " " + base_from_jid)
-        self.db_connect()
-        if not name:
-            accounts = self.account_classes[0].select(\
-                self.account_classes[0].q.user_jid == base_from_jid)
-            accounts_length = 0
-            for _account in accounts:
-                accounts_length += 1
-                self._send_presence_available(_account, show, lang_class)
-            if (accounts_length > 0):
-                presence = Presence(from_jid = self.jid, \
-                                    to_jid = from_jid, \
-                                    status = \
-                                    str(accounts_length) \
-                                    + lang_class.message_status, \
-                                    show = show, \
-                                    stanza_type = "available")
-                self.stream.send(presence)
-        else:
-            accounts = self.account_classes[0].select(\
-                 AND(self.account_classes[0].q.name == name, \
-                     self.account_classes[0].q.user_jid == base_from_jid))
-            if accounts.count() > 0:
-                self._send_presence_available(accounts[0], show, lang_class)
-        self.db_disconnect()
-        return 1
+        return self.apply_behavior(stanza, \
+                                   lambda name, from_jid, account_type, lang_class: \
+                                   self.account_manager.account_handle_presence_available(name, \
+                                                                                          from_jid, \
+                                                                                          lang_class, \
+                                                                                          stanza.get_show()), \
+                                   lambda name, from_jid, account_type, lang_class: \
+                                   [], \
+                                   lambda name, from_jid, account_type, lang_class: \
+                                   self.account_manager.root_handle_presence_available(from_jid, \
+                                                                                       lang_class, \
+                                                                                       stanza.get_show()), \
+                                   send_result = True)
+                                   
 
     def handle_presence_unavailable(self, stanza):
         """Handle presence unavailability
@@ -570,6 +549,7 @@ class JCLComponent(Component, object):
         self.__logger.debug(account_class_name + " not found")
         return None
 
+    # TODO : delete
     def _send_presence_available(self, _account, show, lang_class):
         """Send available presence to account's user and ask for password
         if necessary"""
@@ -686,7 +666,7 @@ class AccountManager(object):
         return disco_info
 
     ###### disco_get_items handlers ######
-    def account_type_disco_get_items(self, bare_from_jid, account_type):
+    def account_type_disco_get_items(self, from_jid, account_type):
         """Discovery get_items on an account type node"""
         self.__logger.debug("Listing account for " + account_type)
         disco_items = DiscoItems()
@@ -694,14 +674,14 @@ class AccountManager(object):
         if account_class is not None:
             self._list_accounts(disco_items, \
                                 account_class, \
-                                bare_from_jid, \
+                                from_jid.bare(), \
                                 account_type = account_type)
         else:
             self.__logger.error("Error: " + account_class.__name__ \
                                 + " class not in account_classes")
         return disco_items
         
-    def root_disco_get_items(self, bare_from_jid):
+    def root_disco_get_items(self, from_jid):
         """Discovery get_items on root node"""
         disco_items = DiscoItems()
         regexp_type = re.compile("(.*)Account$")
@@ -719,7 +699,7 @@ class AccountManager(object):
             if match is not None:
                 account_type = match.group(1)
                 list_func(disco_items, account_class, \
-                          bare_from_jid, account_type)
+                          from_jid.bare(), account_type)
             else:
                 self.__logger.error(account_class.__name__ + \
                                     " name not well formed")
@@ -728,7 +708,7 @@ class AccountManager(object):
     ###### get_register handlers ######
     def account_get_register(self, info_query, \
                              name, \
-                             bare_from_jid, \
+                             from_jid, \
                              account_type, \
                              lang_class):
         """Handle get_register on an account.
@@ -739,7 +719,7 @@ class AccountManager(object):
         # TODO : do it only one time
         accounts = account_class.select(\
                 AND(account_class.q.name == name, \
-                    account_class.q.user_jid == unicode(bare_from_jid)))
+                    account_class.q.user_jid == unicode(from_jid.bare())))
         if accounts is not None:
             query = info_query.new_query("jabber:iq:register")
             self.get_reg_form_init(lang_class, \
@@ -847,9 +827,10 @@ class AccountManager(object):
         self.db_disconnect()
         return result
 
-    def account_set_register(self, name, bare_from_jid, lang_class, \
+    def account_set_register(self, name, from_jid, lang_class, \
                              x_data, info_query):
         """Update account"""
+        bare_from_jid = from_jid.bare()
         self.db_connect()
         accounts = Account.select(\
             AND(Account.q.name == name, \
@@ -870,13 +851,14 @@ class AccountManager(object):
             return []
 
     def _account_type_set_register(self, name, \
-                                   bare_from_jid, \
+                                   from_jid, \
                                    account_class, \
                                    lang_class, \
                                    x_data, \
                                    info_query):
         """Create new account from account_class"""
         self.db_connect()
+        bare_from_jid = from_jid.bare()
         _account = account_class(user_jid = unicode(bare_from_jid), \
                                  name = name, \
                                  jid = self.get_account_jid(name))
@@ -888,27 +870,63 @@ class AccountManager(object):
                                       info_query, True, first_account)
         
     def account_type_set_register(self, name, \
-                                  bare_from_jid, \
+                                  from_jid, \
                                   account_type, \
                                   lang_class, \
                                   x_data, \
                                   info_query):
         """Create new typed account"""
-        return self._account_type_set_register(name, bare_from_jid, \
+        return self._account_type_set_register(name, from_jid, \
             self._get_account_class(account_type + "Account"), lang_class, \
                                                x_data, info_query)
 
-    def root_set_register(self, name, bare_from_jid, lang_class, \
+    def root_set_register(self, name, from_jid, lang_class, \
                           x_data, info_query):
         """Create new account when managing only one account type"""
         if not self.has_multiple_account_type:
-            return self._account_type_set_register(name, bare_from_jid, \
+            return self._account_type_set_register(name, from_jid, \
                                                    self.account_classes[0], \
                                                    lang_class, x_data, \
                                                    info_query)
         else:
             return []
 
+    ###### presence_available handlers ######
+    def account_handle_presence_available(self, name, from_jid, lang_class, show):
+        """Handle presence \"available\" sent to an account JID"""
+        result = []
+        self.db_connect()
+        accounts = Account.select(\
+                 AND(Account.q.name == name, \
+                     Account.q.user_jid == unicode(from_jid.bare())))
+        if accounts.count() > 0:
+            result.extend(self._send_presence_available(accounts[0], show, lang_class))
+        self.db_disconnect()
+        return result
+    
+    def root_handle_presence_available(self, from_jid, lang_class, show):
+        """Handle presence \"available\" sent to component JID"""
+        result = []
+        self.db_connect()
+        accounts = Account.select(\
+                Account.q.user_jid == unicode(from_jid.bare()))
+        accounts_length = 0
+        for _account in accounts:
+            accounts_length += 1
+            result.extend(self._send_presence_available(_account, \
+                                                        show, \
+                                                        lang_class))
+        self.db_disconnect()
+        if (accounts_length > 0):
+            result.append(Presence(from_jid = self.component.jid, \
+                                   to_jid = from_jid, \
+                                   status = \
+                                   str(accounts_length) \
+                                   + lang_class.message_status, \
+                                   show = show, \
+                                   stanza_type = "available"))
+        return result
+    
     ###### Utils methods ######
     def _list_accounts(self, disco_items, _account_class, bare_from_jid, account_type = ""):
         """List accounts in disco_items for given _account_class and user jid"""
@@ -1011,3 +1029,43 @@ class AccountManager(object):
     def get_account_jid(self, name):
         """Compose account jid from account name"""
         return name + u"@" + unicode(self.component.jid)
+
+    def _send_presence_available(self, _account, show, lang_class):
+        """Send available presence to account's user and ask for password
+        if necessary"""
+        result = []
+        _account.default_lang_class = lang_class
+        old_status = _account.status
+        if show is None:
+            _account.status = account.ONLINE
+        else:
+            _account.status = show
+        result.append(Presence(from_jid = _account.jid, \
+                               to_jid = _account.user_jid, \
+                               status = _account.status_msg, \
+                               show = show, \
+                               stanza_type = "available"))
+        if hasattr(_account, 'store_password') \
+               and hasattr(_account, 'password') \
+               and _account.store_password == False \
+               and old_status == account.OFFLINE \
+               and _account.password == None :
+            result.extend(self.ask_password(_account, lang_class))
+        return result
+    
+    def ask_password(self, _account, lang_class):
+        """Send a Jabber message to ask for account password
+        """
+        result = []
+        if hasattr(_account, 'waiting_password_reply') \
+               and not _account.waiting_password_reply \
+               and _account.status != account.OFFLINE:
+            _account.waiting_password_reply = True
+            result.append(Message(from_jid = _account.jid, \
+                                  to_jid = _account.user_jid, \
+                                  stanza_type = "normal", \
+                                  subject = u"[PASSWORD] " + \
+                                  lang_class.ask_password_subject, \
+                                  body = lang_class.ask_password_body % \
+                                  (_account.name)))
+        return result

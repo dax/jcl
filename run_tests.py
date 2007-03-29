@@ -58,7 +58,7 @@ if __name__ == '__main__':
     
     jcl_suite = unittest.TestSuite()
 #    jcl_suite.addTest(FeederComponent_TestCase('test_handle_tick'))
-#    jcl_suite.addTest(JCLComponent_TestCase('test_handle_set_register_update_complex'))
+#    jcl_suite.addTest(JCLComponent_TestCase('test_handle_presence_available_to_component'))
 #    jcl_suite.addTest(PresenceAccount_TestCase('test_possibles_actions'))
 #    jcl_suite = unittest.TestSuite((component_suite))
 #    jcl_suite = unittest.TestSuite((presence_account_suite))
