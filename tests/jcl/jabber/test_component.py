@@ -648,7 +648,7 @@ class JCLComponent_TestCase(unittest.TestCase):
     def test_handle_get_register_new_complex(self):
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
-        self.comp.account_classes = [ExampleAccount]
+        self.comp.account_manager.account_classes = (ExampleAccount,)
         self.comp.handle_get_register(Iq(stanza_type = "get", \
                                          from_jid = "user1@test.com", \
                                          to_jid = "jcl.test.com"))
@@ -808,7 +808,7 @@ class JCLComponent_TestCase(unittest.TestCase):
     def test_handle_get_register_new_type1(self):
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
-        self.comp.account_classes = [ExampleAccount, Example2Account]
+        self.comp.account_manager.account_classes = (ExampleAccount, Example2Account)
         self.comp.handle_get_register(Iq(stanza_type = "get", \
                                          from_jid = "user1@test.com", \
                                          to_jid = "jcl.test.com/example"))
@@ -817,7 +817,7 @@ class JCLComponent_TestCase(unittest.TestCase):
     def test_handle_get_register_new_type2(self):
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
-        self.comp.account_classes = [ExampleAccount, Example2Account]
+        self.comp.account_manager.account_classes = (ExampleAccount, Example2Account)
         self.comp.handle_get_register(Iq(stanza_type = "get", \
                                          from_jid = JID("user1@test.com"), \
                                          to_jid = JID("jcl.test.com/example2")))

@@ -249,21 +249,22 @@ class JCLComponent(Component, object):
                        account_type_handler, \
                        root_handler, \
                        send_result = False):
-        bare_from_jid = info_query.get_from().bare()
+        bare_from_jid = unicode(info_query.get_from().bare())
         to_jid = info_query.get_to()
         name = to_jid.node
         account_type = to_jid.resource
+        lang_class = self.lang.get_lang_class_from_node(info_query.get_node())
         if name is not None: # account
             self.__logger.debug("Applying behavior on account " + name)
-            result = account_handler(name, bare_from_jid, account_type)
+            result = account_handler(name, bare_from_jid, account_type or "", lang_class)
         elif account_type is None: # root
             self.__logger.debug("Applying behavior on root node")
-            result = root_handler(name, bare_from_jid, account_type)
+            result = root_handler(name, bare_from_jid, "", lang_class) # TODO : account_type not needed
         else: # account type
             self.__logger.debug("Applying behavior on account type " + account_type)
-            result = account_type_handler(name, bare_from_jid, account_type)
+            result = account_type_handler(name, bare_from_jid, account_type, lang_class)
         if send_result:
-            self._logger.debug("Sending responses")
+            self.__logger.debug("Sending responses")
             for stanza in result:
                 self.stream.send(stanza)
         return result
@@ -272,11 +273,11 @@ class JCLComponent(Component, object):
         """Discovery get info handler
         """
         return self.apply_behavior(info_query, \
-                                   lambda name, bare_from_jid, account_type: \
+                                   lambda name, bare_from_jid, account_type, lang_class: \
                                    self.account_manager.account_disco_get_info(), \
-                                   lambda name, bare_from_jid, account_type: \
-                                   self.account_manager.account_type_disco_get_info, \
-                                   lambda name, bare_from_jid, account_type: \
+                                   lambda name, bare_from_jid, account_type, lang_class: \
+                                   self.account_manager.account_type_disco_get_info(), \
+                                   lambda name, bare_from_jid, account_type, lang_class: \
                                    self.account_manager.root_disco_get_info(self.name, \
                                                                             self.disco_identity.category, \
                                                                             self.disco_identity.type))
@@ -285,10 +286,11 @@ class JCLComponent(Component, object):
         """Discovery get nested nodes handler
         """
         return self.apply_behavior(info_query, \
-                                   lambda name, bare_from_jid, account_type: DiscoItems(), \
-                                   lambda name, bare_from_jid, account_type: \
+                                   lambda name, bare_from_jid, account_type, lang_class: \
+                                   DiscoItems(), \
+                                   lambda name, bare_from_jid, account_type, lang_class: \
                                    self.account_manager.account_type_disco_get_items(bare_from_jid, account_type), \
-                                   lambda name, bare_from_jid, account_type:
+                                   lambda name, bare_from_jid, account_type, lang_class: \
                                    self.account_manager.root_disco_get_items(bare_from_jid))
 
     def handle_get_version(self, info_query):
@@ -306,42 +308,22 @@ class JCLComponent(Component, object):
         """Send back register form to user
         see node structure in disco_get_items()
         """
-        def get_reg_form_for_account(_account_class, name, base_from_jid): 
-            self.db_connect()
-            # TODO : do it only one time
-            _accounts = _account_class.select(\
-                AND(_account_class.q.name == name, \
-                    _account_class.q.user_jid == base_from_jid))
-            if _accounts is not None:
-                self.get_reg_form_init(lang_class, \
-                                       _accounts[0]).as_xml(query)
-            self.db_disconnect()
-           
         self.__logger.debug("GET_REGISTER")
-        lang_class = self.lang.get_lang_class_from_node(info_query.get_node())
-        base_from_jid = unicode(info_query.get_from().bare())
-        to_jid = info_query.get_to()
-        info_query = info_query.make_result_response()
-        query = info_query.new_query("jabber:iq:register")
-        if to_jid.resource is None:
-            account_type = ""
-        else:
-            account_type = to_jid.resource
-        if to_jid.node is not None:
-            # get_register on an existing account of type resource + "Account"
-            get_reg_form_for_account(self._get_account_class(account_type + "Account"), \
-                                     to_jid.node, \
-                                     base_from_jid)
-        else:
-            if to_jid.resource is None: # get_register on main entity (1 account type)
-                _account_class = self.account_classes[0]
-            else: # get_register new account of type node_list[0] + "Account"
-                _account_class = self._get_account_class(account_type + "Account")
-            self.get_reg_form(lang_class, \
-                              _account_class).as_xml(query)
-                
-        self.stream.send(info_query)
-        return 1
+        self.apply_behavior(info_query, \
+                            lambda name, bare_from_jid, account_type, lang_class: \
+                            self.account_manager.account_get_register(info_query, \
+                                                                      name, \
+                                                                      bare_from_jid, \
+                                                                      account_type, \
+                                                                      lang_class), \
+                            lambda name, bare_from_jid, account_type, lang_class: \
+                            self.account_manager.account_type_get_register(info_query, \
+                                                                           account_type, \
+                                                                           lang_class), \
+                            lambda name, bare_from_jid, account_type, lang_class: \
+                            self.account_manager.root_get_register(info_query, \
+                                                                   lang_class), \
+                            send_result = True)
 
     def remove_all_accounts(self, user_jid):
         """Unsubscribe all accounts associated to 'user_jid' then delete
@@ -719,65 +701,6 @@ class JCLComponent(Component, object):
         """
         return _account.name + u"@" + unicode(self.jid)
 
-    def get_reg_form(self, lang_class, _account_class):
-        """Return register form based on language and account class
-        """
-        reg_form = Form(title = lang_class.register_title, \
-                        instructions = lang_class.register_instructions)
-        # "name" field is mandatory
-        reg_form.add_field(field_type = "text-single", \
-                           label = lang_class.account_name, \
-                           name = "name", \
-                           required = True)
-
-        for (field_name, \
-             field_type, \
-             field_options, \
-             post_func, \
-             default_func) in \
-                _account_class.get_register_fields():
-            if field_name is None:
-                # TODO : Add page when empty tuple given
-                pass
-            else:
-                lang_label_attr = "field_" + field_name
-                if hasattr(lang_class, lang_label_attr):
-                    label = getattr(lang_class, lang_label_attr)
-                else:
-                    label = field_name
-                self.__logger.debug("Adding field " + field_name + " to registration form")
-                field = reg_form.add_field(field_type = field_type, \
-                                           label = label, \
-                                           name = field_name, \
-                                           value = default_func())
-                if field_options is not None:
-                    for option_value in field_options:
-                        lang_label_attr = "field_" + field_name + "_" + option_value
-                        if hasattr(lang_class, lang_label_attr):
-                            label = getattr(lang_class, lang_label_attr)
-                        else:
-                            label = option_value
-                        field.add_option(label = label, \
-                                         values = [option_value])
-                try:
-                    post_func(None, default_func)
-                except:
-                    self.__logger.debug("Setting field " + field_name + " required")
-                    field.required = True
-            ## TODO : get default value if any
-        return reg_form
-
-    def get_reg_form_init(self, lang_class, _account):
-        """Return register form for an existing account (update)
-        """
-        reg_form = self.get_reg_form(lang_class, _account.__class__)
-        reg_form["name"].value = _account.name
-        reg_form["name"].type = "hidden"
-        for field in reg_form.fields: # TODO
-            if hasattr(_account, field.name):
-                field.value = getattr(_account, field.name)
-        return reg_form
-
     ###########################################################################
     # Virtual methods
     ###########################################################################
@@ -873,6 +796,49 @@ class AccountManager(object):
                                     " name not well formed")
         return disco_items
 
+    ###### get_register handlers ######
+    def account_get_register(self, info_query, \
+                             name, \
+                             bare_from_jid, \
+                             account_type, \
+                             lang_class):
+        """Handle get_register on an account.
+        Return a preinitialized form"""
+        info_query = info_query.make_result_response()
+        account_class = self._get_account_class(account_type + "Account")
+        self.db_connect()
+        # TODO : do it only one time
+        accounts = account_class.select(\
+                AND(account_class.q.name == name, \
+                    account_class.q.user_jid == bare_from_jid))
+        if accounts is not None:
+            query = info_query.new_query("jabber:iq:register")
+            self.get_reg_form_init(lang_class, \
+                                   accounts[0]).as_xml(query)
+        self.db_disconnect()
+        return [info_query]
+
+    def _account_type_get_register(self, info_query, account_class, lang_class):
+        """Handle get_register for given account_class"""
+        info_query = info_query.make_result_response()
+        query = info_query.new_query("jabber:iq:register")
+        self.get_reg_form(lang_class, \
+                          account_class).as_xml(query)
+        return [info_query]
+
+    def account_type_get_register(self, info_query, account_type, lang_class):
+        """Handle get_register on an account_type node"""
+        return self._account_type_get_register(info_query, \
+                                               self._get_account_class(account_type + "Account"), \
+                                               lang_class)
+                                           
+    def root_get_register(self, info_query, lang_class):
+        """Handle get_register on root node"""
+        if not self.has_multiple_account_type:
+            return self._account_type_get_register(info_query, \
+                                                   self.account_classes[0], \
+                                                   lang_class)
+        
     ###### Utils methods ######
     def _list_accounts(self, disco_items, _account_class, bare_from_jid, account_type = ""):
         """List accounts in disco_items for given _account_class and user jid"""
@@ -912,3 +878,62 @@ class AccountManager(object):
     def db_disconnect(self):
         """Delete connection associated to the current thread"""
         del account.hub.threadConnection
+
+    def get_reg_form(self, lang_class, _account_class):
+        """Return register form based on language and account class
+        """
+        reg_form = Form(title = lang_class.register_title, \
+                        instructions = lang_class.register_instructions)
+        # "name" field is mandatory
+        reg_form.add_field(field_type = "text-single", \
+                           label = lang_class.account_name, \
+                           name = "name", \
+                           required = True)
+
+        for (field_name, \
+             field_type, \
+             field_options, \
+             post_func, \
+             default_func) in \
+                _account_class.get_register_fields():
+            if field_name is None:
+                # TODO : Add page when empty tuple given
+                pass
+            else:
+                lang_label_attr = "field_" + field_name
+                if hasattr(lang_class, lang_label_attr):
+                    label = getattr(lang_class, lang_label_attr)
+                else:
+                    label = field_name
+                self.__logger.debug("Adding field " + field_name + " to registration form")
+                field = reg_form.add_field(field_type = field_type, \
+                                           label = label, \
+                                           name = field_name, \
+                                           value = default_func())
+                if field_options is not None:
+                    for option_value in field_options:
+                        lang_label_attr = "field_" + field_name + "_" + option_value
+                        if hasattr(lang_class, lang_label_attr):
+                            label = getattr(lang_class, lang_label_attr)
+                        else:
+                            label = option_value
+                        field.add_option(label = label, \
+                                         values = [option_value])
+                try:
+                    post_func(None, default_func)
+                except:
+                    self.__logger.debug("Setting field " + field_name + " required")
+                    field.required = True
+            ## TODO : get default value if any
+        return reg_form
+
+    def get_reg_form_init(self, lang_class, _account):
+        """Return register form for an existing account (update)
+        """
+        reg_form = self.get_reg_form(lang_class, _account.__class__)
+        reg_form["name"].value = _account.name
+        reg_form["name"].type = "hidden"
+        for field in reg_form.fields: # TODO
+            if hasattr(_account, field.name):
+                field.value = getattr(_account, field.name)
+        return reg_form
