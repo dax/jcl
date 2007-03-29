@@ -244,12 +244,19 @@ class JCLComponent(Component, object):
         self.__logger.debug("Signal %i received, shutting down..." % (signum,))
         self.running = False
 
+    def send_stanzas(self, stanzas):
+        """Send given stanza list"""
+        self.__logger.debug("Sending responses")
+        for stanza in stanzas:
+            self.stream.send(stanza)
+
     def apply_behavior(self, info_query, \
                        account_handler, \
                        account_type_handler, \
                        root_handler, \
                        send_result = False):
-        bare_from_jid = unicode(info_query.get_from().bare())
+        """Apply given handler depending on info_query receiver"""
+        bare_from_jid = info_query.get_from().bare()
         to_jid = info_query.get_to()
         name = to_jid.node
         account_type = to_jid.resource
@@ -264,9 +271,7 @@ class JCLComponent(Component, object):
             self.__logger.debug("Applying behavior on account type " + account_type)
             result = account_type_handler(name, bare_from_jid, account_type, lang_class)
         if send_result:
-            self.__logger.debug("Sending responses")
-            for stanza in result:
-                self.stream.send(stanza)
+            self.send_stanzas(result)
         return result
         
     def disco_get_info(self, node, info_query):
@@ -325,31 +330,6 @@ class JCLComponent(Component, object):
                                                                    lang_class), \
                             send_result = True)
 
-    def remove_all_accounts(self, user_jid):
-        """Unsubscribe all accounts associated to 'user_jid' then delete
-        those accounts from the DataBase"""
-        self.db_connect()
-        for _account in self.account_classes[0].select(\
-            self.account_classes[0].q.user_jid == user_jid):
-            self.__logger.debug("Deleting " + _account.name \
-                                + " for " + user_jid)
-            presence = Presence(from_jid = self.get_jid(_account), \
-                                to_jid = user_jid, \
-                                stanza_type = "unsubscribe")
-            self.stream.send(presence)
-            presence = Presence(from_jid = self.get_jid(_account), \
-                                to_jid = user_jid, \
-                                stanza_type = "unsubscribed")
-            self.stream.send(presence)
-            _account.destroySelf()
-        presence = Presence(from_jid = self.jid, to_jid = user_jid, \
-                            stanza_type = "unsubscribe")
-        self.stream.send(presence)
-        presence = Presence(from_jid = self.jid, to_jid = user_jid, \
-                            stanza_type = "unsubscribed")
-        self.stream.send(presence)
-        self.db_disconnect()
-
     def handle_set_register(self, info_query):
         """Handle user registration response
         """
@@ -361,7 +341,8 @@ class JCLComponent(Component, object):
         remove = info_query.xpath_eval("r:query/r:remove", \
                                         {"r" : "jabber:iq:register"})
         if remove:
-            self.remove_all_accounts(base_from_jid)
+            result = self.account_manager.remove_all_accounts(from_jid.bare())
+            self.send_stanzas(result)
             return 1
 
         x_node = info_query.xpath_eval("jir:query/jxd:x", \
@@ -377,81 +358,29 @@ class JCLComponent(Component, object):
             text.setNs(text.newNs(error.STANZA_ERROR_NS, None))
             self.stream.send(iq_error)
             return
-        name = x_data["name"].value
-        self.__logger.debug("Account name received = " + str(name))
-        self.db_connect()
-        accounts = Account.select(\
-            AND(Account.q.name == name, \
-                Account.q.user_jid == base_from_jid))
-        accounts_count = accounts.count()
-        all_accounts = Account.select(\
-            Account.q.user_jid == base_from_jid)
-        all_accounts_count = all_accounts.count()
-        if accounts_count > 1:
-            # Just print a warning, only the first account will be use
-            self.__logger.error("There might not exist 2 accounts for " + \
-                  base_from_jid + " and named " + name)
-        if accounts_count >= 1:
-            _account = list(accounts)[0]
-        else:
-            if info_query.get_to().resource is None:
-                if len(self.account_classes) > 1:
-                    self.__logger.error("There might be only one account class declared")
-                new_account_class = self.account_classes[0]
-            else:
-                new_account_class = self._get_account_class(info_query.get_to().resource + "Account")
-            _account = new_account_class(user_jid = unicode(base_from_jid), \
-                                         name = name, \
-                                         jid = name + u"@" + unicode(self.jid))
-        self.__logger.debug("Account '" + str(name) + "' created: " + str(_account))
-        field = None
-        try:
-            for (field, field_type, field_options, field_post_func, \
-                 field_default_func) in _account.get_register_fields():
-                if field is not None:
-                    if field in x_data:
-                        value = x_data[field].value
-                    else:
-                        value = None
-                    setattr(_account, field, \
-                            field_post_func(value, field_default_func))
-        except FieldError, exception:
-            _account.destroySelf()
-            type, value, stack = sys.exc_info()
-            self.__logger.error("Error while populating account: %s\n%s" % \
-                                (exception, "".join(traceback.format_exception
-                                                    (type, value, stack, 5))))
-            iq_error = info_query.make_error_response("not-acceptable")
-            text = iq_error.get_error().xmlnode.newTextChild(None, \
-                "text", \
-                lang_class.mandatory_field % (field))
-            text.setNs(text.newNs(error.STANZA_ERROR_NS, None))
-            self.stream.send(iq_error)
-            self.db_disconnect()
-            return
-        info_query = info_query.make_result_response()
-        self.stream.send(info_query)
-
-        if all_accounts_count == 0:
-            self.stream.send(Presence(from_jid = self.jid, \
-                                      to_jid = base_from_jid, \
-                                      stanza_type = "subscribe"))
-        if accounts_count == 0:
-            self.stream.send(Message(\
-                from_jid = self.jid, to_jid = from_jid, \
-                stanza_type = "normal", \
-                subject = _account.get_new_message_subject(lang_class), \
-                body = _account.get_new_message_body(lang_class)))
-            self.stream.send(Presence(from_jid = self.get_jid(_account), \
-                                      to_jid = base_from_jid, \
-                                      stanza_type = "subscribe"))
-        else:
-            self.stream.send(Message(\
-                from_jid = self.jid, to_jid = from_jid, \
-                stanza_type = "normal", \
-                subject = _account.get_update_message_subject(lang_class), \
-                body = _account.get_update_message_body(lang_class)))
-        self.db_disconnect()
+        account_name = x_data["name"].value
+        self.apply_behavior(info_query, \
+                            lambda name, bare_from_jid, account_type, lang_class: \
+                            self.account_manager.account_set_register(name, \
+                                                                      bare_from_jid, \
+                                                                      lang_class, \
+                                                                      x_data, \
+                                                                      info_query), \
+                            lambda name, bare_from_jid, account_type, lang_class: \
+                            self.account_manager.account_type_set_register(account_name, \
+                                                                           bare_from_jid, \
+                                                                           account_type, \
+                                                                           lang_class, \
+                                                                           x_data, \
+                                                                           info_query), \
+                            lambda name, bare_from_jid, account_type, lang_class: \
+                            self.account_manager.root_set_register(account_name, \
+                                                                   bare_from_jid, \
+                                                                   lang_class, \
+                                                                   x_data, \
+                                                                   info_query), \
+                            send_result = True)
+        return
 
     def handle_presence_available(self, stanza):
         """Handle presence availability
@@ -810,7 +739,7 @@ class AccountManager(object):
         # TODO : do it only one time
         accounts = account_class.select(\
                 AND(account_class.q.name == name, \
-                    account_class.q.user_jid == bare_from_jid))
+                    account_class.q.user_jid == unicode(bare_from_jid)))
         if accounts is not None:
             query = info_query.new_query("jabber:iq:register")
             self.get_reg_form_init(lang_class, \
@@ -838,7 +767,148 @@ class AccountManager(object):
             return self._account_type_get_register(info_query, \
                                                    self.account_classes[0], \
                                                    lang_class)
+
+    ###### set_register handlers ######
+    def remove_all_accounts(self, user_jid):
+        """Unsubscribe all accounts associated to 'user_jid' then delete
+        those accounts from the DataBase"""
+        self.db_connect()
+        result = []
+        for _account in Account.select(Account.q.user_jid == unicode(user_jid)):
+            self.__logger.debug("Deleting " + _account.name \
+                                + " for " + unicode(user_jid))
+            # get_jid
+            result.append(Presence(from_jid = _account.jid, \
+                                   to_jid = user_jid, \
+                                   stanza_type = "unsubscribe"))
+            result.append(Presence(from_jid = _account.jid, \
+                                   to_jid = user_jid, \
+                                   stanza_type = "unsubscribed"))
+            _account.destroySelf()
+        result.append(Presence(from_jid = self.component.jid, to_jid = user_jid, \
+                               stanza_type = "unsubscribe"))
+        result.append(Presence(from_jid = self.component.jid, to_jid = user_jid, \
+                               stanza_type = "unsubscribed"))
+        self.db_disconnect()
+        return result
+
+    def _populate_account(self, _account, lang_class, x_data, \
+                          info_query, new_account, first_account):
+        """Populate given account"""
+        field = None
+        result = []
+        self.db_connect()
+        try:
+            for (field, field_type, field_options, field_post_func, \
+                 field_default_func) in _account.get_register_fields():
+                if field is not None:
+                    if field in x_data:
+                        value = x_data[field].value
+                    else:
+                        value = None
+                    setattr(_account, field, \
+                            field_post_func(value, field_default_func))
+        except FieldError, exception:
+            _account.destroySelf()
+            type, value, stack = sys.exc_info()
+            self.__logger.error("Error while populating account: %s\n%s" % \
+                                (exception, "".join(traceback.format_exception
+                                                    (type, value, stack, 5))))
+            iq_error = info_query.make_error_response("not-acceptable")
+            text = iq_error.get_error().xmlnode.newTextChild(None, \
+                                "text", \
+                                lang_class.mandatory_field % (field))
+            text.setNs(text.newNs(error.STANZA_ERROR_NS, None))
+            result.append(iq_error)
+            self.db_disconnect()
+            return result
+        result.append(info_query.make_result_response())
+
+        # TODO : _account.user_jid or from_jid
+        if first_account:
+            result.append(Presence(from_jid = self.component.jid, \
+                                   to_jid = _account.user_jid, \
+                                   stanza_type = "subscribe"))
+        if new_account:
+            result.append(Message(\
+                from_jid = self.component.jid, to_jid = _account.user_jid, \
+                stanza_type = "normal", \
+                subject = _account.get_new_message_subject(lang_class), \
+                body = _account.get_new_message_body(lang_class)))
+            result.append(Presence(from_jid = _account.jid, \
+                                   to_jid = _account.user_jid, \
+                                   stanza_type = "subscribe"))
+        else:
+            result.append(Message(\
+                from_jid = self.component.jid, to_jid = _account.user_jid, \
+                stanza_type = "normal", \
+                subject = _account.get_update_message_subject(lang_class), \
+                body = _account.get_update_message_body(lang_class)))
+        self.db_disconnect()
+        return result
+
+    def account_set_register(self, name, bare_from_jid, lang_class, \
+                             x_data, info_query):
+        """Update account"""
+        self.db_connect()
+        accounts = Account.select(\
+            AND(Account.q.name == name, \
+                Account.q.user_jid == unicode(bare_from_jid)))
+        accounts_count = accounts.count()
+        _account = list(accounts)[0]
+        self.db_disconnect()
+        if accounts_count > 1:
+            # Just print a warning, only the first account will be use
+            self.__logger.error("There might not exist 2 accounts for " + \
+                  bare_from_jid + " and named " + name)
+        if accounts_count >= 1:
+            return self._populate_account(_account, lang_class,
+                                          x_data, info_query, False, False)
+        else:
+            self.__logger.error("Account " + name + \
+                                " was not found, cannot update it")
+            return []
+
+    def _account_type_set_register(self, name, \
+                                   bare_from_jid, \
+                                   account_class, \
+                                   lang_class, \
+                                   x_data, \
+                                   info_query):
+        """Create new account from account_class"""
+        self.db_connect()
+        _account = account_class(user_jid = unicode(bare_from_jid), \
+                                 name = name, \
+                                 jid = self.get_account_jid(name))
+        all_accounts = Account.select(\
+            Account.q.user_jid == unicode(bare_from_jid))
+        first_account = (all_accounts.count() > 0)
+        self.db_disconnect()
+        return self._populate_account(_account, lang_class, x_data, \
+                                      info_query, True, first_account)
         
+    def account_type_set_register(self, name, \
+                                  bare_from_jid, \
+                                  account_type, \
+                                  lang_class, \
+                                  x_data, \
+                                  info_query):
+        """Create new typed account"""
+        return self._account_type_set_register(name, bare_from_jid, \
+            self._get_account_class(account_type + "Account"), lang_class, \
+                                               x_data, info_query)
+
+    def root_set_register(self, name, bare_from_jid, lang_class, \
+                          x_data, info_query):
+        """Create new account when managing only one account type"""
+        if not self.has_multiple_account_type:
+            return self._account_type_set_register(name, bare_from_jid, \
+                                                   self.account_classes[0], \
+                                                   lang_class, x_data, \
+                                                   info_query)
+        else:
+            return []
+
     ###### Utils methods ######
     def _list_accounts(self, disco_items, _account_class, bare_from_jid, account_type = ""):
         """List accounts in disco_items for given _account_class and user jid"""
@@ -937,3 +1007,7 @@ class AccountManager(object):
             if hasattr(_account, field.name):
                 field.value = getattr(_account, field.name)
         return reg_form
+
+    def get_account_jid(self, name):
+        """Compose account jid from account name"""
+        return name + u"@" + unicode(self.component.jid)

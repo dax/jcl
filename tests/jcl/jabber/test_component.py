@@ -867,9 +867,9 @@ class JCLComponent_TestCase(unittest.TestCase):
         self.comp.handle_set_register(iq_set)
 
         account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
-        accounts = self.comp.account_classes[0].select(\
-            self.comp.account_classes[0].q.user_jid == "user1@test.com" \
-            and self.comp.account_classes[0].q.name == "account1")
+        accounts = Account.select(\
+            Account.q.user_jid == "user1@test.com" \
+            and Account.q.name == "account1")
         self.assertEquals(accounts.count(), 1)
         _account = accounts[0]
         self.assertEquals(_account.user_jid, "user1@test.com")
@@ -911,7 +911,7 @@ class JCLComponent_TestCase(unittest.TestCase):
     def test_handle_set_register_new_multiple_types(self):
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
-        self.comp.account_classes = [ExampleAccount, Example2Account]
+        self.comp.account_manager.account_classes = (ExampleAccount, Example2Account)
         x_data = Form("submit")
         x_data.add_field(name = "name", \
                          value = "account1", \
@@ -924,9 +924,9 @@ class JCLComponent_TestCase(unittest.TestCase):
         self.comp.handle_set_register(iq_set)
 
         account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
-        accounts = self.comp.account_classes[1].select(\
-            self.comp.account_classes[1].q.user_jid == "user1@test.com" \
-            and self.comp.account_classes[1].q.name == "account1")
+        accounts = Account.select(\
+            Account.q.user_jid == "user1@test.com" \
+            and Account.q.name == "account1")
         self.assertEquals(accounts.count(), 1)
         _account = accounts[0]
         self.assertEquals(_account.user_jid, "user1@test.com")
@@ -968,7 +968,7 @@ class JCLComponent_TestCase(unittest.TestCase):
     def test_handle_set_register_new_complex(self):
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
-        self.comp.account_classes = [ExampleAccount]
+        self.comp.account_manager.account_classes = (ExampleAccount,)
         x_data = Form("submit")
         x_data.add_field(name = "name", \
                          value = "account1", \
@@ -996,9 +996,9 @@ class JCLComponent_TestCase(unittest.TestCase):
         self.comp.handle_set_register(iq_set)
 
         account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
-        accounts = self.comp.account_classes[0].select(\
-            self.comp.account_classes[0].q.user_jid == "user1@test.com" \
-            and self.comp.account_classes[0].q.name == "account1")
+        accounts = Account.select(\
+            Account.q.user_jid == "user1@test.com" \
+            and Account.q.name == "account1")
         self.assertEquals(accounts.count(), 1)
         _account = accounts[0]
         self.assertEquals(_account.user_jid, "user1@test.com")
@@ -1045,7 +1045,7 @@ class JCLComponent_TestCase(unittest.TestCase):
     def test_handle_set_register_new_default_values(self):
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
-        self.comp.account_classes = [ExampleAccount]
+        self.comp.account_manager.account_classes = (ExampleAccount,)
         x_data = Form("submit")
         x_data.add_field(name = "name", \
                          value = "account1", \
@@ -1061,9 +1061,9 @@ class JCLComponent_TestCase(unittest.TestCase):
         self.comp.handle_set_register(iq_set)
 
         account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
-        accounts = self.comp.account_classes[0].select(\
-            self.comp.account_classes[0].q.user_jid == "user1@test.com" \
-            and self.comp.account_classes[0].q.name == "account1")
+        accounts = Account.select(\
+            Account.q.user_jid == "user1@test.com" \
+            and Account.q.name == "account1")
         self.assertEquals(accounts.count(), 1)
         _account = accounts[0]
         self.assertEquals(_account.user_jid, "user1@test.com")
@@ -1088,9 +1088,9 @@ class JCLComponent_TestCase(unittest.TestCase):
         self.comp.handle_set_register(iq_set)
 
         account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
-        accounts = self.comp.account_classes[0].select(\
-            self.comp.account_classes[0].q.user_jid == "user1@test.com" \
-            and self.comp.account_classes[0].q.name == "account1")
+        accounts = Account.select(\
+            Account.q.user_jid == "user1@test.com" \
+            and Account.q.name == "account1")
         self.assertEquals(accounts.count(), 0)
         del account.hub.threadConnection
 
@@ -1107,7 +1107,7 @@ class JCLComponent_TestCase(unittest.TestCase):
     def test_handle_set_register_new_field_mandatory(self):
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
-        self.comp.account_classes = [ExampleAccount]
+        self.comp.account_manager.account_classes = (ExampleAccount,)
         x_data = Form("submit")
         x_data.add_field(name = "name", \
                          value = "account1", \
@@ -1120,9 +1120,9 @@ class JCLComponent_TestCase(unittest.TestCase):
         self.comp.handle_set_register(iq_set)
 
         account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
-        accounts = self.comp.account_classes[0].select(\
-            self.comp.account_classes[0].q.user_jid == "user1@test.com" \
-            and self.comp.account_classes[0].q.name == "account1")
+        accounts = Account.select(\
+            Account.q.user_jid == "user1@test.com" \
+            and Account.q.name == "account1")
         self.assertEquals(accounts.count(), 0)
         del account.hub.threadConnection
 
@@ -1140,6 +1140,7 @@ class JCLComponent_TestCase(unittest.TestCase):
         account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
+        self.comp.account_manager.account_classes = (Example2Account, ExampleAccount)
         existing_account = ExampleAccount(user_jid = "user1@test.com", \
                                           name = "account1", \
                                           jid = "account1@jcl.test.com", \
@@ -1178,17 +1179,18 @@ class JCLComponent_TestCase(unittest.TestCase):
                          field_type = "text-single")
         iq_set = Iq(stanza_type = "set", \
                     from_jid = "user1@test.com", \
-                    to_jid = "jcl.test.com")
+                    to_jid = "account1@jcl.test.com")
         query = iq_set.new_query("jabber:iq:register")
         x_data.as_xml(query)
         self.comp.handle_set_register(iq_set)
 
         account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
-        accounts = self.comp.account_classes[0].select(\
-            self.comp.account_classes[0].q.user_jid == "user1@test.com" \
-            and self.comp.account_classes[0].q.name == "account1")
+        accounts = Account.select(\
+            Account.q.user_jid == "user1@test.com" \
+            and Account.q.name == "account1")
         self.assertEquals(accounts.count(), 1)
         _account = accounts[0]
+        self.assertEquals(_account.__class__.__name__, "ExampleAccount")
         self.assertEquals(_account.user_jid, "user1@test.com")
         self.assertEquals(_account.name, "account1")
         self.assertEquals(_account.jid, "account1@jcl.test.com")
@@ -1204,7 +1206,7 @@ class JCLComponent_TestCase(unittest.TestCase):
         iq_result = stanza_sent[0]
         self.assertTrue(isinstance(iq_result, Iq))
         self.assertEquals(iq_result.get_node().prop("type"), "result")
-        self.assertEquals(iq_result.get_from(), "jcl.test.com")
+        self.assertEquals(iq_result.get_from(), "account1@jcl.test.com")
         self.assertEquals(iq_result.get_to(), "user1@test.com")
 
         message = stanza_sent[1]
@@ -1238,11 +1240,11 @@ class JCLComponent_TestCase(unittest.TestCase):
         self.comp.handle_set_register(iq_set)
 
         account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
-        accounts = self.comp.account_classes[0].select(\
-            self.comp.account_classes[0].q.user_jid == "user1@test.com")
+        accounts = Account.select(\
+            Account.q.user_jid == "user1@test.com")
         self.assertEquals(accounts.count(), 0)
-        accounts = self.comp.account_classes[0].select(\
-            self.comp.account_classes[0].q.user_jid == "user2@test.com")
+        accounts = Account.select(\
+            Account.q.user_jid == "user2@test.com")
         self.assertEquals(accounts.count(), 1)
         _account = accounts[0]
         self.assertEquals(_account.user_jid, "user2@test.com")
@@ -1773,14 +1775,14 @@ class JCLComponent_TestCase(unittest.TestCase):
         self.assertEqual(presence.xpath_eval("@type")[0].get_content(), \
                          "unsubscribed")
         account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
-        self.assertEquals(self.comp.account_classes[0].select(\
-            self.comp.account_classes[0].q.user_jid == "user1@test.com" \
-            and self.comp.account_classes[0].q.name == "account11").count(), \
+        self.assertEquals(Account.select(\
+            Account.q.user_jid == "user1@test.com" \
+            and Account.q.name == "account11").count(), \
                           0)
-        self.assertEquals(self.comp.account_classes[0].select(\
-            self.comp.account_classes[0].q.user_jid == "user1@test.com").count(), \
+        self.assertEquals(Account.select(\
+            Account.q.user_jid == "user1@test.com").count(), \
                           1)
-        self.assertEquals(self.comp.account_classes[0].select().count(), \
+        self.assertEquals(Account.select().count(), \
                           2)
         del account.hub.threadConnection
 
@@ -1805,7 +1807,7 @@ class JCLComponent_TestCase(unittest.TestCase):
         presence_sent = self.comp.stream.sent
         self.assertEqual(len(presence_sent), 0)
         account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
-        self.assertEquals(self.comp.account_classes[0].select().count(), \
+        self.assertEquals(Account.select().count(), \
                           3)
         del account.hub.threadConnection
 
@@ -1831,7 +1833,7 @@ class JCLComponent_TestCase(unittest.TestCase):
         presence_sent = self.comp.stream.sent
         self.assertEqual(len(presence_sent), 0)
         account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
-        self.assertEquals(self.comp.account_classes[0].select().count(), \
+        self.assertEquals(Account.select().count(), \
                           3)
         del account.hub.threadConnection
 

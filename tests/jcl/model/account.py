@@ -38,7 +38,7 @@ class ExampleAccount(Account):
     test_int = IntCol(default = 42)
     
     def _get_register_fields(cls, real_class = None):
-        def password_post_func(password, default_func):
+        def password_post_func(password):
             if password is None or password == "":
                 return None
             return password
@@ -47,11 +47,10 @@ class ExampleAccount(Account):
             real_class = cls
         return Account.get_register_fields(real_class) + \
                [("login", "text-single", None, \
-                 lambda field_value, default_func: account.mandatory_field("login", \
-                                                                           field_value, \
-                                                                           default_func), \
+                 lambda field_value, default_func: account.mandatory_field(field_value), \
                  lambda : ""), \
-                ("password", "text-private", None, password_post_func, \
+                ("password", "text-private", None, \
+                 lambda field_value, default_func: password_post_func(field_value), \
                  lambda : ""), \
                 ("store_password", "boolean", None, account.default_post_func, \
                  lambda : True), \

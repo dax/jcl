@@ -64,15 +64,15 @@ class AccountModule_TestCase(unittest.TestCase):
     def test_mandatory_field_empty(self):
         self.assertRaises(FieldError, \
                           account.mandatory_field, \
-                          "field", "", None)
+                          "")
 
     def test_mandatory_field_none(self):
         self.assertRaises(FieldError, \
                           account.mandatory_field, \
-                          "field", None, None)
+                          None)
 
     def test_mandatory_field_empty(self):
-        self.assertEquals(account.mandatory_field("field", "value", None), \
+        self.assertEquals(account.mandatory_field("value"), \
                           "value")
         
 class Account_TestCase(unittest.TestCase):

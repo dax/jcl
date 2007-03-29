@@ -49,7 +49,7 @@ def int_post_func(field_value, default_func):
         return int(default_func())
     return int(field_value)
 
-def mandatory_field(field_name, field_value, default_func):
+def mandatory_field(field_value):
     """Used as default function for field that must be specified
     and cannot have an empty value"""
     if field_value is None or str(field_value) == "":
