@@ -246,32 +246,48 @@ class JCLComponent_TestCase(unittest.TestCase):
         self.assertTrue(self.comp.stream.connection_stopped)
         if self.comp.queue.qsize():
             raise self.comp.queue.get(0)
-        self.assertEquals(len(self.comp.stream.sent), 5)
-        presence = self.comp.stream.sent[0]
-        self.assertTrue(isinstance(presence, Presence))
-        self.assertEquals(presence.get_from(), "jcl.test.com")
-        self.assertEquals(presence.get_to(), "test1@test.com")
-        self.assertEquals(presence.get_node().prop("type"), "unavailable")
-        presence = self.comp.stream.sent[1]
-        self.assertTrue(isinstance(presence, Presence))
-        self.assertEquals(presence.get_from(), "account11@jcl.test.com")
-        self.assertEquals(presence.get_to(), "test1@test.com")
-        self.assertEquals(presence.get_node().prop("type"), "unavailable")
-        presence = self.comp.stream.sent[2]
-        self.assertTrue(isinstance(presence, Presence))
-        self.assertEquals(presence.get_from(), "account12@jcl.test.com")
-        self.assertEquals(presence.get_to(), "test1@test.com")
-        self.assertEquals(presence.get_node().prop("type"), "unavailable")
-        presence = self.comp.stream.sent[3]
-        self.assertTrue(isinstance(presence, Presence))
-        self.assertEquals(presence.get_from(), "jcl.test.com")
-        self.assertEquals(presence.get_to(), "test2@test.com")
-        self.assertEquals(presence.get_node().prop("type"), "unavailable")
-        presence = self.comp.stream.sent[4]
-        self.assertTrue(isinstance(presence, Presence))
-        self.assertEquals(presence.get_from(), "account2@jcl.test.com")
-        self.assertEquals(presence.get_to(), "test2@test.com")
-        self.assertEquals(presence.get_node().prop("type"), "unavailable")
+        presence_sent = self.comp.stream.sent
+        self.assertEqual(len(presence_sent), 5)
+        self.assertEqual(len([presence \
+                              for presence in presence_sent \
+                              if presence.get_to_jid() == "test1@test.com"]), \
+                          3)
+        self.assertEqual(\
+            len([presence \
+                 for presence in presence_sent \
+                 if presence.get_from_jid() == \
+                 "jcl.test.com" \
+                 and presence.xpath_eval("@type")[0].get_content() \
+                 == "unavailable"]), \
+            2)
+        self.assertEqual(\
+            len([presence \
+                 for presence in presence_sent \
+                 if presence.get_from_jid() == \
+                 "account11@jcl.test.com" \
+                 and presence.xpath_eval("@type")[0].get_content() \
+                 == "unavailable"]), \
+            1)
+        self.assertEqual(\
+            len([presence \
+                 for presence in presence_sent \
+                 if presence.get_from_jid() == \
+                 "account12@jcl.test.com" \
+                 and presence.xpath_eval("@type")[0].get_content() \
+                 == "unavailable"]), \
+            1)
+        self.assertEqual(len([presence \
+                              for presence in presence_sent \
+                              if presence.get_to_jid() == "test2@test.com"]), \
+                          2)
+        self.assertEqual(\
+            len([presence \
+                 for presence in presence_sent \
+                 if presence.get_from_jid() == \
+                 "account2@jcl.test.com" \
+                 and presence.xpath_eval("@type")[0].get_content() \
+                 == "unavailable"]), \
+            1)
         
     ###########################################################################
     # 'time_handler' tests
