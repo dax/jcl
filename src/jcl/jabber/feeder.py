@@ -30,6 +30,7 @@ import logging
 
 from jcl.jabber.component import JCLComponent
 from jcl.lang import Lang
+from jcl.model.account import Account
 
 class FeederComponent(JCLComponent):
     """Implement a feeder sender behavior based on the
@@ -61,8 +62,8 @@ class FeederComponent(JCLComponent):
     def handle_tick(self):
         """Implement main feed/send behavior"""
         self.db_connect()
-        for _account in self.account_classes[0].select(clauseTables = ["account"], \
-                                                       orderBy = "user_jid"):
+        for _account in Account.select(clauseTables = ["account"], \
+                                       orderBy = "user_jid"):
             for data in self.feeder.feed(_account):
                 self.sender.send(_account, data)
         self.db_disconnect()

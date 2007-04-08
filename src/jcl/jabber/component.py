@@ -103,9 +103,6 @@ class JCLComponent(Component, object):
         signal.signal(signal.SIGINT, self.signal_handler)
         signal.signal(signal.SIGTERM, self.signal_handler)
 
-        # TODO : delete
-        self.account_classes = (Account,)
-
     def run(self):
         """Main loop
         Connect to Jabber server
@@ -206,21 +203,7 @@ class JCLComponent(Component, object):
 
         self.stream.set_message_handler("normal", \
                                         self.handle_message)
-        current_jid = None
-        self.db_connect()
-        for _account in self.account_classes[0].select(clauseTables = ["account"], \
-                                                          orderBy = "user_jid"):
-            if _account.user_jid != current_jid:
-                presence = Presence(from_jid = unicode(self.jid), \
-                                    to_jid = _account.user_jid, \
-                                    stanza_type = "probe")
-                self.stream.send(presence)
-                current_jid = _account.user_jid
-            presence = Presence(from_jid = _account.jid, \
-                                to_jid = _account.user_jid, \
-                                stanza_type = "probe")
-            self.stream.send(presence)
-        self.db_disconnect()
+        self.send_stanzas(self.account_manager.probe_all_accounts_presence())
 
     def signal_handler(self, signum, frame):
         """Stop method handler
@@ -455,9 +438,9 @@ class JCLComponent(Component, object):
         name = message.get_to().node
         base_from_jid = unicode(message.get_from().bare())
         self.db_connect()
-        accounts = self.account_classes[0].select(\
-            AND(self.account_classes[0].q.name == name, \
-                self.account_classes[0].q.user_jid == base_from_jid))
+        accounts = Account.select(\
+            AND(Account.q.name == name, \
+                Account.q.user_jid == base_from_jid))
         if accounts.count() == 1:
             _account = list(accounts)[0]
             if hasattr(_account, 'password') \
@@ -895,7 +878,11 @@ class AccountManager(object):
             _account.destroySelf()
         self.db_disconnect()
         return result
-        
+
+    def probe_all_accounts_presence(self):
+        """Send presence probe to all registered accounts"""
+        return self.send_presence_all("probe")
+
     ###### Utils methods ######
     def _has_account(self, from_jid, name = None):
         """Check if user with \"from_jid\" JID has an account.
@@ -1016,32 +1003,38 @@ class AccountManager(object):
         """Compose account jid from account name"""
         return name + u"@" + unicode(self.component.jid)
 
+    def _send_presence_probe_root(self, to_jid):
+        """Send presence probe to account's user from root JID"""
+        return [Presence(from_jid = self.component.jid, \
+                         to_jid = to_jid, \
+                         stanza_type = "probe")]
+        
+    def _send_presence_probe(self, _account):
+        """Send presence probe to account's user"""
+        return [Presence(from_jid = _account.jid, \
+                         to_jid = _account.user_jid, \
+                         stanza_type = "probe")]
+
     def _send_presence_unavailable_root(self, to_jid):
         """Send unavailable presence to account's user from root JID"""
-        result = []
-        result.append(Presence(from_jid = self.component.jid, \
-                               to_jid = to_jid, \
-                               stanza_type = "unavailable"))
-        return result
+        return [Presence(from_jid = self.component.jid, \
+                         to_jid = to_jid, \
+                         stanza_type = "unavailable")]
         
     def _send_presence_unavailable(self, _account):
         """Send unavailable presence to account's user"""
-        result = []
         _account.status = account.OFFLINE
-        result.append(Presence(from_jid = _account.jid, \
-                               to_jid = _account.user_jid, \
-                               stanza_type = "unavailable"))
-        return result
+        return [Presence(from_jid = _account.jid, \
+                         to_jid = _account.user_jid, \
+                         stanza_type = "unavailable")]
 
     def _send_presence_available_root(self, to_jid, show, status_msg):
         """Send available presence to account's user from root JID"""
-        result = []
-        result.append(Presence(from_jid = self.component.jid, \
-                               to_jid = to_jid, \
-                               status = status_msg, \
-                               show = show, \
-                               stanza_type = "available"))
-        return result
+        return [Presence(from_jid = self.component.jid, \
+                         to_jid = to_jid, \
+                         status = status_msg, \
+                         show = show, \
+                         stanza_type = "available")]
         
     def _send_presence_available(self, _account, show, lang_class):
         """Send available presence to account's user and ask for password
