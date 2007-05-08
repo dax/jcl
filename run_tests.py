@@ -22,8 +22,6 @@
 ##
 
 import coverage
-coverage.erase()
-coverage.start()
 import logging
 import unittest
 from test import test_support
@@ -42,11 +40,7 @@ from tests.jcl.model.test_account import *
 
 import jcl
 
-if __name__ == '__main__':
-    logger = logging.getLogger()
-    logger.addHandler(logging.StreamHandler())
-    logger.setLevel(logging.CRITICAL)
-    
+def test_suite():
     component_suite = unittest.makeSuite(JCLComponent_TestCase, "test")
     feeder_component_suite = unittest.makeSuite(FeederComponent_TestCase, "test")
     feeder_suite = unittest.makeSuite(Feeder_TestCase, "test")
@@ -72,17 +66,26 @@ if __name__ == '__main__':
                                     account_suite, \
                                     presence_account_suite))
 
-    test_support.run_suite(jcl_suite)
+    return jcl_suite
 
+if __name__ == '__main__':
+    logger = logging.getLogger()
+    logger.addHandler(logging.StreamHandler())
+    logger.setLevel(logging.CRITICAL)
+    
+    coverage.erase()
+    coverage.start()
 
-coverage.stop()
-coverage.analysis(jcl.jabber.component)
-coverage.analysis(jcl.jabber.feeder)
-coverage.analysis(jcl.lang)
-coverage.analysis(jcl.model.account)
+    unittest.main()
 
-coverage.report([jcl.jabber.component, \
-                 jcl.jabber.feeder, \
-                 jcl.lang, \
-                 jcl.model.account])
+    coverage.stop()
+    coverage.analysis(jcl.jabber.component)
+    coverage.analysis(jcl.jabber.feeder)
+    coverage.analysis(jcl.lang)
+    coverage.analysis(jcl.model.account)
+
+    coverage.report([jcl.jabber.component, \
+                     jcl.jabber.feeder, \
+                     jcl.lang, \
+                     jcl.model.account])
 

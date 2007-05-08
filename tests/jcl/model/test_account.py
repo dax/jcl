@@ -21,7 +21,7 @@
 ##
 
 import unittest
-
+import sys
 import os
 
 from sqlobject import *
@@ -33,7 +33,10 @@ from jcl.model.account import Account, PresenceAccount
 
 from tests.jcl.model.account import ExampleAccount, PresenceAccountExample
 
-DB_PATH = "/tmp/test.db"
+if sys.platform == "win32":
+   DB_PATH = "/c|/temp/test.db"
+else:
+   DB_PATH = "/tmp/test.db"
 DB_URL = DB_PATH# + "?debug=1&debugThreading=1"
 
 class AccountModule_TestCase(unittest.TestCase):

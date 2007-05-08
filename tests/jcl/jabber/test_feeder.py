@@ -25,6 +25,7 @@ import unittest
 import os
 import threading
 import time
+import sys
 
 from sqlobject import *
 from sqlobject.dbconnection import TheURIOpener
@@ -40,7 +41,10 @@ from jcl.model import account
 
 from tests.jcl.model.account import ExampleAccount, Example2Account
 
-DB_PATH = "/tmp/test.db"
+if sys.platform == "win32":
+   DB_PATH = "/c|/temp/test.db"
+else:
+   DB_PATH = "/tmp/test.db"
 DB_URL = DB_PATH #+ "?debug=1&debugThreading=1"
 
 class FeederComponent_TestCase(JCLComponent_TestCase):
