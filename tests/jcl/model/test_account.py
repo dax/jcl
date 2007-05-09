@@ -132,6 +132,10 @@ class PresenceAccount_TestCase(unittest.TestCase):
         Account.createTable(ifNotExists = True)
         PresenceAccount.createTable(ifNotExists = True)
         PresenceAccountExample.createTable(ifNotExists = True)
+        self.account = PresenceAccountExample(\
+            user_jid = "test1@test.com", \
+            name = "account11", \
+            jid = "account11@jcl.test.com")
         del account.hub.threadConnection
 
     def tearDown(self):
@@ -156,15 +160,11 @@ class PresenceAccount_TestCase(unittest.TestCase):
 
     def test_possibles_actions(self):
         account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
-        account11 = PresenceAccountExample(\
-            user_jid = "test1@test.com", \
-            name = "account11", \
-            jid = "account11@jcl.test.com")
         for (field_name, \
              field_type, \
              possibles_actions, \
              post_func, \
-             default_func) in account11.get_register_fields()[1:]:
+             default_func) in self.account.get_register_fields()[1:]:
             if possibles_actions is not None:
                 for possible_action in possibles_actions:
                     self.assertEquals(post_func(possible_action, default_func),

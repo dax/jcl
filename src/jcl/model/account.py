@@ -25,7 +25,7 @@
 """
 
 __revision__ = "$Id: account.py,v 1.3 2005/09/18 20:24:07 dax Exp $"
-2
+
 from sqlobject.inheritance import InheritableSQLObject
 from sqlobject.col import StringCol, EnumCol, IntCol, BoolCol
 from sqlobject.dbconnection import ConnectionHub
