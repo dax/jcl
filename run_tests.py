@@ -24,7 +24,6 @@
 import coverage
 import logging
 import unittest
-from test import test_support
 
 import sys
 sys.path.append("src")
@@ -32,41 +31,10 @@ reload(sys)
 sys.setdefaultencoding('utf8')
 del sys.setdefaultencoding
 
-import tests
-from tests.jcl.jabber.test_component import *
-from tests.jcl.jabber.test_feeder import *
-from tests.jcl.test_lang import *
-from tests.jcl.model.test_account import *
+import jcl.tests
 
-import jcl
-
-def test_suite():
-    component_suite = unittest.makeSuite(JCLComponent_TestCase, "test")
-    feeder_component_suite = unittest.makeSuite(FeederComponent_TestCase, "test")
-    feeder_suite = unittest.makeSuite(Feeder_TestCase, "test")
-    sender_suite = unittest.makeSuite(Sender_TestCase, "test")
-    lang_suite = unittest.makeSuite(Lang_TestCase, "test")
-    account_module_suite = unittest.makeSuite(AccountModule_TestCase, "test")
-    account_suite = unittest.makeSuite(Account_TestCase, "test")
-    presence_account_suite = unittest.makeSuite(PresenceAccount_TestCase, "test")
-    
-    jcl_suite = unittest.TestSuite()
-#    jcl_suite.addTest(FeederComponent_TestCase('test_handle_tick'))
-#    jcl_suite.addTest(JCLComponent_TestCase('test_run_go_offline'))
-#    jcl_suite.addTest(PresenceAccount_TestCase('test_possibles_actions'))
-#    jcl_suite = unittest.TestSuite((component_suite))
-#    jcl_suite = unittest.TestSuite((presence_account_suite))
-
-    jcl_suite = unittest.TestSuite((component_suite, \
-                                    feeder_component_suite, \
-                                    feeder_suite, \
-                                    sender_suite, \
-                                    lang_suite, \
-                                    account_module_suite, \
-                                    account_suite, \
-                                    presence_account_suite))
-
-    return jcl_suite
+def suite():
+    return jcl.tests.suite()
 
 if __name__ == '__main__':
     logger = logging.getLogger()
@@ -76,7 +44,7 @@ if __name__ == '__main__':
     coverage.erase()
     coverage.start()
 
-    unittest.main()
+    unittest.main(defaultTest='suite')
 
     coverage.stop()
     coverage.analysis(jcl.jabber.component)

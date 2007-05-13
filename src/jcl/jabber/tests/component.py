@@ -45,7 +45,7 @@ from jcl.model import account
 from jcl.model.account import Account
 from jcl.lang import Lang
 
-from tests.jcl.model.account import ExampleAccount, Example2Account
+from jcl.model.tests.account import ExampleAccount, Example2Account
 
 if sys.platform == "win32":
    DB_PATH = "/c|/temp/test.db"
@@ -1958,3 +1958,9 @@ class JCLComponent_TestCase(unittest.TestCase):
         exception = Exception("test exception")
         self.comp.send_error(_account, exception)
         self.assertEqual(len(self.comp.stream.sent), 0)
+
+def suite():
+    return unittest.makeSuite(JCLComponent_TestCase, 'test')
+
+if __name__ == '__main__':
+    unittest.main(defaultTest='suite')

@@ -32,14 +32,13 @@ from sqlobject.dbconnection import TheURIOpener
 
 from pyxmpp.message import Message
 
-from tests.jcl.jabber.test_component import JCLComponent_TestCase, MockStream
-
 from jcl.jabber.component import JCLComponent
 from jcl.jabber.feeder import FeederComponent, Feeder, Sender
 from jcl.model.account import Account
 from jcl.model import account
 
-from tests.jcl.model.account import ExampleAccount, Example2Account
+from jcl.model.tests.account import ExampleAccount, Example2Account
+from jcl.jabber.tests.component import JCLComponent_TestCase, MockStream
 
 if sys.platform == "win32":
    DB_PATH = "/c|/temp/test.db"
@@ -175,3 +174,13 @@ class Sender_TestCase(unittest.TestCase):
     def test_send_exist(self):
         sender = Sender()
         self.assertRaises(NotImplementedError, sender.send, None, None)
+
+def suite():
+    suite = unittest.TestSuite()
+    suite.addTest(unittest.makeSuite(FeederComponent_TestCase, 'test'))
+    suite.addTest(unittest.makeSuite(Feeder_TestCase, 'test'))
+    suite.addTest(unittest.makeSuite(Sender_TestCase, 'test'))
+    return suite
+
+if __name__ == '__main__':
+    unittest.main(defaultTest='suite')

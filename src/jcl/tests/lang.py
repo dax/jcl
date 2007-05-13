@@ -63,3 +63,8 @@ class Lang_TestCase(unittest.TestCase):
         lang = self.lang.get_lang_class_from_node(iq_node)
         self.assertEquals(lang, Lang.fr)
         
+def suite():
+    return unittest.makeSuite(Lang_TestCase, 'test')
+
+if __name__ == '__main__':
+    unittest.main(defaultTest='suite')

@@ -30,4 +30,4 @@ setup(name = 'jcl', \
       url = 'http://people.happycoders.org/dax/projects/jcl', \
       package_dir = {'': 'src'}, \
       packages = ['jcl', 'jcl.jabber', 'jcl.model'], \
-      test_suite = 'run_tests.test_suite')
+      test_suite = 'jcl.tests.suite')
