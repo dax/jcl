@@ -214,6 +214,7 @@ class PresenceAccount_TestCase(unittest.TestCase):
             name = "account11", \
             jid = "account11@jcl.test.com")
         del account.hub.threadConnection
+        self.account_class = PresenceAccount
 
     def tearDown(self):
         account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
@@ -227,28 +228,33 @@ class PresenceAccount_TestCase(unittest.TestCase):
             os.unlink(DB_PATH)
         
     def test_get_presence_actions_fields(self):
-        fields = PresenceAccount.get_presence_actions_fields()
+        fields = self.account_class.get_presence_actions_fields()
+        self.assertEquals(len(fields), 6)
         (possibles_actions, chat_default_action) = fields["chat_action"]
-        self.assertEquals(chat_default_action, PresenceAccount.DO_SOMETHING)
-        self.assertEquals(possibles_actions, PresenceAccount.possibles_actions)
+        self.assertEquals(possibles_actions, self.account_class.possibles_actions)
         (possibles_actions, online_default_action) = fields["online_action"]
-        self.assertEquals(online_default_action, PresenceAccount.DO_SOMETHING)
-        self.assertEquals(possibles_actions, PresenceAccount.possibles_actions)
+        self.assertEquals(possibles_actions, self.account_class.possibles_actions)
 
     def test_possibles_actions(self):
-        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
         for (field_name, \
              field_type, \
              possibles_actions, \
              post_func, \
-             default_func) in self.account.get_register_fields()[1:]:
+             default_func) in self.account_class.get_register_fields()[1:]:
             if possibles_actions is not None:
                 for possible_action in possibles_actions:
                     self.assertEquals(post_func(possible_action, default_func),
                                       int(possible_action))
                 self.assertTrue(str(default_func()) in possibles_actions)
-        del account.hub.threadConnection
-
+            else:
+                try:
+                    post_func("42", default_func)
+                    default_func()
+                except FieldError, error:
+                    pass
+                except Exception, exception:
+                    self.fail("Unexcepted exception: " + str(exception))
+        
 def suite():
     suite = unittest.TestSuite()
     suite.addTest(unittest.makeSuite(AccountModule_TestCase, 'test'))
