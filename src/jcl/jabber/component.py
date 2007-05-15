@@ -214,8 +214,9 @@ class JCLComponent(Component, object):
     def send_stanzas(self, stanzas):
         """Send given stanza list"""
         self.__logger.debug("Sending responses")
-        for stanza in stanzas:
-            self.stream.send(stanza)
+        if stanzas is not None:
+            for stanza in stanzas:
+                self.stream.send(stanza)
 
     def apply_behavior(self, info_query, \
                        account_handler, \
@@ -462,7 +463,7 @@ class JCLComponent(Component, object):
     # Utils
     ###########################################################################
     def send_error(self, _account, exception):
-        """"""
+        """ """
         self.send_stanzas(self.account_manager.send_error(_account, exception))
         type, value, stack = sys.exc_info()
         # TODO : not checking email here

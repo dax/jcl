@@ -1959,6 +1959,22 @@ class JCLComponent_TestCase(unittest.TestCase):
         self.comp.send_error(_account, exception)
         self.assertEqual(len(self.comp.stream.sent), 0)
 
+    def test_send_stanzas(self):
+        self.comp.stream = MockStream()
+        self.comp.stream_class = MockStream
+        msg1 = Message()
+        msg2 = Message()
+        self.comp.send_stanzas([msg1, msg2])
+        self.assertEquals(len(self.comp.stream.sent), 2)
+        self.assertEquals(self.comp.stream.sent[0], msg1)
+        self.assertEquals(self.comp.stream.sent[1], msg2)
+
+    def test_send_stanzas_none(self):
+        self.comp.stream = MockStream()
+        self.comp.stream_class = MockStream
+        self.comp.send_stanzas(None)
+        self.assertEquals(len(self.comp.stream.sent), 0)
+
 def suite():
     return unittest.makeSuite(JCLComponent_TestCase, 'test')
 
