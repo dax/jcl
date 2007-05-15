@@ -692,6 +692,7 @@ class AccountManager(object):
     def account_set_register(self, name, from_jid, lang_class, \
                              x_data, info_query):
         """Update account"""
+        self.__logger.debug("Updating account " + name)
         bare_from_jid = from_jid.bare()
         self.db_connect()
         accounts = Account.select(\

@@ -135,11 +135,11 @@ class Account(InheritableSQLObject):
 
     def get_update_message_subject(self, lang_class):
         """Return localized message subject for existing account"""
-        return lang_class.new_account_message_subject % (self.name)
+        return lang_class.update_account_message_subject % (self.name)
 
     def get_update_message_body(self, lang_class):
         """Return localized message body for existing account"""
-        return lang_class.new_account_message_body
+        return lang_class.update_account_message_body
 
 class PresenceAccount(Account):
     DO_NOTHING = 0

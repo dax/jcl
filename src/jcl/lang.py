@@ -88,6 +88,11 @@ class Lang:
         field_dnd_action_0 = field_action_0
         field_offline_action_0 = field_action_0
 
+        update_account_message_subject = u"Updated account '%s'"
+        update_account_message_body = u"Updated account"
+        check_error_subject = u"Error while checking emails."
+        check_error_body = u"An error appears while checking emails:\n\t%s"
+
 #         account_login = u"Login"
 #         account_password = u"Password"
 #         account_password_store = u"Store password on Jabber server?"
@@ -110,10 +115,6 @@ class Lang:
 #         update_title = u"Jabber mail connection update"
 #         update_instructions = u"Modifying connection '%s'"
 #         connection_label = u"%s connection '%s'"
-#         update_account_message_subject = u"Updated account '%s'"
-#         update_account_message_body = u"Updated account"
-        check_error_subject = u"Error while checking emails."
-        check_error_body = u"An error appears while checking emails:\n\t%s"
 #         new_mail_subject = u"New email from %s"
 #         new_digest_subject = u"%i new email(s)"
 
