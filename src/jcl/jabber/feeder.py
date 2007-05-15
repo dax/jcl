@@ -32,6 +32,8 @@ from jcl.jabber.component import JCLComponent
 from jcl.lang import Lang
 from jcl.model.account import Account
 
+from pyxmpp.message import Message
+
 class FeederComponent(JCLComponent):
     """Implement a feeder sender behavior based on the
     regular interval behavior of JCLComponent
@@ -64,8 +66,8 @@ class FeederComponent(JCLComponent):
         self.db_connect()
         for _account in Account.select(clauseTables = ["account"], \
                                        orderBy = "user_jid"):
-            for data in self.feeder.feed(_account):
-                self.sender.send(_account, data)
+            for subject, body in self.feeder.feed(_account):
+                self.sender.send(_account, subject, body)
         self.db_disconnect()
 
 
@@ -85,7 +87,30 @@ class Sender(object):
     def __init__(self, component = None):
         self.component = component
 
-    def send(self, to_account, data):
-        """Send data to given account"""
+    def send(self, to_account, subject, body):
+        """Send data (subject and body) to given account"""
         raise NotImplementedError
 
+class MessageSender(Sender):
+    """Send data as Jabber Message"""
+
+    def send(self, to_account, subject, body):
+        """Implement abstract method from Sender class and send data as Jabber message"""
+        self.component.stream.send(Message(\
+                    from_jid = to_account.jid, \
+                    to_jid = to_account.user_jid, \
+                    subject = subject, \
+                    stanza_type = "normal", \
+                    body = body))
+
+class HeadlineSender(Sender):
+    """Send data as Jabber Headline"""
+
+    def send(self, to_account, subject, body):
+        """Implement abstract method from Sender class and send data as Jabber headline"""
+        self.component.stream.send(Message(\
+                    from_jid = to_account.jid, \
+                    to_jid = to_account.user_jid, \
+                    subject = subject, \
+                    stanza_type = "headline", \
+                    body = body))

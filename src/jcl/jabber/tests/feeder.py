@@ -33,7 +33,7 @@ from sqlobject.dbconnection import TheURIOpener
 from pyxmpp.message import Message
 
 from jcl.jabber.component import JCLComponent
-from jcl.jabber.feeder import FeederComponent, Feeder, Sender
+from jcl.jabber.feeder import FeederComponent, Feeder, Sender, MessageSender, HeadlineSender
 from jcl.model.account import Account
 from jcl.model import account
 
@@ -97,16 +97,10 @@ class FeederComponent_TestCase(JCLComponent_TestCase):
     def test_handle_tick(self):
         class AccountFeeder(Feeder):
             def feed(self, _account):
-                return ["user_jid: " + _account.user_jid, \
-                        "jid: " + _account.jid]
-
-        class MessageAccountSender(Sender):
-            def send(self, _account, data):
-                self.component.stream.send(Message(\
-                    from_jid = _account.jid, \
-                    to_jid = _account.user_jid, \
-                    subject = "Simple Message for account " + _account.name, \
-                    body = data))
+                return [("Simple Message for account " + _account.name, 
+                            "user_jid: " + _account.user_jid), \
+                            ("Simple Message for account " + _account.name, \
+                            "jid: " + _account.jid)]
                 
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
@@ -121,7 +115,7 @@ class FeederComponent_TestCase(JCLComponent_TestCase):
                            name = "account2", \
                            jid = "account2@jcl.test.com")
         self.comp.feeder = AccountFeeder(self.comp)
-        self.comp.sender = MessageAccountSender(self.comp)
+        self.comp.sender = MessageSender(self.comp)
         self.comp.handle_tick()
 
         messages_sent = self.comp.stream.sent
@@ -173,13 +167,63 @@ class Feeder_TestCase(unittest.TestCase):
 class Sender_TestCase(unittest.TestCase):
     def test_send_exist(self):
         sender = Sender()
-        self.assertRaises(NotImplementedError, sender.send, None, None)
+        self.assertRaises(NotImplementedError, sender.send, None, None, None)
+
+class MessageSender_TestCase(unittest.TestCase):
+    def setUp(self):
+        if os.path.exists(DB_PATH):
+            os.unlink(DB_PATH)
+        self.comp = FeederComponent("jcl.test.com",
+                                    "password",
+                                    "localhost",
+                                    "5347",
+                                    'sqlite://' + DB_URL)
+        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
+        Account.createTable(ifNotExists = True)
+        del account.hub.threadConnection
+        self.sender = MessageSender(self.comp)
+        self.message_type = "normal"
+        
+    def tearDown(self):
+        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
+        Account.dropTable(ifExists = True)
+        del TheURIOpener.cachedURIs['sqlite://' + DB_URL]
+        account.hub.threadConnection.close()
+        del account.hub.threadConnection
+        if os.path.exists(DB_PATH):
+            os.unlink(DB_PATH)
+
+    def test_send(self):
+        self.comp.stream = MockStream()
+        self.comp.stream_class = MockStream
+        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
+        account11 = Account(user_jid = "user1@test.com", \
+                            name = "account11", \
+                            jid = "account11@jcl.test.com")
+        self.sender.send(account11, "subject", "Body message")
+        self.assertEquals(len(self.comp.stream.sent), 1)
+        message = self.comp.stream.sent[0]
+        self.assertEquals(message.get_from(), account11.jid)
+        self.assertEquals(message.get_to(), account11.user_jid)
+        self.assertEquals(message.get_subject(), "subject")
+        self.assertEquals(message.get_body(), "Body message")
+        self.assertEquals(message.get_type(), self.message_type)
+        del account.hub.threadConnection
+
+class HeadlineSender_TestCase(MessageSender_TestCase):
+    def setUp(self):
+        MessageSender_TestCase.setUp(self)
+        self.sender = HeadlineSender(self.comp)
+        self.message_type = "headline"
+
 
 def suite():
     suite = unittest.TestSuite()
     suite.addTest(unittest.makeSuite(FeederComponent_TestCase, 'test'))
     suite.addTest(unittest.makeSuite(Feeder_TestCase, 'test'))
     suite.addTest(unittest.makeSuite(Sender_TestCase, 'test'))
+    suite.addTest(unittest.makeSuite(MessageSender_TestCase, 'test'))
+    suite.addTest(unittest.makeSuite(HeadlineSender_TestCase, 'test'))
     return suite
 
 if __name__ == '__main__':
