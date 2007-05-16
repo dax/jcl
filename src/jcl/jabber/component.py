@@ -87,7 +87,7 @@ class JCLComponent(Component, object):
                            disco_category, \
                            disco_type)
         # default values
-        self.name = "Jabber Component Library generic component"
+        self.name = lang.get_default_lang_class().component_name
         self.spool_dir = "."
         self.db_connection_str = db_connection_str
         self.version = VERSION
@@ -229,6 +229,13 @@ class JCLComponent(Component, object):
         name = to_jid.node
         account_type = to_jid.resource
         lang_class = self.lang.get_lang_class_from_node(info_query.get_node())
+        # * root
+        # |-* account_type1
+        # | |-* account1
+        # | |-* account2
+        # |-* account_type2
+        #   |-* account3
+        #   |-* account4
         if name is not None: # account
             self.__logger.debug("Applying behavior on account " + name)
             result = account_handler(name, from_jid, account_type or "", lang_class)
@@ -264,7 +271,7 @@ class JCLComponent(Component, object):
                                    lambda name, from_jid, account_type, lang_class: \
                                    self.account_manager.account_type_disco_get_items(from_jid, account_type), \
                                    lambda name, from_jid, account_type, lang_class: \
-                                   self.account_manager.root_disco_get_items(from_jid))
+                                   self.account_manager.root_disco_get_items(from_jid, lang_class))
 
     def handle_get_version(self, info_query):
         """Get Version handler
@@ -543,16 +550,23 @@ class AccountManager(object):
                                 + " class not in account_classes")
         return disco_items
         
-    def root_disco_get_items(self, from_jid):
+    def root_disco_get_items(self, from_jid, lang_class):
         """Discovery get_items on root node"""
         disco_items = DiscoItems()
         regexp_type = re.compile("(.*)Account$")
         if self.has_multiple_account_type: # list accounts with only one type declared
-            list_func = lambda disco_items, account_class, bare_from_jid, account_type: \
-                        DiscoItem(disco_items, \
+            def _list_account_types(disco_items, account_class, bare_from_jid, account_type):
+                type_label_attr = "type_" + account_type.lower() + "_name"
+                if hasattr(lang_class, type_label_attr):
+                    type_label = getattr(lang_class, type_label_attr)
+                else:
+                    type_label = account_type
+                return DiscoItem(disco_items, \
                                   JID(unicode(self.component.jid) + "/" + account_type), \
                                   account_type, \
-                                  account_type)
+                                  type_label)
+            list_func = _list_account_types
+                        
         else:
             list_func = self._list_accounts
 
@@ -578,7 +592,6 @@ class AccountManager(object):
         info_query = info_query.make_result_response()
         account_class = self._get_account_class(account_type + "Account")
         self.db_connect()
-        # TODO : do it only one time
         accounts = account_class.select(\
                 AND(account_class.q.name == name, \
                     account_class.q.user_jid == unicode(from_jid.bare())))

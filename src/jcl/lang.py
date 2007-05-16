@@ -66,11 +66,17 @@ class Lang:
         """
         return self.get_lang_class(self.get_lang_from_node(node))
 
+    def get_default_lang_class(self):
+        """Return default lang class according to self.default_lang"""
+        return self.get_lang_class(self.default_lang)
+
     class en:
-        register_title = u"Jabber Mail connection registration"
+        component_name = u"Jabber Component Library generic component"
+        register_title = u"Connection registration"
         register_instructions = u"Enter connection parameters"
         message_status = u" accounts registered."
         account_name = u"Connection name"
+
         password_saved_for_session = u"Password will be kept during your " \
                                      u"Jabber session"
         ask_password_subject = u"Password request"
@@ -78,7 +84,17 @@ class Lang:
                             "for account %s\n"
         new_account_message_subject = u"New account '%s' created"
         new_account_message_body = u"New account created"
+        update_account_message_subject = u"Updated account '%s'"
+        update_account_message_body = u"Updated account"
+
         mandatory_field = u"%s is required"
+
+        field_chat_action = u"Action when state is 'Free For Chat'"
+        field_online_action = u"Action when state is 'Online'"
+        field_away_action = u"Action when state is 'Away'"
+        field_xa_action = u"Action when state is 'Not Available'"
+        field_dnd_action = u"Action when state is 'Do not Disturb'"
+        field_offline_action = u"Action when state is 'Offline'"
 
         field_action_0 = u"Do nothing"
         field_chat_action_0 = field_action_0
@@ -88,84 +104,49 @@ class Lang:
         field_dnd_action_0 = field_action_0
         field_offline_action_0 = field_action_0
 
-        update_account_message_subject = u"Updated account '%s'"
-        update_account_message_body = u"Updated account"
-        check_error_subject = u"Error while checking emails."
-        check_error_body = u"An error appears while checking emails:\n\t%s"
-
-#         account_login = u"Login"
-#         account_password = u"Password"
-#         account_password_store = u"Store password on Jabber server?"
-#         account_host = u"Host"
-#         account_port = u"Port"
-#         account_type = u"Mail server type"
-#         account_mailbox = u"Mailbox path (IMAP)"
-#         account_ffc_action = u"Action when state is 'Free For Chat'"
-#         account_online_action = u"Action when state is 'Online'"
-#         account_away_action = u"Action when state is 'Away'"
-#         account_xa_action = u"Action when state is 'Not Available'"
-#         account_dnd_action = u"Action when state is 'Do not Disturb'"
-#         account_offline_action = u"Action when state is 'Offline'"
-#         account_check_interval = u"Mail check interval (in minutes)"
-#         account_live_email_only = u"Reports only emails received while " \
-#                                   u"connected to Jabber"
-#         action_nothing = u"Do nothing"
-#         action_retrieve = u"Retrieve mail"
-#         action_digest = u"Send mail digest"
-#         update_title = u"Jabber mail connection update"
-#         update_instructions = u"Modifying connection '%s'"
-#         connection_label = u"%s connection '%s'"
-#         new_mail_subject = u"New email from %s"
-#         new_digest_subject = u"%i new email(s)"
+        check_error_subject = u"Error"
+        check_error_body = u"An error has occured:\n\t%s"
 
     class fr:
-        register_title = u"Enregistrement d'une nouvelle connexion à un " \
-                         u"serveur email."
+        component_name = u"composant générique Jabber Component Library"
+        register_title = u"Enregistrement d'une nouvelle connexion"
         register_instructions = u"Entrer les paramètres de connexion"
+        message_status = u" comptes enregistrés."
         account_name = u"Nom de la connexion"
-        account_login = u"Nom d'utilisateur"
-        account_password = u"Mot de passe"
-        account_password_store = u"Sauvegarder le mot de passe sur le " \
-                                 u"serveur Jabber ?"
-        account_host = u"Adresse du serveur email"
-        account_port = u"Port du serveur email"
-        account_type = u"Type du serveur email"
-        account_mailbox = u"Chemin de la boîte email (IMAP)"
-        account_ffc_action = u"Action lorsque l'état est 'Free For Chat'"
-        account_online_action = u"Action lorsque l'état est 'Online'"
-        account_away_action = u"Action lorsque l'état est 'Away'"
-        account_xa_action = u"Action lorsque l'état est 'Not Available'"
-        account_dnd_action = u"Action lorsque l'état est 'Do not Disturb'"
-        account_offline_action = u"Action lorsque l'état est 'Offline'"
-        account_check_interval = u"Interval de vérification de nouveaux " \
-                                 u"emails (en minutes)"
-        account_live_email_only = u"Vérifier les nouveaux emails seulement " \
-                                  "lorsqu'une session Jabber est ouverte"
-        action_nothing = u"Ne rien faire"
-        action_retrieve = u"Récupérer l'email"
-        action_digest = u"Envoyer un résumé"
-        update_title = u"Mise à jour du compte JMC"
-        update_instructions = u"Modification de la connexion '%s'"
-        connection_label = u"Connexion %s '%s'"
+
+        password_saved_for_session = u"Le mot de passe sera garder tout au " \
+                                     u"long de la session Jabber."
+        ask_password_subject = u"Demande de mot de passe"
+        ask_password_body = u"Répondre à ce message avec le mot de passe " \
+                            u"du compte %s\n"
+        new_account_message_subject = u"Le compte '%s' a été créé"
+        new_account_message_body = u"Compte créé"
         update_account_message_subject = u"Le compte '%s' a été mis " \
                                          u"à jour"
         update_account_message_body = u"Compte mis à jour"
-        new_account_message_subject = u"Le compte '%s' a été créé"
-        new_account_message_body = u"Compte créé"
-        ask_password_subject = u"Demande de mot de passe"
-        ask_password_body = u"Répondre à ce message avec le mot de passe " \
-                            u"du compte suivant : \n" \
-                            u"\thost = %s\n" \
-                            u"\tlogin = %s\n"
-        password_saved_for_session = u"Le mot de passe sera garder tout au " \
-                                     u"long de la session Jabber."
-        check_error_subject = u"Erreur lors de la vérification des emails."
-        check_error_body = u"Une erreur est survenue lors de la " \
-                           u"vérification des emails :\n\t%s"
-        new_mail_subject = u"Nouvel email de %s"
-        new_digest_subject = u"%i nouveau(x) email(s)"
+
+        mandatory_field = u"%s est requis"
+
+        field_chat_action = u"Action lorsque l'état est 'Free For Chat'"
+        field_online_action = u"Action lorsque l'état est 'Online'"
+        field_away_action = u"Action lorsque l'état est 'Away'"
+        field_xa_action = u"Action lorsque l'état est 'Not Available'"
+        field_dnd_action = u"Action lorsque l'état est 'Do not Disturb'"
+        field_offline_action = u"Action lorsque l'état est 'Offline'"
+
+        field_action_0 = u"Ne rien Faire"
+        field_chat_action_0 = field_action_0
+        field_online_action_0 = field_action_0
+        field_away_action_0 = field_action_0
+        field_xa_action_0 = field_action_0
+        field_dnd_action_0 = field_action_0
+        field_offline_action_0 = field_action_0
+
+        check_error_subject = u"Erreur"
+        check_error_body = u"Une erreur est survenue :\n\t%s"
 
     class nl:
+        # TODO: when finish, delete this line and uncomment in tests/lang.py the makeSuite(Language_nl_TestCase, 'test') line
         register_title = u"Registratie van verbindingen voor Jabber Mail"
         register_instructions = u"Instellingen voor verbinding"
         account_name = u"Accountnaam"
@@ -211,6 +192,7 @@ class Lang:
         new_digest_subject = u"%i nieuwe e-mail(s)"
 
     class es:
+        # TODO: when finish, delete this line and uncomment in tests/lang.py the makeSuite(Language_es_TestCase, 'test') line
         register_title = u"Registro de nueva cuenta de email"
         register_instructions = u"Inserta los datos para la nueva cuenta"
         account_name = u"Nombre para la cuenta"
@@ -260,6 +242,7 @@ class Lang:
         new_digest_subject = u"%i email(s) nuevo(s)"
 
     class pl:
+        # TODO: when finish, delete this line and uncomment in tests/lang.py the makeSuite(Language_pl_TestCase, 'test') line
         register_title = u"Rejestracja w komponencie E-Mail"
         register_instructions = u"Wprowadź parametry połączenia"
         account_name = u"Nazwa połączenia"
@@ -303,3 +286,45 @@ class Lang:
                            u"emaili:\n\t%s"
         new_mail_subject = u"Nowy email od %s"
         new_digest_subject = u"%i nowy(ch) email(i)"
+
+    class cs:
+        register_title = u"Jabber MailNotify registrace"
+        register_instructions = u"Vložte nastavení spojení"
+        account_name = u"Název spojení"
+        account_login = u"Přihlašovací jméno"
+        account_password = u"Heslo"
+        account_password_store = u"Uložit heslo na Jabber serveru?"
+        account_host = u"Poštovní server"
+        account_port = u"Port"
+        account_type = u"Typ poštovního serveru"
+        account_mailbox = u"Cesta IMAP schránky"
+        account_ffc_action = u"Akce při statusu 'Ukecaný'"
+        account_online_action = u"Akce při statusu 'Přítomen'"
+        account_away_action = u"Akce při statusu 'Pryč'"
+        account_xa_action = u"Akce při statusu 'Nepřítomen'"
+        account_dnd_action = u"Akce při statusu 'Nerušit'"
+        account_offline_action = u"Akce při statusu 'Odpojen'"
+        account_check_interval = u"Interval kontroly pošty (v minutách)"
+        account_live_email_only = u"Informuj pouze o emailech, které přišly během připojení k Jabberu"
+        action_nothing = u"Nedělej nic"
+        action_retrieve = u"Přijmi poštu"
+        action_digest = u"Pošli upozornění na novou poštu"
+        update_title = u"Jabber - aktualizace spojení k emailu"
+        update_instructions = u"Aktualizace spojení '%s'"
+        connection_label = u"%s spojení '%s'"
+        update_account_message_subject = u"Aktualizováno %s spojení '%s'"
+        update_account_message_body = u"Registrováno s přihlašovacím jménem '%s' a " \
+                                      u"heslem '%s' v '%s'"
+        new_account_message_subject = u"Nové spojení %s '%s' aktualizováno"
+        new_account_message_body = u"Registrováno " \
+                                   u"s přihlašovacím jménem '%s' a heslem '%s' v '%s'"
+        ask_password_subject = u"Žádost o heslo"
+        ask_password_body = u"Odpovězte na tuto zprávu posláním hesla " \
+                            u"pro následující spojení: \n" \
+                            u"\thost = %s\n" \
+                            u"\tlogin = %s\n"
+        password_saved_for_session = u"Heslo bude uchováno během vašeho připojení k Jabberu"
+        check_error_subject = u"Chyba při kontrole emailů."
+        check_error_body = u"Nějaká chyba nastala při kontrole emailů:\n\t%s"
+        new_mail_subject = u"Nový email od %s"
+        new_digest_subject = u"%i má nový(é) email(y)"

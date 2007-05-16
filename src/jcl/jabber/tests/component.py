@@ -121,6 +121,10 @@ class MockStreamRaiseException(MockStream):
     def loop_iter(self, timeout):
         raise Exception("in loop error")
 
+class LangExample(Lang):
+    class en(Lang.en):
+        type_example_name = "Type Example"
+
 class JCLComponent_TestCase(unittest.TestCase):
     ###########################################################################
     # Utility methods
@@ -441,6 +445,7 @@ class JCLComponent_TestCase(unittest.TestCase):
 
     def test_disco_get_items_2types_no_node(self):
         """get_items on main entity. Must account types"""
+        self.comp.lang = LangExample()
         self.comp.account_manager.account_classes = (ExampleAccount, Example2Account)
         account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
         account11 = ExampleAccount(user_jid = "user1@test.com", \
@@ -458,10 +463,11 @@ class JCLComponent_TestCase(unittest.TestCase):
         disco_item = disco_items.get_items()[0]
         self.assertEquals(unicode(disco_item.get_jid()), unicode(self.comp.jid) + "/Example")
         self.assertEquals(disco_item.get_node(), "Example")
-        self.assertEquals(disco_item.get_name(), "Example")
+        self.assertEquals(disco_item.get_name(), LangExample.en.type_example_name)
         disco_item = disco_items.get_items()[1]
         self.assertEquals(unicode(disco_item.get_jid()), unicode(self.comp.jid) + "/Example2")
         self.assertEquals(disco_item.get_node(), "Example2")
+        # no name in language class for type Example2, so fallback on type name
         self.assertEquals(disco_item.get_name(), "Example2")
 
     # Be careful, account_classes cannot contains parent classes
