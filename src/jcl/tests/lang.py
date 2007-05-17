@@ -136,6 +136,8 @@ def suite():
 #    suite.addTest(unittest.makeSuite(Language_nl_TestCase, 'test'))
 #    suite.addTest(unittest.makeSuite(Language_es_TestCase, 'test'))
 #    suite.addTest(unittest.makeSuite(Language_pl_TestCase, 'test'))
+#    suite.addTest(unittest.makeSuite(Language_cs_TestCase, 'test'))
+#    suite.addTest(unittest.makeSuite(Language_ru_TestCase, 'test'))
     return suite
 
 if __name__ == '__main__':
