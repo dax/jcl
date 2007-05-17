@@ -358,15 +358,15 @@ class Lang:
         connection_label = u"%s соединение '%s'"
         update_account_message_subject = u"Данные для  %s обновлены '%s'"
         update_account_message_body = u"Зарегистрирован с логином '%s' и " \
-                                      "паролем '%s' на '%s'"
+                                      u"паролем '%s' на '%s'"
         new_account_message_subject = u"Новое %s соединение '%s' создано"
         new_account_message_body = u"Перерегистрирован с " \
-                                   "логином '%s' и паролем '%s' на '%s'"
+                                   u"логином '%s' и паролем '%s' на '%s'"
         ask_password_subject = u"Запрос пароля"
         ask_password_body = u"Ответьте на это сообщение с паролем " \
-                            "для следующей учетной записи: \n" \
-                            "\tХост = %s\n" \
-                            "\tЛогин = %s\n"
+                            u"для следующей учетной записи: \n" \
+                            u"\tХост = %s\n" \
+                            u"\tЛогин = %s\n"
         password_saved_for_session = u"Пароль будет сохранен только на время Вашей сессии."
         check_error_subject = u"Ошибка при проверке почты."
         check_error_body = u"Возникла ошибка при проверке почты:\n\t%s"
