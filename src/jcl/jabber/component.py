@@ -62,7 +62,6 @@ VERSION = "0.1"
 ###############################################################################
 class JCLComponent(Component, object):
     """Implement default JCL component behavior:
-    - regular interval behavior
     - Jabber register process (add, delete, update accounts)
     - Jabber presence handling
     - passwork request at login
