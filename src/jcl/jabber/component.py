@@ -1,4 +1,4 @@
-# -*- coding: UTF-8 -*-
+# -*- coding: utf-8 -*-
 ##
 ## component.py
 ## Login : David Rousselie <dax@happycoders.org>
@@ -93,7 +93,8 @@ class JCLComponent(Component, object):
         self.time_unit = 60
         self.queue = Queue(100)
         self.account_manager = AccountManager(self)
-        
+        self.msg_handlers = []
+
         self.__logger = logging.getLogger("jcl.jabber.JCLComponent")
         self.lang = lang
         self.running = False
@@ -203,6 +204,24 @@ class JCLComponent(Component, object):
         self.stream.set_message_handler("normal", \
                                         self.handle_message)
         self.send_stanzas(self.account_manager.probe_all_accounts_presence())
+
+        def password_msg_handler_filter(message, _account):
+            return hasattr(_account, 'password') \
+                and hasattr(_account, 'waiting_password_reply') \
+                and re.compile("\[PASSWORD\]").search(message.get_subject()) \
+                is not None
+
+        def password_msg_handler(message, _account):
+            lang_class = self.lang.get_lang_class_from_node(message.get_node())
+            _account.password = message.get_body()
+            _account.waiting_password_reply = False
+            msg = Message(from_jid = _account.jid, \
+                              to_jid = message.get_from(), \
+                              stanza_type = "normal", \
+                              subject = lang_class.password_saved_for_session, \
+                              body = lang_class.password_saved_for_session)
+            self.stream.send(msg)
+        self.msg_handlers += [(password_msg_handler, password_msg_handler_filter)]
 
     def signal_handler(self, signum, frame):
         """Stop method handler
@@ -441,27 +460,17 @@ class JCLComponent(Component, object):
         Handle password response message
         """
         self.__logger.debug("MESSAGE: " + message.get_body())
-        lang_class = self.lang.get_lang_class_from_node(message.get_node())
         name = message.get_to().node
-        base_from_jid = unicode(message.get_from().bare())
+        bare_from_jid = unicode(message.get_from().bare())
         self.db_connect()
         accounts = Account.select(\
             AND(Account.q.name == name, \
-                Account.q.user_jid == base_from_jid))
-        if accounts.count() == 1:
-            _account = list(accounts)[0]
-            if hasattr(_account, 'password') \
-                   and hasattr(_account, 'waiting_password_reply') \
-                   and re.compile("\[PASSWORD\]").search(message.get_subject()) \
-                   is not None:
-                _account.password = message.get_body()
-                _account.waiting_password_reply = False
-                msg = Message(from_jid = _account.jid, \
-                              to_jid = message.get_from(), \
-                              stanza_type = "normal", \
-                              subject = lang_class.password_saved_for_session, \
-                              body = lang_class.password_saved_for_session)
-                self.stream.send(msg)
+                Account.q.user_jid == bare_from_jid))
+        if accounts.count() != 1:
+            print >>sys.stderr, "Account " + name + " for user " + bare_from_jid + " must be uniq"
+        for (msg_handler, filter_func) in self.msg_handlers:
+            if filter_func(message, accounts[0]):
+                msg_handler(message, accounts[0])
         self.db_disconnect()
         return 1
 

@@ -1880,6 +1880,7 @@ class JCLComponent_TestCase(unittest.TestCase):
     def test_handle_message_password(self):
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
+        self.comp.authenticated()
         account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
         account11 = Account(user_jid = "user1@test.com", \
                             name = "account11", \
@@ -1901,9 +1902,10 @@ class JCLComponent_TestCase(unittest.TestCase):
         self.assertEqual(len(messages_sent), 0)
 
     def test_handle_message_password_complex(self):
-        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
+        self.comp.authenticated()
+        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
         account11 = ExampleAccount(user_jid = "user1@test.com", \
                                    name = "account11", \
                                    jid = "account11@jcl.test.com")
