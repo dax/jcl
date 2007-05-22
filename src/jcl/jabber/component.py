@@ -205,13 +205,25 @@ class JCLComponent(Component, object):
                                         self.handle_message)
         self.send_stanzas(self.account_manager.probe_all_accounts_presence())
 
-        def password_msg_handler_filter(message, _account):
-            return hasattr(_account, 'password') \
-                and hasattr(_account, 'waiting_password_reply') \
-                and re.compile("\[PASSWORD\]").search(message.get_subject()) \
-                is not None
+        def password_msg_handler_filter(message):
+            name = message.get_to().node
+            bare_from_jid = unicode(message.get_from().bare())
+            accounts = Account.select(\
+                AND(Account.q.name == name, \
+                        Account.q.user_jid == bare_from_jid))
+            if accounts.count() != 1:
+                print >>sys.stderr, "Account " + name + " for user " + bare_from_jid + " must be uniq"
+            _account = accounts[0]
+            if hasattr(_account, 'password') \
+                    and hasattr(_account, 'waiting_password_reply') \
+                    and re.compile("\[PASSWORD\]").search(message.get_subject()) \
+                    is not None:
+                return accounts
+            else:
+                return None
 
-        def password_msg_handler(message, _account):
+        def password_msg_handler(message, accounts):
+            _account = accounts[0]
             lang_class = self.lang.get_lang_class_from_node(message.get_node())
             _account.password = message.get_body()
             _account.waiting_password_reply = False
@@ -460,17 +472,11 @@ class JCLComponent(Component, object):
         Handle password response message
         """
         self.__logger.debug("MESSAGE: " + message.get_body())
-        name = message.get_to().node
-        bare_from_jid = unicode(message.get_from().bare())
         self.db_connect()
-        accounts = Account.select(\
-            AND(Account.q.name == name, \
-                Account.q.user_jid == bare_from_jid))
-        if accounts.count() != 1:
-            print >>sys.stderr, "Account " + name + " for user " + bare_from_jid + " must be uniq"
         for (msg_handler, filter_func) in self.msg_handlers:
-            if filter_func(message, accounts[0]):
-                msg_handler(message, accounts[0])
+            accounts = filter_func(message)
+            if accounts is not None:
+                msg_handler(message, accounts)
         self.db_disconnect()
         return 1
 
