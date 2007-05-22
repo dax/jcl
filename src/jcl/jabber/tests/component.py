@@ -40,7 +40,7 @@ from pyxmpp.presence import Presence
 from pyxmpp.message import Message
 from pyxmpp.jabber.dataforms import Form, Field, Option
 
-from jcl.jabber.component import JCLComponent
+from jcl.jabber.component import JCLComponent, MessageHandler, PasswordMessageHandler
 from jcl.model import account
 from jcl.model.account import Account
 from jcl.lang import Lang
@@ -1983,8 +1983,155 @@ class JCLComponent_TestCase(unittest.TestCase):
         self.comp.send_stanzas(None)
         self.assertEquals(len(self.comp.stream.sent), 0)
 
+class MessageHandler_TestCase(unittest.TestCase):
+    def setUp(self):
+        self.handler = MessageHandler()
+        if os.path.exists(DB_PATH):
+            os.unlink(DB_PATH)
+        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
+        Account.createTable(ifNotExists = True)
+        del account.hub.threadConnection
+
+    def tearDown(self):
+        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
+        Account.dropTable(ifExists = True)
+        del TheURIOpener.cachedURIs['sqlite://' + DB_URL]
+        account.hub.threadConnection.close()
+        del account.hub.threadConnection
+        if os.path.exists(DB_PATH):
+            os.unlink(DB_PATH)
+
+    def test_filter(self):
+        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
+        account11 = Account(user_jid = "user1@test.com", \
+                               name = "account11", \
+                               jid = "account11@jcl.test.com")
+        account12 = Account(user_jid = "user1@test.com", \
+                               name = "account12", \
+                               jid = "account12@jcl.test.com")
+        accounts = self.handler.filter(None)
+        self.assertEquals(accounts.count(), 2)
+        del account.hub.threadConnection
+
+    def test_handle(self):
+        self.assertEquals(self.handler.handle(None, None, None), [])
+
+class PasswordMessageHandler_TestCase(unittest.TestCase):
+    def setUp(self):
+        self.handler = PasswordMessageHandler()
+        if os.path.exists(DB_PATH):
+            os.unlink(DB_PATH)
+        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
+        Account.createTable(ifNotExists = True)
+        ExampleAccount.createTable(ifNotExists = True)
+        del account.hub.threadConnection
+
+    def tearDown(self):
+        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
+        ExampleAccount.dropTable(ifExists = True)
+        Account.dropTable(ifExists = True)
+        del TheURIOpener.cachedURIs['sqlite://' + DB_URL]
+        account.hub.threadConnection.close()
+        del account.hub.threadConnection
+        if os.path.exists(DB_PATH):
+            os.unlink(DB_PATH)
+
+    def test_filter_waiting_password(self):
+        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
+        account11 = ExampleAccount(user_jid = "user1@test.com", \
+                                      name = "account11", \
+                                      jid = "account11@jcl.test.com")
+        account11.waiting_password_reply = True
+        account12 = ExampleAccount(user_jid = "user1@test.com", \
+                                      name = "account12", \
+                                      jid = "account12@jcl.test.com")
+        message = Message(from_jid = "user1@test.com", \
+                             to_jid = "account11@jcl.test.com", \
+                             stanza_type = "normal", \
+                             subject = "[PASSWORD]", \
+                             body = "secret")
+        accounts = self.handler.filter(message)
+        self.assertEquals(accounts.count(), 1)
+        self.assertEquals(accounts[0].name, "account11")
+        del account.hub.threadConnection
+
+    def test_filter_not_waiting_password(self):
+        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
+        account11 = ExampleAccount(user_jid = "user1@test.com", \
+                                      name = "account11", \
+                                      jid = "account11@jcl.test.com")
+        account11.waiting_password_reply = False
+        account12 = ExampleAccount(user_jid = "user1@test.com", \
+                                      name = "account12", \
+                                      jid = "account12@jcl.test.com")
+        message = Message(from_jid = "user1@test.com", \
+                             to_jid = "account11@jcl.test.com", \
+                             stanza_type = "normal", \
+                             subject = "[PASSWORD]", \
+                             body = "secret")
+        accounts = self.handler.filter(message)
+        self.assertEquals(accounts, None)
+        del account.hub.threadConnection
+
+    def test_filter_not_good_message(self):
+        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
+        account11 = ExampleAccount(user_jid = "user1@test.com", \
+                                      name = "account11", \
+                                      jid = "account11@jcl.test.com")
+        account11.waiting_password_reply = True
+        account12 = ExampleAccount(user_jid = "user1@test.com", \
+                                      name = "account12", \
+                                      jid = "account12@jcl.test.com")
+        message = Message(from_jid = "user1@test.com", \
+                             to_jid = "account11@jcl.test.com", \
+                             stanza_type = "normal", \
+                             subject = "[NOT GOOD MESSAGE]", \
+                             body = "secret")
+        accounts = self.handler.filter(message)
+        self.assertEquals(accounts, None)
+        del account.hub.threadConnection
+
+    def test_filter_not_password_account(self):
+        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
+        account11 = Account(user_jid = "user1@test.com", \
+                                      name = "account11", \
+                                      jid = "account11@jcl.test.com")
+        account12 = Account(user_jid = "user1@test.com", \
+                                      name = "account12", \
+                                      jid = "account12@jcl.test.com")
+        message = Message(from_jid = "user1@test.com", \
+                             to_jid = "account11@jcl.test.com", \
+                             stanza_type = "normal", \
+                             subject = "[PASSWORD]", \
+                             body = "secret")
+        accounts = self.handler.filter(message)
+        self.assertEquals(accounts, None)
+        del account.hub.threadConnection
+
+    def test_handle(self):
+        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
+        account11 = ExampleAccount(user_jid = "user1@test.com", \
+                                      name = "account11", \
+                                      jid = "account11@jcl.test.com")
+        account12 = ExampleAccount(user_jid = "user1@test.com", \
+                                      name = "account12", \
+                                      jid = "account12@jcl.test.com")
+        message = Message(from_jid = "user1@test.com", \
+                             to_jid = "account11@jcl.test.com", \
+                             stanza_type = "normal", \
+                             subject = "[PASSWORD]", \
+                             body = "secret")
+        messages = self.handler.handle(message, Lang(), [account11])
+        self.assertEquals(len(messages), 1)
+        self.assertEquals(account11.password, "secret")
+        del account.hub.threadConnection
+
 def suite():
-    return unittest.makeSuite(JCLComponent_TestCase, 'test')
+    suite = unittest.TestSuite()
+    suite.addTest(unittest.makeSuite(JCLComponent_TestCase, 'test'))
+    suite.addTest(unittest.makeSuite(MessageHandler_TestCase, 'test'))
+    suite.addTest(unittest.makeSuite(PasswordMessageHandler_TestCase, 'test'))
+    return suite
 
 if __name__ == '__main__':
     unittest.main(defaultTest='suite')

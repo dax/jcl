@@ -205,35 +205,7 @@ class JCLComponent(Component, object):
                                         self.handle_message)
         self.send_stanzas(self.account_manager.probe_all_accounts_presence())
 
-        def password_msg_handler_filter(message):
-            name = message.get_to().node
-            bare_from_jid = unicode(message.get_from().bare())
-            accounts = Account.select(\
-                AND(Account.q.name == name, \
-                        Account.q.user_jid == bare_from_jid))
-            if accounts.count() != 1:
-                print >>sys.stderr, "Account " + name + " for user " + bare_from_jid + " must be uniq"
-            _account = accounts[0]
-            if hasattr(_account, 'password') \
-                    and hasattr(_account, 'waiting_password_reply') \
-                    and re.compile("\[PASSWORD\]").search(message.get_subject()) \
-                    is not None:
-                return accounts
-            else:
-                return None
-
-        def password_msg_handler(message, accounts):
-            _account = accounts[0]
-            lang_class = self.lang.get_lang_class_from_node(message.get_node())
-            _account.password = message.get_body()
-            _account.waiting_password_reply = False
-            msg = Message(from_jid = _account.jid, \
-                              to_jid = message.get_from(), \
-                              stanza_type = "normal", \
-                              subject = lang_class.password_saved_for_session, \
-                              body = lang_class.password_saved_for_session)
-            self.stream.send(msg)
-        self.msg_handlers += [(password_msg_handler, password_msg_handler_filter)]
+        self.msg_handlers += [PasswordMessageHandler()]
 
     def signal_handler(self, signum, frame):
         """Stop method handler
@@ -472,12 +444,14 @@ class JCLComponent(Component, object):
         Handle password response message
         """
         self.__logger.debug("MESSAGE: " + message.get_body())
+        result = []
         self.db_connect()
-        for (msg_handler, filter_func) in self.msg_handlers:
-            accounts = filter_func(message)
+        for msg_handler in self.msg_handlers:
+            accounts = msg_handler.filter(message)
             if accounts is not None:
-                msg_handler(message, accounts)
+                result += msg_handler.handle(message, self.lang, accounts)
         self.db_disconnect()
+        self.send_stanzas(result)
         return 1
 
     ###########################################################################
@@ -1118,3 +1092,57 @@ class AccountManager(object):
                                   body = _account.default_lang_class.check_error_body \
                                   % (exception)))
         return result
+
+class MessageHandler(object):
+    """Message handling class"""
+
+    def filter(self, message):
+        """Filter account to be processed by the handler
+        return all accounts. DB connection might already be opened."""
+        accounts = Account.select()
+        return accounts
+
+    def handle(self, message, lang, accounts):
+        """Apply actions to do on given accounts
+        Do nothing by default"""
+        return []
+
+class PasswordMessageHandler(MessageHandler):
+    """Handle password message"""
+
+    def __init__(self):
+        """Ḧandler constructor"""
+        self.password_regexp = re.compile("\[PASSWORD\]")
+
+    def filter(self, message):
+        """Return the uniq account associated with a name and user JID.
+        DB connection might already be opened."""
+        name = message.get_to().node
+        bare_from_jid = unicode(message.get_from().bare())
+        accounts = Account.select(\
+            AND(Account.q.name == name, \
+                    Account.q.user_jid == bare_from_jid))
+        if accounts.count() != 1:
+            print >>sys.stderr, "Account " + name + " for user " + bare_from_jid + " must be uniq"
+        _account = accounts[0]
+        if hasattr(_account, 'password') \
+                and hasattr(_account, 'waiting_password_reply') \
+                and (getattr(_account, 'waiting_password_reply') == True) \
+                and self.password_regexp.search(message.get_subject()) \
+                is not None:
+            return accounts
+        else:
+            return None
+        
+    def handle(self, message, lang, accounts):
+        """Receive password for given account"""
+        _account = accounts[0]
+        lang_class = lang.get_lang_class_from_node(message.get_node())
+        _account.password = message.get_body()
+        _account.waiting_password_reply = False
+        return [Message(from_jid = _account.jid, \
+                            to_jid = message.get_from(), \
+                            stanza_type = "normal", \
+                            subject = lang_class.password_saved_for_session, \
+                            body = lang_class.password_saved_for_session)]
+        
