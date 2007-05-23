@@ -28,6 +28,7 @@ import threading
 import time
 import sys
 import os
+import re
 
 from sqlobject import *
 from sqlobject.dbconnection import TheURIOpener
@@ -40,7 +41,7 @@ from pyxmpp.presence import Presence
 from pyxmpp.message import Message
 from pyxmpp.jabber.dataforms import Form, Field, Option
 
-from jcl.jabber.component import JCLComponent, MessageHandler, PasswordMessageHandler
+from jcl.jabber.component import JCLComponent, Handler, PasswordMessageHandler, DefaultSubscribeHandler, DefaultUnsubscribeHandler, DefaultPresenceHandler
 from jcl.model import account
 from jcl.model.account import Account
 from jcl.lang import Lang
@@ -48,9 +49,9 @@ from jcl.lang import Lang
 from jcl.model.tests.account import ExampleAccount, Example2Account
 
 if sys.platform == "win32":
-   DB_PATH = "/c|/temp/test.db"
+   DB_PATH = "/c|/temp/jcl_test.db"
 else:
-   DB_PATH = "/tmp/test.db"
+   DB_PATH = "/tmp/jcl_test.db"
 DB_URL = DB_PATH# + "?debug=1&debugThreading=1"
 
 class MockStream(object):
@@ -124,6 +125,22 @@ class MockStreamRaiseException(MockStream):
 class LangExample(Lang):
     class en(Lang.en):
         type_example_name = "Type Example"
+
+class TestSubscribeHandler(DefaultSubscribeHandler):
+    def filter(self, message):
+        if re.compile(".*%.*").match(message.get_to().node):
+            # return no account because self.handle does not need an account
+            return []
+        else:
+            return None
+
+class TestUnsubscribeHandler(DefaultUnsubscribeHandler):
+    def filter(self, message):
+        if re.compile(".*%.*").match(message.get_to().node):
+            # return no account because self.handle does not need an account
+            return []
+        else:
+            return None
 
 class JCLComponent_TestCase(unittest.TestCase):
     ###########################################################################
@@ -1398,6 +1415,31 @@ class JCLComponent_TestCase(unittest.TestCase):
         self.assertEqual(presence_sent[0].get_from(), "account11@jcl.test.com")
         self.assertTrue(isinstance(presence_sent[0], Presence))
 
+    def test_handle_presence_available_to_registered_handlers(self):
+        self.comp.stream = MockStream()
+        self.comp.stream_class = MockStream
+        self.comp.available_handlers += [DefaultPresenceHandler()]
+        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
+        account11 = Account(user_jid = "user1@test.com", \
+                            name = "account11", \
+                            jid = "account11@jcl.test.com")
+        account12 = Account(user_jid = "user1@test.com", \
+                            name = "account12", \
+                            jid = "account12@jcl.test.com")
+        account2 = Account(user_jid = "user2@test.com", \
+                           name = "account2", \
+                           jid = "account2@jcl.test.com")
+        del account.hub.threadConnection
+        self.comp.handle_presence_available(Presence(\
+            stanza_type = "available", \
+            from_jid = "user1@test.com",\
+            to_jid = "user1%test.com@jcl.test.com"))
+        presence_sent = self.comp.stream.sent
+        self.assertEqual(len(presence_sent), 1)
+        self.assertEqual(presence_sent[0].get_to(), "user1@test.com")
+        self.assertEqual(presence_sent[0].get_from(), "user1%test.com@jcl.test.com")
+        self.assertTrue(isinstance(presence_sent[0], Presence))
+
     def test_handle_presence_available_to_account_unknown_user(self):
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
@@ -1606,6 +1648,33 @@ class JCLComponent_TestCase(unittest.TestCase):
             presence_sent[0].xpath_eval("@type")[0].get_content(), \
             "unavailable")
 
+    def test_handle_presence_unavailable_to_registered_handlers(self):
+        self.comp.stream = MockStream()
+        self.comp.stream_class = MockStream
+        self.comp.unavailable_handlers += [DefaultPresenceHandler()]
+        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
+        account11 = Account(user_jid = "user1@test.com", \
+                            name = "account11", \
+                            jid = "account11@jcl.test.com")
+        account12 = Account(user_jid = "user1@test.com", \
+                            name = "account12", \
+                            jid = "account12@jcl.test.com")
+        account2 = Account(user_jid = "user2@test.com", \
+                           name = "account2", \
+                           jid = "account2@jcl.test.com")
+        del account.hub.threadConnection
+        self.comp.handle_presence_unavailable(Presence(\
+            stanza_type = "unavailable", \
+            from_jid = "user1@test.com",\
+            to_jid = "user1%test.com@jcl.test.com"))
+        presence_sent = self.comp.stream.sent
+        self.assertEqual(len(presence_sent), 1)
+        self.assertEqual(presence_sent[0].get_to(), "user1@test.com")
+        self.assertEqual(presence_sent[0].get_from(), "user1%test.com@jcl.test.com")
+        self.assertEqual(\
+            presence_sent[0].xpath_eval("@type")[0].get_content(), \
+            "unavailable")
+
     def test_handle_presence_unavailable_to_account_unknown_user(self):
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
@@ -1763,6 +1832,32 @@ class JCLComponent_TestCase(unittest.TestCase):
         presence_sent = self.comp.stream.sent
         self.assertEqual(len(presence_sent), 0)
 
+    def test_handle_presence_subscribe_to_registered_handlers(self):
+        self.comp.stream = MockStream()
+        self.comp.stream_class = MockStream
+        self.comp.subscribe_handlers += [DefaultSubscribeHandler()]
+        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
+        account11 = Account(user_jid = "user1@test.com", \
+                            name = "account11", \
+                            jid = "account11@jcl.test.com")
+        account12 = Account(user_jid = "user1@test.com", \
+                            name = "account12", \
+                            jid = "account12@jcl.test.com")
+        account2 = Account(user_jid = "user2@test.com", \
+                           name = "account2", \
+                           jid = "account2@jcl.test.com")
+        del account.hub.threadConnection
+        result = self.comp.handle_presence_subscribe(Presence(\
+            stanza_type = "subscribe", \
+            from_jid = "user1@test.com",\
+            to_jid = "user1%test.com@jcl.test.com"))
+        sent = self.comp.stream.sent
+        self.assertEqual(len(sent), 2)
+        self.assertTrue(type(sent[0]), Presence)
+        self.assertEquals(sent[0].get_type(), "subscribe")
+        self.assertTrue(type(sent[1]), Presence)
+        self.assertEquals(sent[1].get_type(), "subscribed")
+
     def test_handle_presence_subscribed(self):
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
@@ -1811,6 +1906,38 @@ class JCLComponent_TestCase(unittest.TestCase):
                           2)
         del account.hub.threadConnection
 
+    def test_handle_presence_unsubscribe_to_registered_handlers(self):
+        self.comp.stream = MockStream()
+        self.comp.stream_class = MockStream
+        self.comp.unsubscribe_handlers += [DefaultUnsubscribeHandler()]
+        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
+        account11 = Account(user_jid = "user1@test.com", \
+                            name = "account11", \
+                            jid = "account11@jcl.test.com")
+        account12 = Account(user_jid = "user1@test.com", \
+                            name = "account12", \
+                            jid = "account12@jcl.test.com")
+        account2 = Account(user_jid = "user2@test.com", \
+                           name = "account2", \
+                           jid = "account2@jcl.test.com")
+        del account.hub.threadConnection
+        self.comp.handle_presence_unsubscribe(Presence(\
+            stanza_type = "unsubscribe", \
+            from_jid = "user1@test.com",\
+            to_jid = "user1%test.com@jcl.test.com"))
+        presence_sent = self.comp.stream.sent
+        self.assertEqual(len(presence_sent), 2)
+        presence = presence_sent[0]
+        self.assertEqual(presence.get_from(), "user1%test.com@jcl.test.com")
+        self.assertEqual(presence.get_to(), "user1@test.com")
+        self.assertEqual(presence.xpath_eval("@type")[0].get_content(), \
+                         "unsubscribe")
+        presence = presence_sent[1]
+        self.assertEqual(presence.get_from(), "user1%test.com@jcl.test.com")
+        self.assertEqual(presence.get_to(), "user1@test.com")
+        self.assertEqual(presence.xpath_eval("@type")[0].get_content(), \
+                         "unsubscribed")
+
     def test_handle_presence_unsubscribe_to_account_unknown_user(self):
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
@@ -1835,7 +1962,6 @@ class JCLComponent_TestCase(unittest.TestCase):
         self.assertEquals(Account.select().count(), \
                           3)
         del account.hub.threadConnection
-
 
     def test_handle_presence_unsubscribe_to_unknown_account(self):
         self.comp.stream = MockStream()
@@ -1873,6 +1999,21 @@ class JCLComponent_TestCase(unittest.TestCase):
         self.assertEqual(len(presence_sent), 1)
         self.assertEqual(presence_sent[0].get_to(), "user1@test.com")
         self.assertEqual(presence_sent[0].get_from(), "jcl.test.com")
+        self.assertEqual(\
+            presence_sent[0].xpath_eval("@type")[0].get_content(), \
+            "unavailable")
+
+    def test_handle_presence_unsubscribed_to_registered_handler(self):
+        self.comp.stream = MockStream()
+        self.comp.stream_class = MockStream
+        self.comp.handle_presence_unsubscribed(Presence(\
+            stanza_type = "unsubscribed", \
+            from_jid = "user1@test.com",\
+            to_jid = "user1%test.com@jcl.test.com"))
+        presence_sent = self.comp.stream.sent
+        self.assertEqual(len(presence_sent), 1)
+        self.assertEqual(presence_sent[0].get_to(), "user1@test.com")
+        self.assertEqual(presence_sent[0].get_from(), "user1%test.com@jcl.test.com")
         self.assertEqual(\
             presence_sent[0].xpath_eval("@type")[0].get_content(), \
             "unavailable")
@@ -1983,9 +2124,9 @@ class JCLComponent_TestCase(unittest.TestCase):
         self.comp.send_stanzas(None)
         self.assertEquals(len(self.comp.stream.sent), 0)
 
-class MessageHandler_TestCase(unittest.TestCase):
+class Handler_TestCase(unittest.TestCase):
     def setUp(self):
-        self.handler = MessageHandler()
+        self.handler = Handler()
         if os.path.exists(DB_PATH):
             os.unlink(DB_PATH)
         account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
@@ -2015,6 +2156,66 @@ class MessageHandler_TestCase(unittest.TestCase):
 
     def test_handle(self):
         self.assertEquals(self.handler.handle(None, None, None), [])
+
+class DefaultSubscribeHandler_TestCase(unittest.TestCase):
+    def setUp(self):
+        self.handler = DefaultSubscribeHandler()
+
+    def test_handle(self):
+        presence = Presence(from_jid = "user1@test.com", \
+                               to_jid = "user1%test.com@jcl.test.com", \
+                               stanza_type = "subscribe")
+        result = self.handler.handle(presence, None, [])
+        self.assertEquals(len(result), 2)
+        self.assertEquals(result[0].get_to(), "user1@test.com")
+        self.assertEquals(result[0].get_from(), "user1%test.com@jcl.test.com")
+        self.assertEquals(result[0].get_type(), "subscribe")
+        self.assertEquals(result[1].get_to(), "user1@test.com")
+        self.assertEquals(result[1].get_from(), "user1%test.com@jcl.test.com")
+        self.assertEquals(result[1].get_type(), "subscribed")
+
+class DefaultUnsubscribeHandler_TestCase(unittest.TestCase):
+    def setUp(self):
+        self.handler = DefaultUnsubscribeHandler()
+
+    def test_handle(self):
+        presence = Presence(from_jid = "user1@test.com", \
+                               to_jid = "user1%test.com@jcl.test.com", \
+                               stanza_type = "unsubscribe")
+        result = self.handler.handle(presence, None, [])
+        self.assertEquals(len(result), 2)
+        self.assertEquals(result[0].get_to(), "user1@test.com")
+        self.assertEquals(result[0].get_from(), "user1%test.com@jcl.test.com")
+        self.assertEquals(result[0].get_type(), "unsubscribe")
+        self.assertEquals(result[1].get_to(), "user1@test.com")
+        self.assertEquals(result[1].get_from(), "user1%test.com@jcl.test.com")
+        self.assertEquals(result[1].get_type(), "unsubscribed")
+
+class DefaultPresenceHandler_TestCase(unittest.TestCase):
+    def setUp(self):
+        self.handler = DefaultPresenceHandler()
+
+    def test_handle_away(self):
+        presence = Presence(from_jid = "user1@test.com", \
+                               to_jid = "user1%test.com@jcl.test.com", \
+                               stanza_type = "available", \
+                               show = "away")
+        result = self.handler.handle(presence, None, [])
+        self.assertEquals(len(result), 1)
+        self.assertEquals(result[0].get_to(), "user1@test.com")
+        self.assertEquals(result[0].get_from(), "user1%test.com@jcl.test.com")
+        self.assertEquals(result[0].get_type(), None)
+        self.assertEquals(result[0].get_show(), "away")
+
+    def test_handle_offline(self):
+        presence = Presence(from_jid = "user1@test.com", \
+                               to_jid = "user1%test.com@jcl.test.com", \
+                               stanza_type = "unavailable")
+        result = self.handler.handle(presence, None, [])
+        self.assertEquals(len(result), 1)
+        self.assertEquals(result[0].get_to(), "user1@test.com")
+        self.assertEquals(result[0].get_from(), "user1%test.com@jcl.test.com")
+        self.assertEquals(result[0].get_type(), "unavailable")
 
 class PasswordMessageHandler_TestCase(unittest.TestCase):
     def setUp(self):
@@ -2129,7 +2330,10 @@ class PasswordMessageHandler_TestCase(unittest.TestCase):
 def suite():
     suite = unittest.TestSuite()
     suite.addTest(unittest.makeSuite(JCLComponent_TestCase, 'test'))
-    suite.addTest(unittest.makeSuite(MessageHandler_TestCase, 'test'))
+    suite.addTest(unittest.makeSuite(Handler_TestCase, 'test'))
+    suite.addTest(unittest.makeSuite(DefaultSubscribeHandler_TestCase, 'test'))
+    suite.addTest(unittest.makeSuite(DefaultUnsubscribeHandler_TestCase, 'test'))
+    suite.addTest(unittest.makeSuite(DefaultPresenceHandler_TestCase, 'test'))
     suite.addTest(unittest.makeSuite(PasswordMessageHandler_TestCase, 'test'))
     return suite
 

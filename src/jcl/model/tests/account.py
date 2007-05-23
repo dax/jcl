@@ -31,6 +31,12 @@ from jcl.jabber.error import FieldError
 from jcl.model import account
 from jcl.model.account import Account, PresenceAccount
 
+if sys.platform == "win32":
+   DB_PATH = "/c|/temp/jcl_test.db"
+else:
+   DB_PATH = "/tmp/jcl_test.db"
+DB_URL = DB_PATH# + "?debug=1&debugThreading=1"
+
 class ExampleAccount(Account):
     login = StringCol(default = "")
     password = StringCol(default = None)
@@ -109,12 +115,6 @@ class PresenceAccountExample(PresenceAccount):
                [("test_new_int", "text-single", None, account.int_post_func, \
                  lambda : 43)]
     get_register_fields = classmethod(_get_register_fields)
-
-if sys.platform == "win32":
-   DB_PATH = "/c|/temp/test.db"
-else:
-   DB_PATH = "/tmp/test.db"
-DB_URL = DB_PATH# + "?debug=1&debugThreading=1"
 
 class AccountModule_TestCase(unittest.TestCase):
     def test_default_post_func(self):

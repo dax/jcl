@@ -143,6 +143,7 @@ class JCLRunner(object):
         commandline_args = self.__configure_commandline_args(shortopts, longopts, cleanopts)
         if commandline_args.has_key("debug") or commandline_args.has_key("d"):
             self.debug = True
+            self.logger.debug("Debug activated")
         self.__apply_configfile(commandline_args, cleanopts)
         self.__apply_commandline_args(commandline_args, cleanopts)
 

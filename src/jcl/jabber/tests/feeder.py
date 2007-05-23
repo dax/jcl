@@ -41,9 +41,9 @@ from jcl.model.tests.account import ExampleAccount, Example2Account
 from jcl.jabber.tests.component import JCLComponent_TestCase, MockStream
 
 if sys.platform == "win32":
-   DB_PATH = "/c|/temp/test.db"
+   DB_PATH = "/c|/temp/jcl_test.db"
 else:
-   DB_PATH = "/tmp/test.db"
+   DB_PATH = "/tmp/jcl_test.db"
 DB_URL = DB_PATH #+ "?debug=1&debugThreading=1"
 
 class FeederComponent_TestCase(JCLComponent_TestCase):

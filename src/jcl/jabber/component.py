@@ -94,6 +94,10 @@ class JCLComponent(Component, object):
         self.queue = Queue(100)
         self.account_manager = AccountManager(self)
         self.msg_handlers = []
+        self.subscribe_handlers = []
+        self.unsubscribe_handlers = []
+        self.available_handlers = []
+        self.unavailable_handlers = []
 
         self.__logger = logging.getLogger("jcl.jabber.JCLComponent")
         self.lang = lang
@@ -250,7 +254,19 @@ class JCLComponent(Component, object):
         if send_result:
             self.send_stanzas(result)
         return result
-        
+
+    def apply_registered_behavior(self, handlers, stanza, apply_all = False):
+        """Execute handler if their filter method does not return None"""
+        result = []
+        self.db_connect()
+        for handler in handlers:
+            accounts = handler.filter(stanza)
+            if accounts is not None:
+                result += handler.handle(stanza, self.lang, accounts)
+        self.db_disconnect()
+        self.send_stanzas(result)
+        return result
+
     def disco_get_info(self, node, info_query):
         """Discovery get info handler
         """
@@ -362,9 +378,10 @@ class JCLComponent(Component, object):
         """Handle presence availability
         if presence sent to the component ('if not name'), presence is sent to
         all accounts for current user. Otherwise, send presence from current account.
-
         """
-        return self.apply_behavior(stanza, \
+        result = self.apply_registered_behavior(self.available_handlers, stanza)
+        if result == []:
+            result = self.apply_behavior(stanza, \
                                    lambda name, from_jid, account_type, lang_class: \
                                    self.account_manager.account_handle_presence_available(name, \
                                                                                           from_jid, \
@@ -377,13 +394,16 @@ class JCLComponent(Component, object):
                                                                                        lang_class, \
                                                                                        stanza.get_show()), \
                                    send_result = True)
+        return result
                                    
 
     def handle_presence_unavailable(self, stanza):
         """Handle presence unavailability
         """
         self.__logger.debug("PRESENCE_UNAVAILABLE")
-        return self.apply_behavior(stanza, \
+        result = self.apply_registered_behavior(self.unavailable_handlers, stanza)
+        if result == []:
+            result = self.apply_behavior(stanza, \
                                    lambda name, from_jid, account_type, lang_class: \
                                    self.account_manager.account_handle_presence_unavailable(name, \
                                                                                             from_jid), \
@@ -392,12 +412,15 @@ class JCLComponent(Component, object):
                                    lambda name, from_jid, account_type, lang_class: \
                                    self.account_manager.root_handle_presence_unavailable(from_jid), \
                                    send_result = True)
+        return result
 
     def handle_presence_subscribe(self, stanza):
         """Handle subscribe presence from user
         """
         self.__logger.debug("PRESENCE_SUBSCRIBE")
-        return self.apply_behavior(stanza, \
+        result = self.apply_registered_behavior(self.subscribe_handlers, stanza)
+        if result == []:
+            result = self.apply_behavior(stanza, \
                                    lambda name, from_jid, account_type, lang_class: \
                                    self.account_manager.account_handle_presence_subscribe(name, \
                                                                                           from_jid, \
@@ -408,6 +431,7 @@ class JCLComponent(Component, object):
                                    self.account_manager.root_handle_presence_subscribe(from_jid, \
                                                                                        stanza), \
                                    send_result = True)
+        return result
 
     def handle_presence_subscribed(self, stanza):
         """Handle subscribed presence from user
@@ -419,7 +443,9 @@ class JCLComponent(Component, object):
         """Handle unsubscribe presence from user
         """
         self.__logger.debug("PRESENCE_UNSUBSCRIBE")
-        return self.apply_behavior(stanza, \
+        result = self.apply_registered_behavior(self.unsubscribe_handlers, stanza)
+        if result == []:
+            result = self.apply_behavior(stanza, \
                                    lambda name, from_jid, account_type, lang_class: \
                                    self.account_manager.account_handle_presence_unsubscribe(name, \
                                                                                             from_jid), \
@@ -428,6 +454,7 @@ class JCLComponent(Component, object):
                                    lambda name, from_jid, account_type, lang_class: \
                                    [], \
                                    send_result = True)
+        return result
 
     def handle_presence_unsubscribed(self, stanza):
         """Handle unsubscribed presence from user
@@ -444,14 +471,7 @@ class JCLComponent(Component, object):
         Handle password response message
         """
         self.__logger.debug("MESSAGE: " + message.get_body())
-        result = []
-        self.db_connect()
-        for msg_handler in self.msg_handlers:
-            accounts = msg_handler.filter(message)
-            if accounts is not None:
-                result += msg_handler.handle(message, self.lang, accounts)
-        self.db_disconnect()
-        self.send_stanzas(result)
+        self.apply_registered_behavior(self.msg_handlers, message)
         return 1
 
     ###########################################################################
@@ -1093,32 +1113,71 @@ class AccountManager(object):
                                   % (exception)))
         return result
 
-class MessageHandler(object):
-    """Message handling class"""
+class Handler(object):
+    """handling class"""
 
-    def filter(self, message):
+    def filter(self, stanza):
         """Filter account to be processed by the handler
         return all accounts. DB connection might already be opened."""
         accounts = Account.select()
         return accounts
 
-    def handle(self, message, lang, accounts):
+    def handle(self, stanza, lang, accounts):
         """Apply actions to do on given accounts
         Do nothing by default"""
         return []
 
-class PasswordMessageHandler(MessageHandler):
+class DefaultPresenceHandler(Handler):
+    """Handle presence"""
+    
+    def handle(self, presence, lang, accounts):
+        """Return same presence as receive one"""
+        to_jid = presence.get_to()
+        from_jid = presence.get_from()
+        presence.set_to(from_jid)
+        presence.set_from(to_jid)
+        return [presence]
+
+class DefaultSubscribeHandler(Handler):
+    """Return default response to subscribe queries"""
+
+    def handle(self, stanza, lang, accounts):
+        """Create subscribe response"""
+        result = []
+        result.append(Presence(from_jid = stanza.get_to(), \
+                                   to_jid = stanza.get_from(), \
+                                   stanza_type = "subscribe"))
+        result.append(Presence(from_jid = stanza.get_to(), \
+                                   to_jid = stanza.get_from(), \
+                                   stanza_type = "subscribed"))
+        return result
+
+class DefaultUnsubscribeHandler(Handler):
+    """Return default response to subscribe queries"""
+
+    def handle(self, stanza, lang, accounts):
+        """Create subscribe response"""
+        result = []
+        result.append(Presence(from_jid = stanza.get_to(), \
+                                   to_jid = stanza.get_from(), \
+                                   stanza_type = "unsubscribe"))
+        result.append(Presence(from_jid = stanza.get_to(), \
+                                   to_jid = stanza.get_from(), \
+                                   stanza_type = "unsubscribed"))
+        return result
+
+class PasswordMessageHandler(Handler):
     """Handle password message"""
 
     def __init__(self):
         """Ḧandler constructor"""
         self.password_regexp = re.compile("\[PASSWORD\]")
 
-    def filter(self, message):
+    def filter(self, stanza):
         """Return the uniq account associated with a name and user JID.
         DB connection might already be opened."""
-        name = message.get_to().node
-        bare_from_jid = unicode(message.get_from().bare())
+        name = stanza.get_to().node
+        bare_from_jid = unicode(stanza.get_from().bare())
         accounts = Account.select(\
             AND(Account.q.name == name, \
                     Account.q.user_jid == bare_from_jid))
@@ -1128,20 +1187,20 @@ class PasswordMessageHandler(MessageHandler):
         if hasattr(_account, 'password') \
                 and hasattr(_account, 'waiting_password_reply') \
                 and (getattr(_account, 'waiting_password_reply') == True) \
-                and self.password_regexp.search(message.get_subject()) \
+                and self.password_regexp.search(stanza.get_subject()) \
                 is not None:
             return accounts
         else:
             return None
         
-    def handle(self, message, lang, accounts):
-        """Receive password for given account"""
+    def handle(self, stanza, lang, accounts):
+        """Receive password in stanza (must be a Message) for given account"""
         _account = accounts[0]
-        lang_class = lang.get_lang_class_from_node(message.get_node())
-        _account.password = message.get_body()
+        lang_class = lang.get_lang_class_from_node(stanza.get_node())
+        _account.password = stanza.get_body()
         _account.waiting_password_reply = False
         return [Message(from_jid = _account.jid, \
-                            to_jid = message.get_from(), \
+                            to_jid = stanza.get_from(), \
                             stanza_type = "normal", \
                             subject = lang_class.password_saved_for_session, \
                             body = lang_class.password_saved_for_session)]
