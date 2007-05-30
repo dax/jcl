@@ -1,4 +1,4 @@
-# -*- coding: UTF-8 -*-
+# -*- coding: utf-8 -*-
 ##
 ## component.py
 ## Login : David Rousselie <dax@happycoders.org>
@@ -46,13 +46,13 @@ class FeederComponent(JCLComponent):
                  port,
                  db_connection_str,
                  lang = Lang()):
-        JCLComponent.__init__(self, \
-                              jid, \
-                              secret, \
-                              server, \
-                              port, \
-                              db_connection_str, \
-                              lang = lang)
+        JCLComponent.__init__(self,
+                              jid,
+                              secret,
+                              server,
+                              port,
+                              db_connection_str,
+                              lang=lang)
         # Define default feeder and sender, can be override
         self.feeder = Feeder(self)
         self.sender = Sender(self)
@@ -63,8 +63,8 @@ class FeederComponent(JCLComponent):
     def handle_tick(self):
         """Implement main feed/send behavior"""
         self.db_connect()
-        for _account in Account.select(clauseTables = ["account"], \
-                                       orderBy = "user_jid"):
+        for _account in Account.select(clauseTables=["account"],
+                                       orderBy="user_jid"):
             for subject, body in self.feeder.feed(_account):
                 self.sender.send(_account, subject, body)
         self.db_disconnect()
@@ -95,21 +95,18 @@ class MessageSender(Sender):
 
     def send(self, to_account, subject, body):
         """Implement abstract method from Sender class and send data as Jabber message"""
-        self.component.stream.send(Message(\
-                    from_jid = to_account.jid, \
-                    to_jid = to_account.user_jid, \
-                    subject = subject, \
-                    stanza_type = "normal", \
-                    body = body))
+        self.component.stream.send(Message(from_jid=to_account.jid,
+                                           to_jid=to_account.user_jid,
+                                           subject=subject,
+                                           body=body))
 
 class HeadlineSender(Sender):
     """Send data as Jabber Headline"""
 
     def send(self, to_account, subject, body):
         """Implement abstract method from Sender class and send data as Jabber headline"""
-        self.component.stream.send(Message(\
-                    from_jid = to_account.jid, \
-                    to_jid = to_account.user_jid, \
-                    subject = subject, \
-                    stanza_type = "headline", \
-                    body = body))
+        self.component.stream.send(Message(from_jid=to_account.jid,
+                                           to_jid=to_account.user_jid,
+                                           subject=subject,
+                                           stanza_type="headline",
+                                           body=body))

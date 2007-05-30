@@ -695,7 +695,6 @@ class AccountManager(object):
         if new_account:
             result.append(Message(\
                 from_jid = self.component.jid, to_jid = _account.user_jid, \
-                stanza_type = "normal", \
                 subject = _account.get_new_message_subject(lang_class), \
                 body = _account.get_new_message_body(lang_class)))
             result.append(Presence(from_jid = _account.jid, \
@@ -704,7 +703,6 @@ class AccountManager(object):
         else:
             result.append(Message(\
                 from_jid = self.component.jid, to_jid = _account.user_jid, \
-                stanza_type = "normal", \
                 subject = _account.get_update_message_subject(lang_class), \
                 body = _account.get_update_message_body(lang_class)))
         self.db_disconnect()
@@ -1092,7 +1090,6 @@ class AccountManager(object):
             _account.waiting_password_reply = True
             result.append(Message(from_jid = _account.jid, \
                                   to_jid = _account.user_jid, \
-                                  stanza_type = "normal", \
                                   subject = u"[PASSWORD] " + \
                                   lang_class.ask_password_subject, \
                                   body = lang_class.ask_password_body % \
@@ -1201,7 +1198,6 @@ class PasswordMessageHandler(Handler):
         _account.waiting_password_reply = False
         return [Message(from_jid = _account.jid, \
                             to_jid = stanza.get_from(), \
-                            stanza_type = "normal", \
                             subject = lang_class.password_saved_for_session, \
                             body = lang_class.password_saved_for_session)]
         

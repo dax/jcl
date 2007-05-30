@@ -182,7 +182,7 @@ class MessageSender_TestCase(unittest.TestCase):
         Account.createTable(ifNotExists = True)
         del account.hub.threadConnection
         self.sender = MessageSender(self.comp)
-        self.message_type = "normal"
+        self.message_type = None
         
     def tearDown(self):
         account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)

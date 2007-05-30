@@ -2248,7 +2248,6 @@ class PasswordMessageHandler_TestCase(unittest.TestCase):
                                       jid = "account12@jcl.test.com")
         message = Message(from_jid = "user1@test.com", \
                              to_jid = "account11@jcl.test.com", \
-                             stanza_type = "normal", \
                              subject = "[PASSWORD]", \
                              body = "secret")
         accounts = self.handler.filter(message)
@@ -2267,7 +2266,6 @@ class PasswordMessageHandler_TestCase(unittest.TestCase):
                                       jid = "account12@jcl.test.com")
         message = Message(from_jid = "user1@test.com", \
                              to_jid = "account11@jcl.test.com", \
-                             stanza_type = "normal", \
                              subject = "[PASSWORD]", \
                              body = "secret")
         accounts = self.handler.filter(message)
@@ -2285,7 +2283,6 @@ class PasswordMessageHandler_TestCase(unittest.TestCase):
                                       jid = "account12@jcl.test.com")
         message = Message(from_jid = "user1@test.com", \
                              to_jid = "account11@jcl.test.com", \
-                             stanza_type = "normal", \
                              subject = "[NOT GOOD MESSAGE]", \
                              body = "secret")
         accounts = self.handler.filter(message)
@@ -2302,7 +2299,6 @@ class PasswordMessageHandler_TestCase(unittest.TestCase):
                                       jid = "account12@jcl.test.com")
         message = Message(from_jid = "user1@test.com", \
                              to_jid = "account11@jcl.test.com", \
-                             stanza_type = "normal", \
                              subject = "[PASSWORD]", \
                              body = "secret")
         accounts = self.handler.filter(message)
@@ -2319,7 +2315,6 @@ class PasswordMessageHandler_TestCase(unittest.TestCase):
                                       jid = "account12@jcl.test.com")
         message = Message(from_jid = "user1@test.com", \
                              to_jid = "account11@jcl.test.com", \
-                             stanza_type = "normal", \
                              subject = "[PASSWORD]", \
                              body = "secret")
         messages = self.handler.handle(message, Lang(), [account11])
