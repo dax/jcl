@@ -127,15 +127,19 @@ class LangExample(Lang):
         type_example_name = "Type Example"
 
 class TestSubscribeHandler(DefaultSubscribeHandler):
-    def filter(self, message):
+    def filter(self, message, lang):
         if re.compile(".*%.*").match(message.get_to().node):
             # return no account because self.handle does not need an account
             return []
         else:
             return None
 
+class ErrorHandler(Handler):
+    def filter(self, stanza, lang):
+        raise Exception("test error")
+
 class TestUnsubscribeHandler(DefaultUnsubscribeHandler):
-    def filter(self, message):
+    def filter(self, message, lang):
         if re.compile(".*%.*").match(message.get_to().node):
             # return no account because self.handle does not need an account
             return []
@@ -181,6 +185,19 @@ class JCLComponent_TestCase(unittest.TestCase):
         self.assertTrue(Account._connection.tableExists("account"))
         del account.hub.threadConnection
 
+    ###########################################################################
+    # apply_registered_behavior tests
+    ###########################################################################
+    def test_apply_registered_behavior(self):
+        self.comp.stream = MockStreamNoConnect()
+        self.comp.stream_class = MockStreamNoConnect
+        message = Message(from_jid="user1@test.com",
+                          to_jid="account11@jcl.test.com")
+        result = self.comp.apply_registered_behavior([ErrorHandler()], message)
+        self.assertEquals(len(result), 1)
+        self.assertEquals(result[0].get_type(), "error")
+        self.assertEquals(len(self.comp.stream.sent), 1)
+        self.assertEquals(result[0], self.comp.stream.sent[0])
     ###########################################################################
     # 'run' tests
     ###########################################################################
@@ -2091,8 +2108,8 @@ class JCLComponent_TestCase(unittest.TestCase):
         self.assertEqual(error_sent.get_to(), _account.user_jid)
         self.assertEqual(error_sent.get_from(), _account.jid)
         self.assertEqual(error_sent.get_type(), "error")
-        self.assertEqual(error_sent.get_subject(), _account.default_lang_class.check_error_subject)
-        self.assertEqual(error_sent.get_body(), _account.default_lang_class.check_error_body \
+        self.assertEqual(error_sent.get_subject(), _account.default_lang_class.error_subject)
+        self.assertEqual(error_sent.get_body(), _account.default_lang_class.error_body \
                          % (exception))
         del account.hub.threadConnection
         
@@ -2150,7 +2167,7 @@ class Handler_TestCase(unittest.TestCase):
         account12 = Account(user_jid = "user1@test.com", \
                                name = "account12", \
                                jid = "account12@jcl.test.com")
-        accounts = self.handler.filter(None)
+        accounts = self.handler.filter(None, None)
         self.assertEquals(accounts.count(), 2)
         del account.hub.threadConnection
 
@@ -2250,7 +2267,7 @@ class PasswordMessageHandler_TestCase(unittest.TestCase):
                              to_jid = "account11@jcl.test.com", \
                              subject = "[PASSWORD]", \
                              body = "secret")
-        accounts = self.handler.filter(message)
+        accounts = self.handler.filter(message, None)
         self.assertEquals(accounts.count(), 1)
         self.assertEquals(accounts[0].name, "account11")
         del account.hub.threadConnection
@@ -2268,7 +2285,7 @@ class PasswordMessageHandler_TestCase(unittest.TestCase):
                              to_jid = "account11@jcl.test.com", \
                              subject = "[PASSWORD]", \
                              body = "secret")
-        accounts = self.handler.filter(message)
+        accounts = self.handler.filter(message, None)
         self.assertEquals(accounts, None)
         del account.hub.threadConnection
 
@@ -2285,39 +2302,39 @@ class PasswordMessageHandler_TestCase(unittest.TestCase):
                              to_jid = "account11@jcl.test.com", \
                              subject = "[NOT GOOD MESSAGE]", \
                              body = "secret")
-        accounts = self.handler.filter(message)
+        accounts = self.handler.filter(message, None)
         self.assertEquals(accounts, None)
         del account.hub.threadConnection
 
     def test_filter_not_password_account(self):
         account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
-        account11 = Account(user_jid = "user1@test.com", \
-                                      name = "account11", \
-                                      jid = "account11@jcl.test.com")
-        account12 = Account(user_jid = "user1@test.com", \
-                                      name = "account12", \
-                                      jid = "account12@jcl.test.com")
-        message = Message(from_jid = "user1@test.com", \
-                             to_jid = "account11@jcl.test.com", \
-                             subject = "[PASSWORD]", \
-                             body = "secret")
-        accounts = self.handler.filter(message)
+        account11 = Account(user_jid="user1@test.com",
+                            name="account11",
+                            jid="account11@jcl.test.com")
+        account12 = Account(user_jid="user1@test.com",
+                            name="account12",
+                            jid="account12@jcl.test.com")
+        message = Message(from_jid="user1@test.com",
+                          to_jid="account11@jcl.test.com",
+                          subject="[PASSWORD]",
+                          body="secret")
+        accounts = self.handler.filter(message, None)
         self.assertEquals(accounts, None)
         del account.hub.threadConnection
 
     def test_handle(self):
         account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
-        account11 = ExampleAccount(user_jid = "user1@test.com", \
-                                      name = "account11", \
-                                      jid = "account11@jcl.test.com")
-        account12 = ExampleAccount(user_jid = "user1@test.com", \
-                                      name = "account12", \
-                                      jid = "account12@jcl.test.com")
-        message = Message(from_jid = "user1@test.com", \
-                             to_jid = "account11@jcl.test.com", \
-                             subject = "[PASSWORD]", \
-                             body = "secret")
-        messages = self.handler.handle(message, Lang(), [account11])
+        account11 = ExampleAccount(user_jid="user1@test.com",
+                                   name="account11",
+                                   jid="account11@jcl.test.com")
+        account12 = ExampleAccount(user_jid="user1@test.com",
+                                   name="account12",
+                                   jid="account12@jcl.test.com")
+        message = Message(from_jid="user1@test.com",
+                          to_jid="account11@jcl.test.com",
+                          subject="[PASSWORD]",
+                          body="secret")
+        messages = self.handler.handle(message, Lang.en, [account11])
         self.assertEquals(len(messages), 1)
         self.assertEquals(account11.password, "secret")
         del account.hub.threadConnection

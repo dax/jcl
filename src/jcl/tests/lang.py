@@ -108,8 +108,8 @@ class Language_TestCase(unittest.TestCase):
         self.assertNotEquals(self.lang_class.field_dnd_action_0, None)
         self.assertNotEquals(self.lang_class.field_offline_action_0, None)
 
-        self.assertNotEquals(self.lang_class.check_error_subject, None)
-        self.assertNotEquals(self.lang_class.check_error_body % (""), None)
+        self.assertNotEquals(self.lang_class.error_subject, None)
+        self.assertNotEquals(self.lang_class.error_body % (""), None)
 
 
 class Language_fr_TestCase(Language_TestCase):

@@ -104,8 +104,8 @@ class Lang:
         field_dnd_action_0 = field_action_0
         field_offline_action_0 = field_action_0
 
-        check_error_subject = u"Error"
-        check_error_body = u"An error has occured:\n\t%s"
+        error_subject = u"Error"
+        error_body = u"An error has occured:\n\t%s"
 
     class fr:
         component_name = u"composant générique Jabber Component Library"
@@ -142,8 +142,8 @@ class Lang:
         field_dnd_action_0 = field_action_0
         field_offline_action_0 = field_action_0
 
-        check_error_subject = u"Erreur"
-        check_error_body = u"Une erreur est survenue :\n\t%s"
+        error_subject = u"Erreur"
+        error_body = u"Une erreur est survenue :\n\t%s"
 
     class nl:
         # TODO: when finish, delete this line and uncomment in tests/lang.py the makeSuite(Language_nl_TestCase, 'test') line

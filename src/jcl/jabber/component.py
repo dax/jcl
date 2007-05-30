@@ -259,10 +259,20 @@ class JCLComponent(Component, object):
         """Execute handler if their filter method does not return None"""
         result = []
         self.db_connect()
+        lang = self.lang.get_lang_class_from_node(stanza.get_node())
         for handler in handlers:
-            accounts = handler.filter(stanza)
-            if accounts is not None:
-                result += handler.handle(stanza, self.lang, accounts)
+            try:
+                accounts = handler.filter(stanza, lang)
+                if accounts is not None:
+                    result += handler.handle(stanza, lang, accounts)
+            except Exception, e:
+                self.__logger.error("Error with handler " + str(handler) + 
+                                    " with " + str(stanza))
+                result += [Message(from_jid=stanza.get_to(),
+                                   to_jid=stanza.get_from(),
+                                   stanza_type="error",
+                                   subject=lang.error_subject,
+                                   body=lang.error_body % (e.message))]
         self.db_disconnect()
         self.send_stanzas(result)
         return result
@@ -1102,18 +1112,18 @@ class AccountManager(object):
         result = []
         if _account.in_error == False:
             _account.in_error = True
-            result.append(Message(from_jid = _account.jid, \
-                                  to_jid = _account.user_jid, \
-                                  stanza_type = "error", \
-                                  subject = _account.default_lang_class.check_error_subject, \
-                                  body = _account.default_lang_class.check_error_body \
-                                  % (exception)))
+            result.append(Message(from_jid=_account.jid,
+                                  to_jid=_account.user_jid,
+                                  stanza_type="error",
+                                  subject=_account.default_lang_class.error_subject,
+                                  body=_account.default_lang_class.error_body \
+                                      % (exception)))
         return result
 
 class Handler(object):
     """handling class"""
 
-    def filter(self, stanza):
+    def filter(self, stanza, lang):
         """Filter account to be processed by the handler
         return all accounts. DB connection might already be opened."""
         accounts = Account.select()
@@ -1170,7 +1180,7 @@ class PasswordMessageHandler(Handler):
         """Ḧandler constructor"""
         self.password_regexp = re.compile("\[PASSWORD\]")
 
-    def filter(self, stanza):
+    def filter(self, stanza, lang):
         """Return the uniq account associated with a name and user JID.
         DB connection might already be opened."""
         name = stanza.get_to().node
@@ -1193,7 +1203,6 @@ class PasswordMessageHandler(Handler):
     def handle(self, stanza, lang, accounts):
         """Receive password in stanza (must be a Message) for given account"""
         _account = accounts[0]
-        lang_class = lang.get_lang_class_from_node(stanza.get_node())
         _account.password = stanza.get_body()
         _account.waiting_password_reply = False
         return [Message(from_jid = _account.jid, \
