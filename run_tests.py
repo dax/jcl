@@ -52,8 +52,8 @@ if __name__ == '__main__':
     coverage.analysis(jcl.lang)
     coverage.analysis(jcl.model.account)
 
-    coverage.report([jcl.jabber.component, \
-                     jcl.jabber.feeder, \
-                     jcl.lang, \
+    coverage.report([jcl.jabber.component,
+                     jcl.jabber.feeder,
+                     jcl.lang,
                      jcl.model.account])
 

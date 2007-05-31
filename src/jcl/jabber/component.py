@@ -255,7 +255,7 @@ class JCLComponent(Component, object):
             self.send_stanzas(result)
         return result
 
-    def apply_registered_behavior(self, handlers, stanza, apply_all = False):
+    def apply_registered_behavior(self, handlers, stanza, apply_all=False):
         """Execute handler if their filter method does not return None"""
         result = []
         self.db_connect()
@@ -280,15 +280,17 @@ class JCLComponent(Component, object):
     def disco_get_info(self, node, info_query):
         """Discovery get info handler
         """
-        return self.apply_behavior(info_query, \
-                                   lambda name, from_jid, account_type, lang_class: \
-                                   self.account_manager.account_disco_get_info(), \
-                                   lambda name, from_jid, account_type, lang_class: \
-                                   self.account_manager.account_type_disco_get_info(), \
-                                   lambda name, from_jid, account_type, lang_class: \
-                                   self.account_manager.root_disco_get_info(self.name, \
-                                                                            self.disco_identity.category, \
-                                                                            self.disco_identity.type))
+        return self.apply_behavior(\
+            info_query,
+            lambda name, from_jid, account_type, lang_class: \
+                self.account_manager.account_disco_get_info(),
+            lambda name, from_jid, account_type, lang_class: \
+                self.account_manager.account_type_disco_get_info(),
+            lambda name, from_jid, account_type, lang_class: \
+                self.account_manager.root_disco_get_info(
+                self.name,
+                self.disco_identity.category,
+                self.disco_identity.type))
 
     def disco_get_items(self, node, info_query):
         """Discovery get nested nodes handler
@@ -338,7 +340,7 @@ class JCLComponent(Component, object):
         """
         self.__logger.debug("SET_REGISTER")
         lang_class = \
-                   self.lang.get_lang_class_from_node(info_query.get_node())
+            self.lang.get_lang_class_from_node(info_query.get_node())
         from_jid = info_query.get_from()
         base_from_jid = unicode(from_jid.bare())
         remove = info_query.xpath_eval("r:query/r:remove", \
@@ -1207,6 +1209,6 @@ class PasswordMessageHandler(Handler):
         _account.waiting_password_reply = False
         return [Message(from_jid = _account.jid, \
                             to_jid = stanza.get_from(), \
-                            subject = lang_class.password_saved_for_session, \
-                            body = lang_class.password_saved_for_session)]
+                            subject = lang.password_saved_for_session, \
+                            body = lang.password_saved_for_session)]
         

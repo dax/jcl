@@ -41,7 +41,9 @@ from pyxmpp.presence import Presence
 from pyxmpp.message import Message
 from pyxmpp.jabber.dataforms import Form, Field, Option
 
-from jcl.jabber.component import JCLComponent, Handler, PasswordMessageHandler, DefaultSubscribeHandler, DefaultUnsubscribeHandler, DefaultPresenceHandler
+from jcl.jabber.component import JCLComponent, Handler, \
+    PasswordMessageHandler, DefaultSubscribeHandler, \
+    DefaultUnsubscribeHandler, DefaultPresenceHandler
 from jcl.model import account
 from jcl.model.account import Account
 from jcl.lang import Lang
@@ -55,12 +57,12 @@ else:
 DB_URL = DB_PATH# + "?debug=1&debugThreading=1"
 
 class MockStream(object):
-    def __init__(self, \
-                 jid = "",
-                 secret = "",
-                 server = "",
-                 port = "",
-                 keepalive = True):
+    def __init__(self,
+                 jid="",
+                 secret="",
+                 server="",
+                 port="",
+                 keepalive=True):
         self.sent = []
         self.connection_started = False
         self.connection_stopped = False
@@ -73,9 +75,9 @@ class MockStream(object):
     def set_iq_set_handler(self, iq_type, ns, handler):
         if not iq_type in ["query"]:
             raise Exception("IQ type unknown: " + iq_type)
-        if not ns in ["jabber:iq:version", \
-                      "jabber:iq:register", \
-                      "http://jabber.org/protocol/disco#items", \
+        if not ns in ["jabber:iq:version",
+                      "jabber:iq:register",
+                      "http://jabber.org/protocol/disco#items",
                       "http://jabber.org/protocol/disco#info"]:
             raise Exception("Unknown namespace: " + ns)
         if handler is None:
@@ -84,12 +86,12 @@ class MockStream(object):
     set_iq_get_handler = set_iq_set_handler
 
     def set_presence_handler(self, status, handler):
-        if not status in ["available", \
-                          "unavailable", \
-                          "probe", \
-                          "subscribe", \
-                          "subscribed", \
-                          "unsubscribe", \
+        if not status in ["available",
+                          "unavailable",
+                          "probe",
+                          "subscribe",
+                          "subscribed",
+                          "unsubscribe",
                           "unsubscribed"]:
             raise Exception("Status unknown: " + status)
         if handler is None:
