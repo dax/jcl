@@ -75,15 +75,15 @@ class JCLComponent(Component, object):
                  server,
                  port,
                  db_connection_str,
-                 disco_category = "gateway",
-                 disco_type = "headline",
-                 lang = Lang()):
-        Component.__init__(self, \
-                           JID(jid), \
-                           secret, \
-                           server, \
-                           port, \
-                           disco_category, \
+                 disco_category="gateway",
+                 disco_type="headline",
+                 lang=Lang()):
+        Component.__init__(self,
+                           JID(jid),
+                           secret,
+                           server,
+                           port,
+                           disco_category,
                            disco_type)
         # default values
         self.name = lang.get_default_lang_class().component_name
@@ -117,12 +117,12 @@ class JCLComponent(Component, object):
         self.spool_dir += "/" + unicode(self.jid)
         self.running = True
         self.connect()
-        timer_thread = threading.Thread(target = self.time_handler, \
-                                        name = "TimerThread")
+        timer_thread = threading.Thread(target=self.time_handler,
+                                        name="TimerThread")
         timer_thread.start()
         try:
-            while (self.running and self.stream \
-                   and not self.stream.eof \
+            while (self.running and self.stream
+                   and not self.stream.eof
                    and self.stream.socket is not None):
                 self.stream.loop_iter(JCLComponent.timeout)
                 if self.queue.qsize():
@@ -146,7 +146,7 @@ class JCLComponent(Component, object):
         """Create a new connection to the DataBase (SQLObject use connection
         pool) associated to the current thread"""
         account.hub.threadConnection = \
-                     connectionForURI(self.db_connection_str)
+            connectionForURI(self.db_connection_str)
 #        account.hub.threadConnection.debug = True
 
     def db_disconnect(self):
@@ -162,8 +162,8 @@ class JCLComponent(Component, object):
         """
         self.__logger.info("Timer thread started...")
         try:
-            while (self.running and self.stream \
-                   and not self.stream.eof \
+            while (self.running and self.stream
+                   and not self.stream.eof
                    and self.stream.socket is not None):
                 self.handle_tick()
                 self.__logger.debug("Resetting alarm signal")
@@ -180,32 +180,32 @@ class JCLComponent(Component, object):
         """
         self.__logger.debug("AUTHENTICATED")
         Component.authenticated(self)
-        self.stream.set_iq_get_handler("query", "jabber:iq:version", \
+        self.stream.set_iq_get_handler("query", "jabber:iq:version",
                                        self.handle_get_version)
-        self.stream.set_iq_get_handler("query", "jabber:iq:register", \
+        self.stream.set_iq_get_handler("query", "jabber:iq:register",
                                        self.handle_get_register)
-        self.stream.set_iq_set_handler("query", "jabber:iq:register", \
+        self.stream.set_iq_set_handler("query", "jabber:iq:register",
                                        self.handle_set_register)
 
-        self.stream.set_presence_handler("available", \
+        self.stream.set_presence_handler("available",
                                          self.handle_presence_available)
 
-        self.stream.set_presence_handler("probe", \
+        self.stream.set_presence_handler("probe",
                                          self.handle_presence_available)
 
-        self.stream.set_presence_handler("unavailable", \
+        self.stream.set_presence_handler("unavailable",
                                          self.handle_presence_unavailable)
 
-        self.stream.set_presence_handler("unsubscribe", \
+        self.stream.set_presence_handler("unsubscribe",
                                          self.handle_presence_unsubscribe)
-        self.stream.set_presence_handler("unsubscribed", \
+        self.stream.set_presence_handler("unsubscribed",
                                          self.handle_presence_unsubscribed)
-        self.stream.set_presence_handler("subscribe", \
+        self.stream.set_presence_handler("subscribe",
                                          self.handle_presence_subscribe)
-        self.stream.set_presence_handler("subscribed", \
+        self.stream.set_presence_handler("subscribed",
                                          self.handle_presence_subscribed)
 
-        self.stream.set_message_handler("normal", \
+        self.stream.set_message_handler("normal",
                                         self.handle_message)
         self.send_stanzas(self.account_manager.probe_all_accounts_presence())
 
@@ -224,11 +224,11 @@ class JCLComponent(Component, object):
             for stanza in stanzas:
                 self.stream.send(stanza)
 
-    def apply_behavior(self, info_query, \
-                       account_handler, \
-                       account_type_handler, \
-                       root_handler, \
-                       send_result = False):
+    def apply_behavior(self, info_query,
+                       account_handler,
+                       account_type_handler,
+                       root_handler,
+                       send_result=False):
         """Apply given handler depending on info_query receiver"""
         from_jid = info_query.get_from()
         to_jid = info_query.get_to()
@@ -244,13 +244,17 @@ class JCLComponent(Component, object):
         #   |-* account4
         if name is not None: # account
             self.__logger.debug("Applying behavior on account " + name)
-            result = account_handler(name, from_jid, account_type or "", lang_class)
+            result = account_handler(name, from_jid, account_type or "",
+                                     lang_class)
         elif account_type is None: # root
             self.__logger.debug("Applying behavior on root node")
-            result = root_handler(name, from_jid, "", lang_class) # TODO : account_type not needed
+            result = root_handler(name, from_jid, "",
+                                  lang_class) # TODO : account_type not needed
         else: # account type
-            self.__logger.debug("Applying behavior on account type " + account_type)
-            result = account_type_handler(name, from_jid, account_type, lang_class)
+            self.__logger.debug("Applying behavior on account type " +
+                                account_type)
+            result = account_type_handler(name, from_jid, account_type,
+                                          lang_class)
         if send_result:
             self.send_stanzas(result)
         return result
@@ -295,13 +299,16 @@ class JCLComponent(Component, object):
     def disco_get_items(self, node, info_query):
         """Discovery get nested nodes handler
         """
-        return self.apply_behavior(info_query, \
-                                   lambda name, from_jid, account_type, lang_class: \
-                                   DiscoItems(), \
-                                   lambda name, from_jid, account_type, lang_class: \
-                                   self.account_manager.account_type_disco_get_items(from_jid, account_type), \
-                                   lambda name, from_jid, account_type, lang_class: \
-                                   self.account_manager.root_disco_get_items(from_jid, lang_class))
+        return self.apply_behavior(\
+            info_query,
+            lambda name, from_jid, account_type, lang_class: \
+                DiscoItems(),
+            lambda name, from_jid, account_type, lang_class: \
+                self.account_manager.account_type_disco_get_items(from_jid,
+                                                                  account_type),
+            lambda name, from_jid, account_type, lang_class: \
+                self.account_manager.root_disco_get_items(from_jid,
+                                                          lang_class))
 
     def handle_get_version(self, info_query):
         """Get Version handler
@@ -319,21 +326,22 @@ class JCLComponent(Component, object):
         see node structure in disco_get_items()
         """
         self.__logger.debug("GET_REGISTER")
-        self.apply_behavior(info_query, \
-                            lambda name, from_jid, account_type, lang_class: \
-                            self.account_manager.account_get_register(info_query, \
-                                                                      name, \
-                                                                      from_jid, \
-                                                                      account_type, \
-                                                                      lang_class), \
-                            lambda name, from_jid, account_type, lang_class: \
-                            self.account_manager.account_type_get_register(info_query, \
-                                                                           account_type, \
-                                                                           lang_class), \
-                            lambda name, from_jid, account_type, lang_class: \
-                            self.account_manager.root_get_register(info_query, \
-                                                                   lang_class), \
-                            send_result = True)
+        self.apply_behavior(\
+            info_query,
+            lambda name, from_jid, account_type, lang_class: \
+                self.account_manager.account_get_register(info_query,
+                                                          name,
+                                                          from_jid,
+                                                          account_type,
+                                                          lang_class),
+            lambda name, from_jid, account_type, lang_class: \
+                self.account_manager.account_type_get_register(info_query,
+                                                               account_type,
+                                                               lang_class),
+            lambda name, from_jid, account_type, lang_class: \
+                self.account_manager.root_get_register(info_query,
+                                                       lang_class),
+            send_result=True)
 
     def handle_set_register(self, info_query):
         """Handle user registration response
@@ -343,48 +351,50 @@ class JCLComponent(Component, object):
             self.lang.get_lang_class_from_node(info_query.get_node())
         from_jid = info_query.get_from()
         base_from_jid = unicode(from_jid.bare())
-        remove = info_query.xpath_eval("r:query/r:remove", \
-                                        {"r" : "jabber:iq:register"})
+        remove = info_query.xpath_eval("r:query/r:remove",
+                                       {"r" : "jabber:iq:register"})
         if remove:
             result = self.account_manager.remove_all_accounts(from_jid.bare())
             self.send_stanzas(result)
             return 1
 
-        x_node = info_query.xpath_eval("jir:query/jxd:x", \
-                                       {"jir" : "jabber:iq:register", \
+        x_node = info_query.xpath_eval("jir:query/jxd:x",
+                                       {"jir" : "jabber:iq:register",
                                         "jxd" : "jabber:x:data"})[0]
 
         x_data = Form(x_node)
         if not "name" in x_data or x_data["name"].value == "":
             iq_error = info_query.make_error_response("not-acceptable")
-            text = iq_error.get_error().xmlnode.newTextChild(None, \
-                "text", \
+            text = iq_error.get_error().xmlnode.newTextChild(\
+                None,
+                "text",
                 lang_class.mandatory_field % ("name"))
             text.setNs(text.newNs(error.STANZA_ERROR_NS, None))
             self.stream.send(iq_error)
             return
         account_name = x_data["name"].value
-        return self.apply_behavior(info_query, \
-                                   lambda name, from_jid, account_type, lang_class: \
-                                   self.account_manager.account_set_register(name, \
-                                                                             from_jid, \
-                                                                             lang_class, \
-                                                                             x_data, \
-                                                                             info_query), \
-                                   lambda name, from_jid, account_type, lang_class: \
-                                   self.account_manager.account_type_set_register(account_name, \
-                                                                                  from_jid, \
-                                                                                  account_type, \
-                                                                                  lang_class, \
-                                                                                  x_data, \
-                                                                                  info_query), \
-                                   lambda name, from_jid, account_type, lang_class: \
-                                   self.account_manager.root_set_register(account_name, \
-                                                                          from_jid, \
-                                                                          lang_class, \
-                                                                          x_data, \
-                                                                          info_query), \
-                                   send_result = True)
+        return self.apply_behavior(\
+            info_query,
+            lambda name, from_jid, account_type, lang_class: \
+                self.account_manager.account_set_register(name,
+                                                          from_jid,
+                                                          lang_class,
+                                                          x_data,
+                                                          info_query),
+            lambda name, from_jid, account_type, lang_class: \
+                self.account_manager.account_type_set_register(account_name,
+                                                               from_jid,
+                                                               account_type,
+                                                               lang_class,
+                                                               x_data,
+                                                               info_query),
+            lambda name, from_jid, account_type, lang_class: \
+                self.account_manager.root_set_register(account_name,
+                                                       from_jid,
+                                                       lang_class,
+                                                       x_data,
+                                                       info_query),
+            send_result=True)
 
     def handle_presence_available(self, stanza):
         """Handle presence availability
@@ -393,21 +403,22 @@ class JCLComponent(Component, object):
         """
         result = self.apply_registered_behavior(self.available_handlers, stanza)
         if result == []:
-            result = self.apply_behavior(stanza, \
-                                   lambda name, from_jid, account_type, lang_class: \
-                                   self.account_manager.account_handle_presence_available(name, \
-                                                                                          from_jid, \
-                                                                                          lang_class, \
-                                                                                          stanza.get_show()), \
-                                   lambda name, from_jid, account_type, lang_class: \
-                                   [], \
-                                   lambda name, from_jid, account_type, lang_class: \
-                                   self.account_manager.root_handle_presence_available(from_jid, \
-                                                                                       lang_class, \
-                                                                                       stanza.get_show()), \
-                                   send_result = True)
+            result = self.apply_behavior(\
+                stanza,
+                lambda name, from_jid, account_type, lang_class: \
+                    self.account_manager.account_handle_presence_available(name,
+                                                                           from_jid,
+                                                                           lang_class,
+                                                                           stanza.get_show()),
+                lambda name, from_jid, account_type, lang_class: \
+                    [],
+                lambda name, from_jid, account_type, lang_class: \
+                    self.account_manager.root_handle_presence_available(from_jid,
+                                                                        lang_class,
+                                                                        stanza.get_show()),
+                send_result=True)
         return result
-                                   
+
 
     def handle_presence_unavailable(self, stanza):
         """Handle presence unavailability
@@ -415,15 +426,16 @@ class JCLComponent(Component, object):
         self.__logger.debug("PRESENCE_UNAVAILABLE")
         result = self.apply_registered_behavior(self.unavailable_handlers, stanza)
         if result == []:
-            result = self.apply_behavior(stanza, \
-                                   lambda name, from_jid, account_type, lang_class: \
-                                   self.account_manager.account_handle_presence_unavailable(name, \
-                                                                                            from_jid), \
-                                   lambda name, from_jid, account_type, lang_class: \
-                                   [], \
-                                   lambda name, from_jid, account_type, lang_class: \
-                                   self.account_manager.root_handle_presence_unavailable(from_jid), \
-                                   send_result = True)
+            result = self.apply_behavior(\
+                stanza,
+                lambda name, from_jid, account_type, lang_class: \
+                    self.account_manager.account_handle_presence_unavailable(name,
+                                                                             from_jid),
+                lambda name, from_jid, account_type, lang_class: \
+                    [],
+                lambda name, from_jid, account_type, lang_class: \
+                    self.account_manager.root_handle_presence_unavailable(from_jid),
+                send_result=True)
         return result
 
     def handle_presence_subscribe(self, stanza):
@@ -432,17 +444,18 @@ class JCLComponent(Component, object):
         self.__logger.debug("PRESENCE_SUBSCRIBE")
         result = self.apply_registered_behavior(self.subscribe_handlers, stanza)
         if result == []:
-            result = self.apply_behavior(stanza, \
-                                   lambda name, from_jid, account_type, lang_class: \
-                                   self.account_manager.account_handle_presence_subscribe(name, \
-                                                                                          from_jid, \
-                                                                                          stanza), \
-                                   lambda name, from_jid, account_type, lang_class: \
-                                   [], \
-                                   lambda name, from_jid, account_type, lang_class: \
-                                   self.account_manager.root_handle_presence_subscribe(from_jid, \
-                                                                                       stanza), \
-                                   send_result = True)
+            result = self.apply_behavior(\
+                stanza,
+                lambda name, from_jid, account_type, lang_class: \
+                    self.account_manager.account_handle_presence_subscribe(name,
+                                                                           from_jid,
+                                                                           stanza),
+                lambda name, from_jid, account_type, lang_class: \
+                    [],
+                lambda name, from_jid, account_type, lang_class: \
+                    self.account_manager.root_handle_presence_subscribe(from_jid,
+                                                                        stanza),
+                send_result=True)
         return result
 
     def handle_presence_subscribed(self, stanza):
@@ -457,24 +470,25 @@ class JCLComponent(Component, object):
         self.__logger.debug("PRESENCE_UNSUBSCRIBE")
         result = self.apply_registered_behavior(self.unsubscribe_handlers, stanza)
         if result == []:
-            result = self.apply_behavior(stanza, \
-                                   lambda name, from_jid, account_type, lang_class: \
-                                   self.account_manager.account_handle_presence_unsubscribe(name, \
-                                                                                            from_jid), \
-                                   lambda name, from_jid, account_type, lang_class: \
-                                   [], \
-                                   lambda name, from_jid, account_type, lang_class: \
-                                   [], \
-                                   send_result = True)
+            result = self.apply_behavior(\
+                stanza,
+                lambda name, from_jid, account_type, lang_class: \
+                    self.account_manager.account_handle_presence_unsubscribe(name,
+                                                                             from_jid),
+                lambda name, from_jid, account_type, lang_class: \
+                    [],
+                lambda name, from_jid, account_type, lang_class: \
+                    [],
+                send_result=True)
         return result
 
     def handle_presence_unsubscribed(self, stanza):
         """Handle unsubscribed presence from user
         """
         self.__logger.debug("PRESENCE_UNSUBSCRIBED")
-        presence = Presence(from_jid = stanza.get_to(), \
-                            to_jid = stanza.get_from(), \
-                            stanza_type = "unavailable")
+        presence = Presence(from_jid=stanza.get_to(),
+                            to_jid=stanza.get_from(),
+                            stanza_type="unavailable")
         self.stream.send(presence)
         return 1
 
@@ -494,10 +508,10 @@ class JCLComponent(Component, object):
         self.send_stanzas(self.account_manager.send_error(_account, exception))
         type, value, stack = sys.exc_info()
         # TODO : not checking email here
-        self.__logger.debug("Error: %s\n%s" \
+        self.__logger.debug("Error: %s\n%s"
                             % (exception, "".join(traceback.format_exception
                                                   (type, value, stack, 5))))
-        
+
     ###########################################################################
     # Virtual methods
     ###########################################################################
@@ -525,9 +539,9 @@ class AccountManager(object):
         """account_classes setter"""
         self._account_classes = account_classes
         self.has_multiple_account_type = (len(self._account_classes) > 1)
-        
+
     account_classes = property(_get_account_classes, _set_account_classes)
-    
+
     ###### disco_get_info handlers ######
     def account_disco_get_info(self):
         """Implement discovery get_info on an account node"""
@@ -548,9 +562,8 @@ class AccountManager(object):
         disco_info.add_feature("jabber:iq:version")
         if not self.has_multiple_account_type:
             disco_info.add_feature("jabber:iq:register")
-        # TODO: name is always None
-        DiscoIdentity(disco_info, name, \
-                      category, \
+        DiscoIdentity(disco_info, name,
+                      category,
                       type)
         return disco_info
 
@@ -561,15 +574,15 @@ class AccountManager(object):
         disco_items = DiscoItems()
         account_class = self._get_account_class(account_type + "Account")
         if account_class is not None:
-            self._list_accounts(disco_items, \
-                                account_class, \
-                                from_jid.bare(), \
-                                account_type = account_type)
+            self._list_accounts(disco_items,
+                                account_class,
+                                from_jid.bare(),
+                                account_type=account_type)
         else:
-            self.__logger.error("Error: " + account_class.__name__ \
+            self.__logger.error("Error: " + account_class.__name__
                                 + " class not in account_classes")
         return disco_items
-        
+
     def root_disco_get_items(self, from_jid, lang_class):
         """Discovery get_items on root node"""
         disco_items = DiscoItems()
@@ -581,12 +594,13 @@ class AccountManager(object):
                     type_label = getattr(lang_class, type_label_attr)
                 else:
                     type_label = account_type
-                return DiscoItem(disco_items, \
-                                  JID(unicode(self.component.jid) + "/" + account_type), \
-                                  account_type, \
-                                  type_label)
+                return DiscoItem(disco_items,
+                                 JID(unicode(self.component.jid) + "/" +
+                                     account_type),
+                                 account_type,
+                                 type_label)
             list_func = _list_account_types
-                        
+
         else:
             list_func = self._list_accounts
 
@@ -594,18 +608,18 @@ class AccountManager(object):
             match = regexp_type.search(account_class.__name__)
             if match is not None:
                 account_type = match.group(1)
-                list_func(disco_items, account_class, \
+                list_func(disco_items, account_class,
                           from_jid.bare(), account_type)
             else:
-                self.__logger.error(account_class.__name__ + \
+                self.__logger.error(account_class.__name__ +
                                     " name not well formed")
         return disco_items
 
     ###### get_register handlers ######
-    def account_get_register(self, info_query, \
-                             name, \
-                             from_jid, \
-                             account_type, \
+    def account_get_register(self, info_query,
+                             name,
+                             from_jid,
+                             account_type,
                              lang_class):
         """Handle get_register on an account.
         Return a preinitialized form"""
@@ -613,11 +627,11 @@ class AccountManager(object):
         account_class = self._get_account_class(account_type + "Account")
         self.db_connect()
         accounts = account_class.select(\
-                AND(account_class.q.name == name, \
+                AND(account_class.q.name == name,
                     account_class.q.user_jid == unicode(from_jid.bare())))
         if accounts is not None:
             query = info_query.new_query("jabber:iq:register")
-            self.get_reg_form_init(lang_class, \
+            self.get_reg_form_init(lang_class,
                                    accounts[0]).as_xml(query)
         self.db_disconnect()
         return [info_query]
@@ -626,21 +640,22 @@ class AccountManager(object):
         """Handle get_register for given account_class"""
         info_query = info_query.make_result_response()
         query = info_query.new_query("jabber:iq:register")
-        self.get_reg_form(lang_class, \
+        self.get_reg_form(lang_class,
                           account_class).as_xml(query)
         return [info_query]
 
     def account_type_get_register(self, info_query, account_type, lang_class):
         """Handle get_register on an account_type node"""
-        return self._account_type_get_register(info_query, \
-                                               self._get_account_class(account_type + "Account"), \
-                                               lang_class)
-                                           
+        return self._account_type_get_register(\
+            info_query,
+            self._get_account_class(account_type + "Account"),
+            lang_class)
+
     def root_get_register(self, info_query, lang_class):
         """Handle get_register on root node"""
         if not self.has_multiple_account_type:
-            return self._account_type_get_register(info_query, \
-                                                   self.account_classes[0], \
+            return self._account_type_get_register(info_query,
+                                                   self.account_classes[0],
                                                    lang_class)
 
     ###### set_register handlers ######
@@ -650,49 +665,52 @@ class AccountManager(object):
         self.db_connect()
         result = []
         for _account in Account.select(Account.q.user_jid == unicode(user_jid)):
-            self.__logger.debug("Deleting " + _account.name \
+            self.__logger.debug("Deleting " + _account.name
                                 + " for " + unicode(user_jid))
             # get_jid
-            result.append(Presence(from_jid = _account.jid, \
-                                   to_jid = user_jid, \
-                                   stanza_type = "unsubscribe"))
-            result.append(Presence(from_jid = _account.jid, \
-                                   to_jid = user_jid, \
-                                   stanza_type = "unsubscribed"))
+            result.append(Presence(from_jid=_account.jid,
+                                   to_jid=user_jid,
+                                   stanza_type="unsubscribe"))
+            result.append(Presence(from_jid=_account.jid,
+                                   to_jid=user_jid,
+                                   stanza_type="unsubscribed"))
             _account.destroySelf()
-        result.append(Presence(from_jid = self.component.jid, to_jid = user_jid, \
-                               stanza_type = "unsubscribe"))
-        result.append(Presence(from_jid = self.component.jid, to_jid = user_jid, \
-                               stanza_type = "unsubscribed"))
+        result.append(Presence(from_jid=self.component.jid,
+                               to_jid=user_jid,
+                               stanza_type="unsubscribe"))
+        result.append(Presence(from_jid=self.component.jid,
+                               to_jid=user_jid,
+                               stanza_type="unsubscribed"))
         self.db_disconnect()
         return result
 
-    def _populate_account(self, _account, lang_class, x_data, \
+    def _populate_account(self, _account, lang_class, x_data,
                           info_query, new_account, first_account):
         """Populate given account"""
         field = None
         result = []
         self.db_connect()
         try:
-            for (field, field_type, field_options, field_post_func, \
+            for (field, field_type, field_options, field_post_func,
                  field_default_func) in _account.get_register_fields():
                 if field is not None:
                     if field in x_data:
                         value = x_data[field].value
                     else:
                         value = None
-                    setattr(_account, field, \
+                    setattr(_account, field,
                             field_post_func(value, field_default_func))
         except FieldError, exception:
             _account.destroySelf()
             type, value, stack = sys.exc_info()
-            self.__logger.error("Error while populating account: %s\n%s" % \
+            self.__logger.error("Error while populating account: %s\n%s" %
                                 (exception, "".join(traceback.format_exception
                                                     (type, value, stack, 5))))
             iq_error = info_query.make_error_response("not-acceptable")
-            text = iq_error.get_error().xmlnode.newTextChild(None, \
-                                "text", \
-                                lang_class.mandatory_field % (field))
+            text = iq_error.get_error().xmlnode.newTextChild(\
+                None,
+                "text",
+                lang_class.mandatory_field % (field))
             text.setNs(text.newNs(error.STANZA_ERROR_NS, None))
             result.append(iq_error)
             self.db_disconnect()
@@ -701,86 +719,89 @@ class AccountManager(object):
 
         # TODO : _account.user_jid or from_jid
         if first_account:
-            result.append(Presence(from_jid = self.component.jid, \
-                                   to_jid = _account.user_jid, \
-                                   stanza_type = "subscribe"))
+            result.append(Presence(from_jid=self.component.jid,
+                                   to_jid=_account.user_jid,
+                                   stanza_type="subscribe"))
         if new_account:
             result.append(Message(\
-                from_jid = self.component.jid, to_jid = _account.user_jid, \
-                subject = _account.get_new_message_subject(lang_class), \
-                body = _account.get_new_message_body(lang_class)))
-            result.append(Presence(from_jid = _account.jid, \
-                                   to_jid = _account.user_jid, \
-                                   stanza_type = "subscribe"))
+                    from_jid=self.component.jid,
+                    to_jid=_account.user_jid,
+                    subject=_account.get_new_message_subject(lang_class),
+                    body=_account.get_new_message_body(lang_class)))
+            result.append(Presence(from_jid=_account.jid,
+                                   to_jid=_account.user_jid,
+                                   stanza_type="subscribe"))
         else:
             result.append(Message(\
-                from_jid = self.component.jid, to_jid = _account.user_jid, \
-                subject = _account.get_update_message_subject(lang_class), \
-                body = _account.get_update_message_body(lang_class)))
+                    from_jid=self.component.jid,
+                    to_jid=_account.user_jid,
+                    subject=_account.get_update_message_subject(lang_class),
+                    body=_account.get_update_message_body(lang_class)))
         self.db_disconnect()
         return result
 
-    def account_set_register(self, name, from_jid, lang_class, \
+    def account_set_register(self, name, from_jid, lang_class,
                              x_data, info_query):
         """Update account"""
         self.__logger.debug("Updating account " + name)
         bare_from_jid = from_jid.bare()
         self.db_connect()
         accounts = Account.select(\
-            AND(Account.q.name == name, \
+            AND(Account.q.name == name,
                 Account.q.user_jid == unicode(bare_from_jid)))
         accounts_count = accounts.count()
         _account = list(accounts)[0]
         self.db_disconnect()
         if accounts_count > 1:
             # Just print a warning, only the first account will be use
-            self.__logger.error("There might not exist 2 accounts for " + \
-                  bare_from_jid + " and named " + name)
+            self.__logger.error("There might not exist 2 accounts for " +
+                                bare_from_jid + " and named " + name)
         if accounts_count >= 1:
             return self._populate_account(_account, lang_class,
                                           x_data, info_query, False, False)
         else:
-            self.__logger.error("Account " + name + \
+            self.__logger.error("Account " + name +
                                 " was not found, cannot update it")
             return []
 
-    def _account_type_set_register(self, name, \
-                                   from_jid, \
-                                   account_class, \
-                                   lang_class, \
-                                   x_data, \
+    def _account_type_set_register(self, name,
+                                   from_jid,
+                                   account_class,
+                                   lang_class,
+                                   x_data,
                                    info_query):
         """Create new account from account_class"""
         self.db_connect()
         bare_from_jid = from_jid.bare()
-        _account = account_class(user_jid = unicode(bare_from_jid), \
-                                 name = name, \
-                                 jid = self.get_account_jid(name))
+        _account = account_class(user_jid=unicode(bare_from_jid),
+                                 name=name,
+                                 jid=self.get_account_jid(name))
         all_accounts = Account.select(\
             Account.q.user_jid == unicode(bare_from_jid))
         first_account = (all_accounts.count() > 0)
         self.db_disconnect()
-        return self._populate_account(_account, lang_class, x_data, \
+        return self._populate_account(_account, lang_class, x_data,
                                       info_query, True, first_account)
-        
-    def account_type_set_register(self, name, \
-                                  from_jid, \
-                                  account_type, \
-                                  lang_class, \
-                                  x_data, \
+
+    def account_type_set_register(self, name,
+                                  from_jid,
+                                  account_type,
+                                  lang_class,
+                                  x_data,
                                   info_query):
         """Create new typed account"""
-        return self._account_type_set_register(name, from_jid, \
-            self._get_account_class(account_type + "Account"), lang_class, \
-                                               x_data, info_query)
+        return self._account_type_set_register(\
+            name, from_jid,
+            self._get_account_class(account_type + "Account"), lang_class,
+            x_data, info_query)
 
-    def root_set_register(self, name, from_jid, lang_class, \
+    def root_set_register(self, name, from_jid, lang_class,
                           x_data, info_query):
         """Create new account when managing only one account type"""
         if not self.has_multiple_account_type:
-            return self._account_type_set_register(name, from_jid, \
-                                                   self.account_classes[0], \
-                                                   lang_class, x_data, \
+            return self._account_type_set_register(name, from_jid,
+                                                   self.account_classes[0],
+                                                   lang_class, x_data,
                                                    info_query)
         else:
             return []
@@ -792,7 +813,7 @@ class AccountManager(object):
         result = []
         self.db_connect()
         accounts = Account.select(\
-                 AND(Account.q.name == name, \
+                 AND(Account.q.name == name,
                      Account.q.user_jid == unicode(from_jid.bare())))
         if accounts.count() > 0:
             result.extend(presence_func(accounts[0]))
@@ -804,7 +825,7 @@ class AccountManager(object):
         result = []
         self.db_connect()
         accounts = Account.select(\
-                Account.q.user_jid == unicode(from_jid.bare()))
+            Account.q.user_jid == unicode(from_jid.bare()))
         accounts_length = 0
         for _account in accounts:
             accounts_length += 1
@@ -823,54 +844,58 @@ class AccountManager(object):
         # Explicit reference to account table (clauseTables) to use
         # "user_jid" column with Account subclasses
         for _account in \
-                Account.select(clauseTables = ["account"], \
-                               orderBy = "user_jid"):
+                Account.select(clauseTables=["account"],
+                               orderBy="user_jid"):
             if current_user_jid != _account.user_jid:
                 current_user_jid = _account.user_jid
-                result.extend(getattr(self, "_send_presence_" + \
+                result.extend(getattr(self, "_send_presence_" +
                                       presence + "_root")(_account.user_jid))
-            result.extend(getattr(self, "_send_presence_" + \
+            result.extend(getattr(self, "_send_presence_" +
                                   presence)(_account))
         self.db_disconnect()
         return result
 
-    
+
     ###### presence_available handlers ######
     def account_handle_presence_available(self, name, from_jid, lang_class, show):
         """Handle presence \"available\" sent to an account JID"""
-        return self.account_handle_presence(name, from_jid, \
-                                            lambda _account:\
-                                            self._send_presence_available(_account, \
-                                                                          show, \
-                                                                          lang_class))
-    
+        return self.account_handle_presence(\
+            name, from_jid,
+            lambda _account: \
+                self._send_presence_available(_account,
+                                              show,
+                                              lang_class))
+
     def root_handle_presence_available(self, from_jid, lang_class, show):
         """Handle presence \"available\" sent to component JID"""
-        return self.root_handle_presence(from_jid, \
-                                         lambda _account:\
-                                         self._send_presence_available(_account, \
-                                                                       show, \
-                                                                       lang_class), \
-                                         lambda nb_accounts : \
-                                         self._send_presence_available_root(from_jid, \
-                                                                            show, \
-                                                                            str(nb_accounts) \
-                                                                            + lang_class.message_status))
+        return self.root_handle_presence(\
+            from_jid,
+            lambda _account: \
+                self._send_presence_available(_account,
+                                              show,
+                                              lang_class),
+            lambda nb_accounts: \
+                self._send_presence_available_root(from_jid,
+                                                   show,
+                                                   str(nb_accounts)
+                                                   + lang_class.message_status))
 
     ###### presence_unavailable handlers ######
     def account_handle_presence_unavailable(self, name, from_jid):
         """Handle presence \"unavailable\" sent to an account JID"""
-        return self.account_handle_presence(name, from_jid, \
-                                            lambda _account:\
-                                            self._send_presence_unavailable(_account))
-    
+        return self.account_handle_presence(\
+            name, from_jid,
+            lambda _account: \
+                self._send_presence_unavailable(_account))
+
     def root_handle_presence_unavailable(self, from_jid):
         """Handle presence \"unavailable\" sent to component JID"""
-        return self.root_handle_presence(from_jid, \
-                                         lambda _account:\
-                                         self._send_presence_unavailable(_account), \
-                                         lambda nb_accounts: \
-                                         self._send_presence_unavailable_root(from_jid))
+        return self.root_handle_presence(\
+            from_jid,
+            lambda _account: \
+                self._send_presence_unavailable(_account),
+            lambda nb_accounts: \
+                self._send_presence_unavailable_root(from_jid))
 
     ###### presence_subscribe handlers ######
     def account_handle_presence_subscribe(self, name, from_jid, stanza):
@@ -878,8 +903,8 @@ class AccountManager(object):
         if self._has_account(from_jid, name):
             return [stanza.make_accept_response()]
         else:
-            self.__logger.debug("Account '" + str(name) + "' for user '" + \
-                                unicode(from_jid.bare()) + "' was not found. " + \
+            self.__logger.debug("Account '" + str(name) + "' for user '" +
+                                unicode(from_jid.bare()) + "' was not found. " +
                                 "Refusing subscription")
             return []
 
@@ -888,8 +913,9 @@ class AccountManager(object):
         if self._has_account(from_jid):
             return [stanza.make_accept_response()]
         else:
-            self.__logger.debug("User '" + \
-                                unicode(from_jid.bare()) + "' doesn't have any account. " + \
+            self.__logger.debug("User '" +
+                                unicode(from_jid.bare()) +
+                                "' doesn't have any account. " +
                                 "Refusing subscription")
             return []
 
@@ -899,15 +925,15 @@ class AccountManager(object):
         result = []
         self.db_connect()
         accounts = Account.select(\
-                AND(Account.q.name == name, \
-                    Account.q.user_jid == unicode(from_jid.bare())))
+            AND(Account.q.name == name,
+                Account.q.user_jid == unicode(from_jid.bare())))
         for _account in accounts:
-            result.append(Presence(from_jid = _account.jid, \
-                                   to_jid = from_jid, \
-                                   stanza_type = "unsubscribe"))
-            result.append(Presence(from_jid = _account.jid, \
-                                   to_jid = from_jid, \
-                                   stanza_type = "unsubscribed"))
+            result.append(Presence(from_jid=_account.jid,
+                                   to_jid=from_jid,
+                                   stanza_type="unsubscribe"))
+            result.append(Presence(from_jid=_account.jid,
+                                   to_jid=from_jid,
+                                   stanza_type="unsubscribed"))
             _account.destroySelf()
         self.db_disconnect()
         return result
@@ -917,7 +943,7 @@ class AccountManager(object):
         return self.send_presence_all("probe")
 
     ###### Utils methods ######
-    def _has_account(self, from_jid, name = None):
+    def _has_account(self, from_jid, name=None):
         """Check if user with \"from_jid\" JID has an account.
         Check if an account named \"name\" exist if \"name\" given."""
         self.db_connect()
@@ -926,15 +952,16 @@ class AccountManager(object):
                 Account.q.user_jid == unicode(from_jid.bare()))
         else:
             accounts = Account.select(\
-                 AND(Account.q.name == name, \
-                     Account.q.user_jid == unicode(from_jid.bare())))
+                AND(Account.q.name == name,
+                    Account.q.user_jid == unicode(from_jid.bare())))
         result = (accounts is not None \
-                  and accounts.count() > 0)
+                      and accounts.count() > 0)
         self.db_disconnect()
         return result
 
-        
-    def _list_accounts(self, disco_items, _account_class, bare_from_jid, account_type = ""):
+
+    def _list_accounts(self, disco_items, _account_class, bare_from_jid,
+                       account_type=""):
         """List accounts in disco_items for given _account_class and user jid"""
         if account_type is not None and account_type != "":
             resource = "/" + account_type
@@ -945,9 +972,9 @@ class AccountManager(object):
         for _account in _account_class.select(_account_class.q.user_jid == \
                                               unicode(bare_from_jid)):
             self.__logger.debug(str(_account))
-            DiscoItem(disco_items, \
-                      JID(unicode(_account.jid) + resource), \
-                      account_type + _account.name, \
+            DiscoItem(disco_items,
+                      JID(unicode(_account.jid) + resource),
+                      account_type + _account.name,
                       _account.long_name)
         self.db_disconnect()
 
@@ -966,7 +993,7 @@ class AccountManager(object):
         """Create a new connection to the DataBase (SQLObject use connection
         pool) associated to the current thread"""
         account.hub.threadConnection = \
-                     connectionForURI(self.component.db_connection_str) # TODO : move db_connection_str to AccountManager
+            connectionForURI(self.component.db_connection_str) # TODO : move db_connection_str to AccountManager
 #        account.hub.threadConnection.debug = True
 
     def db_disconnect(self):
@@ -976,18 +1003,18 @@ class AccountManager(object):
     def get_reg_form(self, lang_class, _account_class):
         """Return register form based on language and account class
         """
-        reg_form = Form(title = lang_class.register_title, \
-                        instructions = lang_class.register_instructions)
+        reg_form = Form(title=lang_class.register_title,
+                        instructions=lang_class.register_instructions)
         # "name" field is mandatory
-        reg_form.add_field(field_type = "text-single", \
-                           label = lang_class.account_name, \
-                           name = "name", \
-                           required = True)
+        reg_form.add_field(field_type="text-single",
+                           label=lang_class.account_name,
+                           name="name",
+                           required=True)
 
-        for (field_name, \
-             field_type, \
-             field_options, \
-             post_func, \
+        for (field_name,
+             field_type,
+             field_options,
+             post_func,
              default_func) in \
                 _account_class.get_register_fields():
             if field_name is None:
@@ -1000,10 +1027,10 @@ class AccountManager(object):
                 else:
                     label = field_name
                 self.__logger.debug("Adding field " + field_name + " to registration form")
-                field = reg_form.add_field(field_type = field_type, \
-                                           label = label, \
-                                           name = field_name, \
-                                           value = default_func())
+                field = reg_form.add_field(field_type=field_type,
+                                           label=label,
+                                           name=field_name,
+                                           value=default_func())
                 if field_options is not None:
                     for option_value in field_options:
                         lang_label_attr = "field_" + field_name + "_" + option_value
@@ -1011,8 +1038,8 @@ class AccountManager(object):
                             label = getattr(lang_class, lang_label_attr)
                         else:
                             label = option_value
-                        field.add_option(label = label, \
-                                         values = [option_value])
+                        field.add_option(label=label,
+                                         values=[option_value])
                 try:
                     post_func(None, default_func)
                 except:
@@ -1038,37 +1065,37 @@ class AccountManager(object):
 
     def _send_presence_probe_root(self, to_jid):
         """Send presence probe to account's user from root JID"""
-        return [Presence(from_jid = self.component.jid, \
-                         to_jid = to_jid, \
-                         stanza_type = "probe")]
-        
+        return [Presence(from_jid=self.component.jid,
+                         to_jid=to_jid,
+                         stanza_type="probe")]
+
     def _send_presence_probe(self, _account):
         """Send presence probe to account's user"""
-        return [Presence(from_jid = _account.jid, \
-                         to_jid = _account.user_jid, \
-                         stanza_type = "probe")]
+        return [Presence(from_jid=_account.jid,
+                         to_jid=_account.user_jid,
+                         stanza_type="probe")]
 
     def _send_presence_unavailable_root(self, to_jid):
         """Send unavailable presence to account's user from root JID"""
-        return [Presence(from_jid = self.component.jid, \
-                         to_jid = to_jid, \
-                         stanza_type = "unavailable")]
-        
+        return [Presence(from_jid=self.component.jid,
+                         to_jid=to_jid,
+                         stanza_type="unavailable")]
+
     def _send_presence_unavailable(self, _account):
         """Send unavailable presence to account's user"""
         _account.status = account.OFFLINE
-        return [Presence(from_jid = _account.jid, \
-                         to_jid = _account.user_jid, \
-                         stanza_type = "unavailable")]
+        return [Presence(from_jid=_account.jid,
+                         to_jid=_account.user_jid,
+                         stanza_type="unavailable")]
 
     def _send_presence_available_root(self, to_jid, show, status_msg):
         """Send available presence to account's user from root JID"""
-        return [Presence(from_jid = self.component.jid, \
-                         to_jid = to_jid, \
-                         status = status_msg, \
-                         show = show, \
-                         stanza_type = "available")]
-        
+        return [Presence(from_jid=self.component.jid,
+                         to_jid=to_jid,
+                         status=status_msg,
+                         show=show,
+                         stanza_type="available")]
+
     def _send_presence_available(self, _account, show, lang_class):
         """Send available presence to account's user and ask for password
         if necessary"""
@@ -1079,33 +1106,33 @@ class AccountManager(object):
             _account.status = account.ONLINE
         else:
             _account.status = show
-        result.append(Presence(from_jid = _account.jid, \
-                               to_jid = _account.user_jid, \
-                               status = _account.status_msg, \
-                               show = show, \
-                               stanza_type = "available"))
+        result.append(Presence(from_jid=_account.jid,
+                               to_jid=_account.user_jid,
+                               status=_account.status_msg,
+                               show=show,
+                               stanza_type="available"))
         if hasattr(_account, 'store_password') \
-               and hasattr(_account, 'password') \
-               and _account.store_password == False \
-               and old_status == account.OFFLINE \
-               and _account.password == None :
+                and hasattr(_account, 'password') \
+                and _account.store_password == False \
+                and old_status == account.OFFLINE \
+                and _account.password == None :
             result.extend(self.ask_password(_account, lang_class))
         return result
-    
+
     def ask_password(self, _account, lang_class):
         """Send a Jabber message to ask for account password
         """
         result = []
         if hasattr(_account, 'waiting_password_reply') \
-               and not _account.waiting_password_reply \
-               and _account.status != account.OFFLINE:
+                and not _account.waiting_password_reply \
+                and _account.status != account.OFFLINE:
             _account.waiting_password_reply = True
-            result.append(Message(from_jid = _account.jid, \
-                                  to_jid = _account.user_jid, \
-                                  subject = u"[PASSWORD] " + \
-                                  lang_class.ask_password_subject, \
-                                  body = lang_class.ask_password_body % \
-                                  (_account.name)))
+            result.append(Message(from_jid=_account.jid,
+                                  to_jid=_account.user_jid,
+                                  subject=u"[PASSWORD] " + \
+                                      lang_class.ask_password_subject,
+                                  body=lang_class.ask_password_body % \
+                                      (_account.name)))
         return result
 
     def send_error(self, _account, exception):
@@ -1153,12 +1180,12 @@ class DefaultSubscribeHandler(Handler):
     def handle(self, stanza, lang, accounts):
         """Create subscribe response"""
         result = []
-        result.append(Presence(from_jid = stanza.get_to(), \
-                                   to_jid = stanza.get_from(), \
-                                   stanza_type = "subscribe"))
-        result.append(Presence(from_jid = stanza.get_to(), \
-                                   to_jid = stanza.get_from(), \
-                                   stanza_type = "subscribed"))
+        result.append(Presence(from_jid=stanza.get_to(),
+                               to_jid=stanza.get_from(),
+                               stanza_type="subscribe"))
+        result.append(Presence(from_jid=stanza.get_to(),
+                               to_jid=stanza.get_from(),
+                               stanza_type="subscribed"))
         return result
 
 class DefaultUnsubscribeHandler(Handler):
@@ -1167,12 +1194,12 @@ class DefaultUnsubscribeHandler(Handler):
     def handle(self, stanza, lang, accounts):
         """Create subscribe response"""
         result = []
-        result.append(Presence(from_jid = stanza.get_to(), \
-                                   to_jid = stanza.get_from(), \
-                                   stanza_type = "unsubscribe"))
-        result.append(Presence(from_jid = stanza.get_to(), \
-                                   to_jid = stanza.get_from(), \
-                                   stanza_type = "unsubscribed"))
+        result.append(Presence(from_jid=stanza.get_to(),
+                               to_jid=stanza.get_from(),
+                               stanza_type="unsubscribe"))
+        result.append(Presence(from_jid=stanza.get_to(),
+                               to_jid=stanza.get_from(),
+                               stanza_type="unsubscribed"))
         return result
 
 class PasswordMessageHandler(Handler):

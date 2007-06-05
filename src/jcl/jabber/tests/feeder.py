@@ -4,18 +4,18 @@
 ## Login : David Rousselie <dax@happycoders.org>
 ## Started on  Wed Aug  9 21:34:26 2006 David Rousselie
 ## $Id$
-## 
+##
 ## Copyright (C) 2006 David Rousselie
 ## This program is free software; you can redistribute it and/or modify
 ## it under the terms of the GNU General Public License as published by
 ## the Free Software Foundation; either version 2 of the License, or
 ## (at your option) any later version.
-## 
+##
 ## This program is distributed in the hope that it will be useful,
 ## but WITHOUT ANY WARRANTY; without even the implied warranty of
 ## MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ## GNU General Public License for more details.
-## 
+##
 ## You should have received a copy of the GNU General Public License
 ## along with this program; if not, write to the Free Software
 ## Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
@@ -60,7 +60,7 @@ class FeederComponent_TestCase(JCLComponent_TestCase):
         ExampleAccount.createTable(ifNotExists = True)
         Example2Account.createTable(ifNotExists = True)
         del account.hub.threadConnection
-        
+
     def tearDown(self):
         account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
         Account.dropTable(ifExists = True)
@@ -71,7 +71,7 @@ class FeederComponent_TestCase(JCLComponent_TestCase):
         del account.hub.threadConnection
         if os.path.exists(DB_PATH):
             os.unlink(DB_PATH)
-        
+
     def test_run(self):
         self.comp.time_unit = 1
         self.comp.stream = MockStream()
@@ -93,15 +93,15 @@ class FeederComponent_TestCase(JCLComponent_TestCase):
         # handle_tick is implemented in FeederComponent
         # so no need to check for NotImplemented raise assertion
         self.assertTrue(True)
-    
+
     def test_handle_tick(self):
         class AccountFeeder(Feeder):
             def feed(self, _account):
-                return [("Simple Message for account " + _account.name, 
+                return [("Simple Message for account " + _account.name,
                             "user_jid: " + _account.user_jid), \
                             ("Simple Message for account " + _account.name, \
                             "jid: " + _account.jid)]
-                
+
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
         account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
@@ -158,8 +158,8 @@ class FeederComponent_TestCase(JCLComponent_TestCase):
             "Simple Message for account account2")
         self.assertEqual(messages_sent[5].get_body(), \
             "jid: account2@jcl.test.com")
-        
-class Feeder_TestCase(unittest.TestCase):        
+
+class Feeder_TestCase(unittest.TestCase):
     def test_feed_exist(self):
         feeder = Feeder()
         self.assertRaises(NotImplementedError, feeder.feed, None)
@@ -183,7 +183,7 @@ class MessageSender_TestCase(unittest.TestCase):
         del account.hub.threadConnection
         self.sender = MessageSender(self.comp)
         self.message_type = None
-        
+
     def tearDown(self):
         account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
         Account.dropTable(ifExists = True)

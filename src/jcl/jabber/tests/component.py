@@ -331,7 +331,7 @@ class JCLComponent_TestCase(unittest.TestCase):
                  and presence.xpath_eval("@type")[0].get_content() \
                  == "unavailable"]), \
             1)
-        
+
     ###########################################################################
     # 'time_handler' tests
     ###########################################################################
@@ -423,7 +423,7 @@ class JCLComponent_TestCase(unittest.TestCase):
         self.comp.account_manager.account_classes = (ExampleAccount, Example2Account)
         info_query = Iq(stanza_type = "get", \
                         from_jid = "user1@test.com", \
-                        to_jid = "jcl.test.com")        
+                        to_jid = "jcl.test.com")
         disco_info = self.comp.disco_get_info(None, info_query)
         self.assertEquals(disco_info.get_identities()[0].get_name(), \
                           self.comp.name)
@@ -436,7 +436,7 @@ class JCLComponent_TestCase(unittest.TestCase):
                         to_jid = "node_test@jcl.test.com")
         disco_info = self.comp.disco_get_info("node_test", info_query)
         self.assertTrue(disco_info.has_feature("jabber:iq:register"))
-        
+
     def test_disco_get_info_long_node(self):
         self.comp.account_manager.account_classes = (ExampleAccount, Example2Account)
         info_query = Iq(stanza_type = "get", \
@@ -507,7 +507,7 @@ class JCLComponent_TestCase(unittest.TestCase):
         self.assertEquals(disco_item.get_name(), "Example2")
 
     # Be careful, account_classes cannot contains parent classes
-    # 
+    #
     def test_disco_get_items_2types_with_node(self):
         """get_items on the first account type node. Must return account list of
         that type for the current user"""
@@ -705,7 +705,7 @@ class JCLComponent_TestCase(unittest.TestCase):
         self.assertEquals(fields[5].prop("type"), "text-single")
         self.assertEquals(fields[5].prop("var"), "test_int")
         self.assertEquals(fields[5].prop("label"), "test_int")
-        
+
     def test_handle_get_register_new_complex(self):
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
@@ -937,7 +937,7 @@ class JCLComponent_TestCase(unittest.TestCase):
         self.assertEquals(_account.name, "account1")
         self.assertEquals(_account.jid, "account1@jcl.test.com")
         del account.hub.threadConnection
-        
+
         stanza_sent = self.comp.stream.sent
         self.assertEquals(len(stanza_sent), 4)
         iq_result = stanza_sent[0]
@@ -952,7 +952,7 @@ class JCLComponent_TestCase(unittest.TestCase):
         self.assertEquals(presence_component.get_to(), "user1@test.com")
         self.assertEquals(presence_component.get_node().prop("type"), \
                           "subscribe")
-        
+
         message = stanza_sent[2]
         self.assertTrue(isinstance(message, Message))
         self.assertEquals(message.get_from(), "jcl.test.com")
@@ -994,7 +994,7 @@ class JCLComponent_TestCase(unittest.TestCase):
         self.assertEquals(_account.name, "account1")
         self.assertEquals(_account.jid, "account1@jcl.test.com")
         del account.hub.threadConnection
-        
+
         stanza_sent = self.comp.stream.sent
         self.assertEquals(len(stanza_sent), 4)
         iq_result = stanza_sent[0]
@@ -1009,7 +1009,7 @@ class JCLComponent_TestCase(unittest.TestCase):
         self.assertEquals(presence_component.get_to(), "user1@test.com")
         self.assertEquals(presence_component.get_node().prop("type"), \
                           "subscribe")
-        
+
         message = stanza_sent[2]
         self.assertTrue(isinstance(message, Message))
         self.assertEquals(message.get_from(), "jcl.test.com")
@@ -1071,7 +1071,7 @@ class JCLComponent_TestCase(unittest.TestCase):
         self.assertEquals(_account.test_enum, "choice3")
         self.assertEquals(_account.test_int, 43)
         del account.hub.threadConnection
-        
+
         stanza_sent = self.comp.stream.sent
         self.assertEquals(len(stanza_sent), 4)
         iq_result = stanza_sent[0]
@@ -1086,7 +1086,7 @@ class JCLComponent_TestCase(unittest.TestCase):
         self.assertEquals(presence_component.get_to(), "user1@test.com")
         self.assertEquals(presence_component.get_node().prop("type"), \
                           "subscribe")
-        
+
         message = stanza_sent[2]
         self.assertTrue(isinstance(message, Message))
         self.assertEquals(message.get_from(), "jcl.test.com")
@@ -1101,7 +1101,7 @@ class JCLComponent_TestCase(unittest.TestCase):
         self.assertEquals(presence_account.get_from(), "account1@jcl.test.com")
         self.assertEquals(presence_account.get_to(), "user1@test.com")
         self.assertEquals(presence_account.get_node().prop("type"), \
-                          "subscribe")        
+                          "subscribe")
 
     def test_handle_set_register_new_default_values(self):
         self.comp.stream = MockStream()
@@ -1261,7 +1261,7 @@ class JCLComponent_TestCase(unittest.TestCase):
         self.assertEquals(_account.test_enum, "choice3")
         self.assertEquals(_account.test_int, 43)
         del account.hub.threadConnection
-        
+
         stanza_sent = self.comp.stream.sent
         self.assertEquals(len(stanza_sent), 2)
         iq_result = stanza_sent[0]
@@ -1312,7 +1312,7 @@ class JCLComponent_TestCase(unittest.TestCase):
         self.assertEquals(_account.name, "account1")
         self.assertEquals(_account.jid, "account1@jcl.test.com")
         del account.hub.threadConnection
-        
+
         stanza_sent = self.comp.stream.sent
         self.assertEquals(len(stanza_sent), 6)
         presence = stanza_sent[0]
@@ -1345,7 +1345,7 @@ class JCLComponent_TestCase(unittest.TestCase):
         self.assertEquals(presence.get_node().prop("type"), "unsubscribed")
         self.assertEquals(presence.get_from(), "jcl.test.com")
         self.assertEquals(presence.get_to(), "user1@test.com")
-    
+
     def test_handle_presence_available_to_component(self):
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
@@ -1527,7 +1527,7 @@ class JCLComponent_TestCase(unittest.TestCase):
         self.assertTrue(isinstance(presence, Presence))
         self.assertEqual(presence.get_from_jid(), "account11@jcl.test.com")
         self.assertEqual(presence.get_to_jid(), "user1@test.com")
-        
+
     def test_handle_presence_available_to_account_live_password_complex(self):
         account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
         self.comp.stream = MockStream()
@@ -1561,7 +1561,7 @@ class JCLComponent_TestCase(unittest.TestCase):
         self.assertTrue(isinstance(presence, Presence))
         self.assertEqual(presence.get_from_jid(), "account11@jcl.test.com")
         self.assertEqual(presence.get_to_jid(), "user1@test.com")
-        
+
         self.assertEqual(unicode(password_message.get_from_jid()), \
                          "account11@jcl.test.com")
         self.assertEqual(unicode(password_message.get_to_jid()), \
@@ -1882,7 +1882,7 @@ class JCLComponent_TestCase(unittest.TestCase):
         self.comp.stream_class = MockStream
         self.comp.handle_presence_subscribed(None)
         self.assertEqual(len(self.comp.stream.sent), 0)
-        
+
     def test_handle_presence_unsubscribe_to_account(self):
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
@@ -2092,7 +2092,7 @@ class JCLComponent_TestCase(unittest.TestCase):
             "Password will be kept during your Jabber session")
         self.assertEqual(messages_sent[0].get_body(), \
             "Password will be kept during your Jabber session")
-        
+
     def test_handle_tick(self):
         self.assertRaises(NotImplementedError, self.comp.handle_tick)
 
@@ -2114,7 +2114,7 @@ class JCLComponent_TestCase(unittest.TestCase):
         self.assertEqual(error_sent.get_body(), _account.default_lang_class.error_body \
                          % (exception))
         del account.hub.threadConnection
-        
+
     def test_send_error_second(self):
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
