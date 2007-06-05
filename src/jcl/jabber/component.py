@@ -1220,10 +1220,13 @@ class PasswordMessageHandler(Handler):
         name = stanza.get_to().node
         bare_from_jid = unicode(stanza.get_from().bare())
         accounts = Account.select(\
-            AND(Account.q.name == name, \
-                    Account.q.user_jid == bare_from_jid))
-        if accounts.count() != 1:
-            print >>sys.stderr, "Account " + name + " for user " + bare_from_jid + " must be uniq"
+            AND(Account.q.name == name,
+                Account.q.user_jid == bare_from_jid))
+        if accounts.count() > 1:
+            print >>sys.stderr, "Account " + name + " for user " + \
+                bare_from_jid + " must be uniq"
+        elif accounts.count() == 0:
+            return None
         _account = accounts[0]
         if hasattr(_account, 'password') \
                 and hasattr(_account, 'waiting_password_reply') \
