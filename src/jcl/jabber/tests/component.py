@@ -148,6 +148,17 @@ class TestUnsubscribeHandler(DefaultUnsubscribeHandler):
         else:
             return None
 
+class HandlerMock(object):
+    def __init__(self):
+        self.handled = []
+
+    def filter(self, message, lang_class):
+        return []
+
+    def handle(self, stanza, lang_class, accounts):
+        self.handled.append((stanza, lang_class, accounts))
+        return [(stanza, lang_class, accounts)]
+
 class JCLComponent_TestCase(unittest.TestCase):
     ###########################################################################
     # Utility methods
@@ -200,6 +211,35 @@ class JCLComponent_TestCase(unittest.TestCase):
         self.assertEquals(result[0].get_type(), "error")
         self.assertEquals(len(self.comp.stream.sent), 1)
         self.assertEquals(result[0], self.comp.stream.sent[0])
+
+    def test_apply_all_registered_behavior(self):
+        self.comp.stream = MockStreamNoConnect()
+        self.comp.stream_class = MockStreamNoConnect
+        message = Message(from_jid="user1@test.com",
+                          to_jid="account11@jcl.test.com")
+        handler1 = HandlerMock()
+        handler2 = HandlerMock()
+        result = self.comp.apply_registered_behavior([handler1, handler2],
+                                                     message)
+        self.assertEquals(len(result), 2)
+        self.assertEquals(result[0][0], message)
+        self.assertEquals(result[1][0], message)
+
+    def test_apply_one_registered_behavior(self):
+        self.comp.stream = MockStreamNoConnect()
+        self.comp.stream_class = MockStreamNoConnect
+        message = Message(from_jid="user1@test.com",
+                          to_jid="account11@jcl.test.com")
+        handler1 = HandlerMock()
+        handler2 = HandlerMock()
+        result = self.comp.apply_registered_behavior([handler1, handler2],
+                                                     message,
+                                                     apply_all=False)
+        self.assertEquals(len(result), 1)
+        self.assertEquals(result[0][0], message)
+        self.assertEquals(len(handler1.handled), 1)
+        self.assertEquals(len(handler2.handled), 0)
+
     ###########################################################################
     # 'run' tests
     ###########################################################################

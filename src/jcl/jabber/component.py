@@ -259,7 +259,7 @@ class JCLComponent(Component, object):
             self.send_stanzas(result)
         return result
 
-    def apply_registered_behavior(self, handlers, stanza, apply_all=False):
+    def apply_registered_behavior(self, handlers, stanza, apply_all=True):
         """Execute handler if their filter method does not return None"""
         result = []
         self.db_connect()
@@ -269,9 +269,14 @@ class JCLComponent(Component, object):
                 accounts = handler.filter(stanza, lang)
                 if accounts is not None:
                     result += handler.handle(stanza, lang, accounts)
+                    if not apply_all:
+                        break
             except Exception, e:
-                self.__logger.error("Error with handler " + str(handler) + 
-                                    " with " + str(stanza))
+                type, value, stack = sys.exc_info()
+                self.__logger.error("Error with handler " + str(handler) +
+                                    " with " + str(stanza) + "\n%s\n%s"
+                                    % (e, "".join(traceback.format_exception
+                                                  (type, value, stack, 5))))
                 result += [Message(from_jid=stanza.get_to(),
                                    to_jid=stanza.get_from(),
                                    stanza_type="error",
@@ -497,7 +502,7 @@ class JCLComponent(Component, object):
         Handle password response message
         """
         self.__logger.debug("MESSAGE: " + message.get_body())
-        self.apply_registered_behavior(self.msg_handlers, message)
+        self.apply_registered_behavior(self.msg_handlers, message, False)
         return 1
 
     ###########################################################################
