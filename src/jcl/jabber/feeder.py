@@ -28,7 +28,7 @@ __revision__ = "$Id: feeder.py,v 1.3 2005/09/18 20:24:07 dax Exp $"
 
 import logging
 
-from jcl.jabber.component import JCLComponent
+from jcl.jabber.component import JCLComponent, Handler
 from jcl.lang import Lang
 from jcl.model.account import Account
 
@@ -54,8 +54,7 @@ class FeederComponent(JCLComponent):
                               db_connection_str,
                               lang=lang)
         # Define default feeder and sender, can be override
-        self.feeder = Feeder(self)
-        self.sender = Sender(self)
+        self.handler = FeederHandler(Feeder(self), Sender(self))
         self.check_interval = 1
 
         self.__logger = logging.getLogger("jcl.jabber.FeederComponent")
@@ -63,10 +62,10 @@ class FeederComponent(JCLComponent):
     def handle_tick(self):
         """Implement main feed/send behavior"""
         self.db_connect()
-        for _account in Account.select(clauseTables=["account"],
-                                       orderBy="user_jid"):
-            for subject, body in self.feeder.feed(_account):
-                self.sender.send(_account, subject, body)
+        self.handler.handle(\
+            None, self.lang.get_default_lang_class(), 
+            self.handler.filter(None, 
+                                self.lang.get_default_lang_class()))
         self.db_disconnect()
 
 
@@ -110,3 +109,31 @@ class HeadlineSender(Sender):
                                            subject=subject,
                                            stanza_type="headline",
                                            body=body))
+
+class FeederHandler(Handler):
+    """Filter (nothing by default) and call sender for each message from
+    Feeder.
+    """
+
+    def __init__(self, feeder, sender):
+        """DefaultFeederHandler constructor"""
+        self.feeder = feeder
+        self.sender = sender
+
+    def filter(self, stanza, lang_class):
+        """Filter account to be processed by the handler
+        return all accounts.
+        """
+        accounts = Account.select(clauseTables=["account"],
+                                  orderBy="user_jid")
+        return accounts
+
+    def handle(self, stanza, lang_class, accounts):
+        """Apply actions to do on given accounts
+        Do nothing by default.
+        """
+        for _account in accounts:
+            for subject, body in self.feeder.feed(_account):
+                self.sender.send(_account, subject, body)
+        return []
+

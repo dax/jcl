@@ -33,7 +33,8 @@ from sqlobject.dbconnection import TheURIOpener
 from pyxmpp.message import Message
 
 from jcl.jabber.component import JCLComponent
-from jcl.jabber.feeder import FeederComponent, Feeder, Sender, MessageSender, HeadlineSender
+from jcl.jabber.feeder import FeederComponent, Feeder, Sender, MessageSender, \
+    HeadlineSender, FeederHandler
 from jcl.model.account import Account
 from jcl.model import account
 
@@ -45,6 +46,17 @@ if sys.platform == "win32":
 else:
    DB_PATH = "/tmp/jcl_test.db"
 DB_URL = DB_PATH #+ "?debug=1&debugThreading=1"
+
+class FeederMock(object):
+    def feed(self, _account):
+        return [("subject", "body")]
+
+class SenderMock(object):
+    def __init__(self):
+        self.sent = []
+
+    def send(self, _account, subject, body):
+        self.sent.append((_account, subject, body))
 
 class FeederComponent_TestCase(JCLComponent_TestCase):
     def setUp(self):
@@ -114,8 +126,8 @@ class FeederComponent_TestCase(JCLComponent_TestCase):
         account2 = Account(user_jid = "user2@test.com", \
                            name = "account2", \
                            jid = "account2@jcl.test.com")
-        self.comp.feeder = AccountFeeder(self.comp)
-        self.comp.sender = MessageSender(self.comp)
+        self.comp.handler.feeder = AccountFeeder(self.comp)
+        self.comp.handler.sender = MessageSender(self.comp)
         self.comp.handle_tick()
 
         messages_sent = self.comp.stream.sent
@@ -216,6 +228,56 @@ class HeadlineSender_TestCase(MessageSender_TestCase):
         self.sender = HeadlineSender(self.comp)
         self.message_type = "headline"
 
+class FeederHandler_TestCase(unittest.TestCase):
+    def setUp(self):
+        self.handler = FeederHandler(FeederMock(), SenderMock())
+        if os.path.exists(DB_PATH):
+            os.unlink(DB_PATH)
+        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
+        Account.createTable(ifNotExists = True)
+        ExampleAccount.createTable(ifNotExists = True)
+        del account.hub.threadConnection
+
+    def tearDown(self):
+        self.handler = None
+        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
+        ExampleAccount.dropTable(ifExists = True)
+        Account.dropTable(ifExists = True)
+        del TheURIOpener.cachedURIs['sqlite://' + DB_URL]
+        account.hub.threadConnection.close()
+        del account.hub.threadConnection
+        if os.path.exists(DB_PATH):
+            os.unlink(DB_PATH)
+
+    def test_filter(self):
+        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
+        account12 = ExampleAccount(user_jid="user2@test.com",
+                                   name="account12",
+                                   jid="account12@jcl.test.com")
+        account11 = ExampleAccount(user_jid="user1@test.com",
+                                   name="account11",
+                                   jid="account11@jcl.test.com")
+        accounts = self.handler.filter(None, None)
+        self.assertEquals(accounts.count(), 2)
+        # accounts must be ordered by user_jid
+        self.assertEquals(accounts[0].name, "account11")
+        self.assertEquals(accounts[1].name, "account12")
+        del account.hub.threadConnection
+
+    def test_handle(self):
+        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
+        account11 = ExampleAccount(user_jid="user1@test.com",
+                                   name="account11",
+                                   jid="account11@jcl.test.com")
+        account12 = ExampleAccount(user_jid="user2@test.com",
+                                   name="account12",
+                                   jid="account12@jcl.test.com")
+        accounts = self.handler.handle(None, None, [account11, account12])
+        sent = self.handler.sender.sent
+        self.assertEquals(len(sent), 2)
+        self.assertEquals(sent[0], (account11, "subject", "body"))
+        self.assertEquals(sent[1], (account12, "subject", "body"))
+        del account.hub.threadConnection
 
 def suite():
     suite = unittest.TestSuite()
@@ -224,6 +286,7 @@ def suite():
     suite.addTest(unittest.makeSuite(Sender_TestCase, 'test'))
     suite.addTest(unittest.makeSuite(MessageSender_TestCase, 'test'))
     suite.addTest(unittest.makeSuite(HeadlineSender_TestCase, 'test'))
+    suite.addTest(unittest.makeSuite(FeederHandler_TestCase, 'test'))
     return suite
 
 if __name__ == '__main__':
