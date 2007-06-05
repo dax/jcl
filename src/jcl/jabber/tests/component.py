@@ -129,7 +129,7 @@ class LangExample(Lang):
         type_example_name = "Type Example"
 
 class TestSubscribeHandler(DefaultSubscribeHandler):
-    def filter(self, message, lang):
+    def filter(self, message, lang_class):
         if re.compile(".*%.*").match(message.get_to().node):
             # return no account because self.handle does not need an account
             return []
@@ -137,11 +137,11 @@ class TestSubscribeHandler(DefaultSubscribeHandler):
             return None
 
 class ErrorHandler(Handler):
-    def filter(self, stanza, lang):
+    def filter(self, stanza, lang_class):
         raise Exception("test error")
 
 class TestUnsubscribeHandler(DefaultUnsubscribeHandler):
-    def filter(self, message, lang):
+    def filter(self, message, lang_class):
         if re.compile(".*%.*").match(message.get_to().node):
             # return no account because self.handle does not need an account
             return []

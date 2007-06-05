@@ -1157,21 +1157,21 @@ class AccountManager(object):
 class Handler(object):
     """handling class"""
 
-    def filter(self, stanza, lang):
+    def filter(self, stanza, lang_class):
         """Filter account to be processed by the handler
         return all accounts. DB connection might already be opened."""
         accounts = Account.select()
         return accounts
 
-    def handle(self, stanza, lang, accounts):
+    def handle(self, stanza, lang_class, accounts):
         """Apply actions to do on given accounts
         Do nothing by default"""
         return []
 
 class DefaultPresenceHandler(Handler):
     """Handle presence"""
-    
-    def handle(self, presence, lang, accounts):
+
+    def handle(self, presence, lang_class, accounts):
         """Return same presence as receive one"""
         to_jid = presence.get_to()
         from_jid = presence.get_from()
@@ -1182,7 +1182,7 @@ class DefaultPresenceHandler(Handler):
 class DefaultSubscribeHandler(Handler):
     """Return default response to subscribe queries"""
 
-    def handle(self, stanza, lang, accounts):
+    def handle(self, stanza, lang_class, accounts):
         """Create subscribe response"""
         result = []
         result.append(Presence(from_jid=stanza.get_to(),
@@ -1196,7 +1196,7 @@ class DefaultSubscribeHandler(Handler):
 class DefaultUnsubscribeHandler(Handler):
     """Return default response to subscribe queries"""
 
-    def handle(self, stanza, lang, accounts):
+    def handle(self, stanza, lang_class, accounts):
         """Create subscribe response"""
         result = []
         result.append(Presence(from_jid=stanza.get_to(),
@@ -1214,7 +1214,7 @@ class PasswordMessageHandler(Handler):
         """Ḧandler constructor"""
         self.password_regexp = re.compile("\[PASSWORD\]")
 
-    def filter(self, stanza, lang):
+    def filter(self, stanza, lang_class):
         """Return the uniq account associated with a name and user JID.
         DB connection might already be opened."""
         name = stanza.get_to().node
@@ -1233,14 +1233,14 @@ class PasswordMessageHandler(Handler):
             return accounts
         else:
             return None
-        
-    def handle(self, stanza, lang, accounts):
+
+    def handle(self, stanza, lang_class, accounts):
         """Receive password in stanza (must be a Message) for given account"""
         _account = accounts[0]
         _account.password = stanza.get_body()
         _account.waiting_password_reply = False
-        return [Message(from_jid = _account.jid, \
-                            to_jid = stanza.get_from(), \
-                            subject = lang.password_saved_for_session, \
-                            body = lang.password_saved_for_session)]
-        
+        return [Message(from_jid=_account.jid,
+                        to_jid=stanza.get_from(),
+                        subject=lang_class.password_saved_for_session,
+                        body=lang_class.password_saved_for_session)]
+
