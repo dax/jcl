@@ -77,6 +77,7 @@ class MockStream(object):
             raise Exception("IQ type unknown: " + iq_type)
         if not ns in ["jabber:iq:version",
                       "jabber:iq:register",
+                      "jabber:iq:gateway",
                       "http://jabber.org/protocol/disco#items",
                       "http://jabber.org/protocol/disco#info"]:
             raise Exception("Unknown namespace: " + ns)
@@ -446,6 +447,50 @@ class JCLComponent_TestCase(unittest.TestCase):
         self.comp.running = True
         self.comp.signal_handler(42, None)
         self.assertFalse(self.comp.running)
+
+    ###########################################################################
+    # 'handle_get_gateway' tests
+    ###########################################################################
+    def test_handle_get_gateway(self):
+        self.comp.stream = MockStream()
+        self.comp.stream_class = MockStream
+        info_query = Iq(stanza_type = "get",
+                        from_jid = "user1@test.com")
+        info_query.new_query("jabber:iq:gateway")
+        self.comp.handle_get_gateway(info_query)
+        self.assertEquals(len(self.comp.stream.sent), 1)
+        iq_sent = self.comp.stream.sent[0]
+        self.assertEquals(iq_sent.get_to(), "user1@test.com")
+        self.assertEquals(len(iq_sent.xpath_eval("*/*")), 2)
+        desc_nodes = iq_sent.xpath_eval("jig:query/jig:desc",
+                                        {"jig" : "jabber:iq:gateway"})
+        self.assertEquals(len(desc_nodes), 1)
+        self.assertEquals(desc_nodes[0].content, Lang.en.get_gateway_desc)
+        prompt_nodes = iq_sent.xpath_eval("jig:query/jig:prompt",
+                                          {"jig" : "jabber:iq:gateway"})
+        self.assertEquals(len(prompt_nodes), 1)
+        self.assertEquals(prompt_nodes[0].content, Lang.en.get_gateway_prompt)
+
+    ###########################################################################
+    # 'handle_set_gateway' tests
+    ###########################################################################
+    def test_handle_set_gateway(self):
+        self.comp.stream = MockStream()
+        self.comp.stream_class = MockStream
+        info_query = Iq(stanza_type = "get",
+                        from_jid = "user1@test.com")
+        query = info_query.new_query("jabber:iq:gateway")
+        prompt = query.newChild(None, "prompt", None)
+        prompt.addContent("user@test.com")
+        self.comp.handle_set_gateway(info_query)
+        self.assertEquals(len(self.comp.stream.sent), 1)
+        iq_sent = self.comp.stream.sent[0]
+        self.assertEquals(iq_sent.get_to(), "user1@test.com")
+        self.assertEquals(len(iq_sent.xpath_eval("*/*")), 1)
+        jid_nodes = iq_sent.xpath_eval("jig:query/jig:jid",
+                                       {"jig" : "jabber:iq:gateway"})
+        self.assertEquals(len(jid_nodes), 1)
+        self.assertEquals(jid_nodes[0].content, "user%test.com@jcl.test.com")
 
     ###########################################################################
     # 'disco_get_info' tests

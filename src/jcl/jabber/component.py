@@ -186,6 +186,10 @@ class JCLComponent(Component, object):
                                        self.handle_get_register)
         self.stream.set_iq_set_handler("query", "jabber:iq:register",
                                        self.handle_set_register)
+        self.stream.set_iq_get_handler("query", "jabber:iq:gateway",
+                                       self.handle_get_gateway)
+        self.stream.set_iq_set_handler("query", "jabber:iq:gateway",
+                                       self.handle_set_gateway)
 
         self.stream.set_presence_handler("available",
                                          self.handle_presence_available)
@@ -286,6 +290,34 @@ class JCLComponent(Component, object):
         self.send_stanzas(result)
         return result
 
+    def handle_get_gateway(self, info_query):
+        """Handle IQ-get "jabber:iq:gateway" requests.
+        Return prompt and description.
+        """
+        self.__logger.debug("GET_GATEWAY")
+        info_query = info_query.make_result_response()
+        lang_class = self.lang.get_lang_class_from_node(info_query.get_node())
+        query = info_query.new_query("jabber:iq:gateway")
+        query.newTextChild(query.ns(), "desc", lang_class.get_gateway_desc)
+        query.newTextChild(query.ns(), "prompt", lang_class.get_gateway_prompt)
+        self.stream.send(info_query)
+        return 1
+
+    def handle_set_gateway(self, info_query):
+        """Handle IQ-set "jabber:iq:gateway" requests.
+        Return well formed JID from legacy ID.
+        """
+        self.__logger.debug("SET_GATEWAY")
+        prompt_nodes = info_query.xpath_eval("jig:query/jig:prompt",
+                                             {"jig" : "jabber:iq:gateway"})
+        # TODO : Add malformed content error handling
+        jid = prompt_nodes[0].content.replace("@", "%") + "@" + unicode(self.jid)
+        info_query = info_query.make_result_response()
+        query = info_query.new_query("jabber:iq:gateway")
+        query.newTextChild(query.ns(), "jid", jid)
+        self.stream.send(info_query)
+        return 1
+        
     def disco_get_info(self, node, info_query):
         """Discovery get info handler
         """
