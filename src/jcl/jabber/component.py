@@ -317,7 +317,7 @@ class JCLComponent(Component, object):
         query.newTextChild(query.ns(), "jid", jid)
         self.stream.send(info_query)
         return 1
-        
+
     def disco_get_info(self, node, info_query):
         """Discovery get info handler
         """
@@ -677,8 +677,11 @@ class AccountManager(object):
         """Handle get_register for given account_class"""
         info_query = info_query.make_result_response()
         query = info_query.new_query("jabber:iq:register")
+        from_jid = info_query.get_from()
+        bare_from_jid = unicode(from_jid.bare())
         self.get_reg_form(lang_class,
-                          account_class).as_xml(query)
+                          account_class,
+                          bare_from_jid).as_xml(query)
         return [info_query]
 
     def account_type_get_register(self, info_query, account_type, lang_class):
@@ -726,6 +729,8 @@ class AccountManager(object):
         """Populate given account"""
         field = None
         result = []
+        from_jid = info_query.get_from()
+        bare_from_jid = unicode(from_jid.bare())
         self.db_connect()
         try:
             for (field, field_type, field_options, field_post_func,
@@ -736,7 +741,8 @@ class AccountManager(object):
                     else:
                         value = None
                     setattr(_account, field,
-                            field_post_func(value, field_default_func))
+                            field_post_func(value, field_default_func,
+                                            bare_from_jid))
         except FieldError, exception:
             _account.destroySelf()
             type, value, stack = sys.exc_info()
@@ -1037,7 +1043,7 @@ class AccountManager(object):
         """Delete connection associated to the current thread"""
         del account.hub.threadConnection
 
-    def get_reg_form(self, lang_class, _account_class):
+    def get_reg_form(self, lang_class, _account_class, bare_from_jid):
         """Return register form based on language and account class
         """
         reg_form = Form(title=lang_class.register_title,
@@ -1078,20 +1084,20 @@ class AccountManager(object):
                         field.add_option(label=label,
                                          values=[option_value])
                 try:
-                    post_func(None, default_func)
+                    post_func(None, default_func, bare_from_jid)
                 except:
                     self.__logger.debug("Setting field " + field_name + " required")
                     field.required = True
-            ## TODO : get default value if any
         return reg_form
 
     def get_reg_form_init(self, lang_class, _account):
         """Return register form for an existing account (update)
         """
-        reg_form = self.get_reg_form(lang_class, _account.__class__)
+        reg_form = self.get_reg_form(lang_class, _account.__class__,
+                                     _account.user_jid)
         reg_form["name"].value = _account.name
         reg_form["name"].type = "hidden"
-        for field in reg_form.fields: # TODO
+        for field in reg_form.fields:
             if hasattr(_account, field.name):
                 field.value = getattr(_account, field.name)
         return reg_form

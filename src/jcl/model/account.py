@@ -1,21 +1,21 @@
-# -*- coding: UTF-8 -*-
+# -*- coding: utf-8 -*-
 ##
 ## account.py
 ## Login : David Rousselie <dax@happycoders.org>
 ## Started on  Wed Aug  9 21:04:42 2006 David Rousselie
 ## $Id$
-## 
+##
 ## Copyright (C) 2006 David Rousselie
 ## This program is free software; you can redistribute it and/or modify
 ## it under the terms of the GNU General Public License as published by
 ## the Free Software Foundation; either version 2 of the License, or
 ## (at your option) any later version.
-## 
+##
 ## This program is distributed in the hope that it will be useful,
 ## but WITHOUT ANY WARRANTY; without even the implied warranty of
 ## MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ## GNU General Public License for more details.
-## 
+##
 ## You should have received a copy of the GNU General Public License
 ## along with this program; if not, write to the Free Software
 ## Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
@@ -37,13 +37,13 @@ OFFLINE = "offline"
 ONLINE = "online"
 
 
-def default_post_func(field_value, default_func):
+def default_post_func(field_value, default_func, bare_from_jid):
     """Default post process function: do nothing"""
     if field_value is None or str(field_value) == "":
         return default_func()
     return field_value
 
-def int_post_func(field_value, default_func):
+def int_post_func(field_value, default_func, bare_from_jid):
     """Return an integer from integer field value"""
     if field_value is None or str(field_value) == "":
         return int(default_func())
@@ -67,9 +67,9 @@ class Account(InheritableSQLObject):
     name = StringCol()
     jid = StringCol()
 ## Not yet used    first_check = BoolCol(default = True)
-    __status = StringCol(default = OFFLINE, dbName = "status")
-    in_error = BoolCol(default = False)
-    
+    __status = StringCol(default=OFFLINE, dbName="status")
+    in_error = BoolCol(default=False)
+
 ## Use these attributs to support volatile password
 ##    login = StringCol(default = "")
 ##    password = StringCol(default = None)
@@ -83,7 +83,7 @@ class Account(InheritableSQLObject):
         return self.name
 
     long_name = property(get_long_name)
-    
+
     def get_status_msg(self):
         """Return current status"""
         return self.name
@@ -108,7 +108,7 @@ class Account(InheritableSQLObject):
             # if previous status was OFFLINE
             self.first_check = True
         self.__status = status
-        
+
     status = property(get_status, set_status)
 
     def _get_register_fields(cls, real_class = None):
@@ -117,12 +117,12 @@ class Account(InheritableSQLObject):
         - field_name: might be the name of one of the class attribut
         - field_type: 'text-single', 'hidden', 'text-private', 'boolean',
         'list-single', ...
-        - field_options: 
+        - field_options:
         - field_post_func: function called to process received field
         - field_default_func: function to return default value
         """
         return [] # "name" field is mandatory
-    
+
     get_register_fields = classmethod(_get_register_fields)
 
     def get_new_message_subject(self, lang_class):
@@ -178,14 +178,14 @@ class PresenceAccount(Account):
                  PresenceAccount.DO_NOTHING), \
                 'offline_action': (cls.possibles_actions, \
                  PresenceAccount.DO_NOTHING)}
-    
+
     get_presence_actions_fields = classmethod(_get_presence_actions_fields)
 
     def _get_register_fields(cls, real_class = None):
         """ See Account._get_register_fields """
         def get_possibles_actions(presence_action_field):
             return real_class.get_presence_actions_fields()[presence_action_field][0]
-            
+
         def is_action_possible(presence_action_field, action, default_func):
             if int(action) in get_possibles_actions(presence_action_field):
                 return int(action)
@@ -197,44 +197,50 @@ class PresenceAccount(Account):
         if real_class is None:
             real_class = cls
         return Account.get_register_fields(real_class) + \
-               [(None, None, None, None, None), \
-                ("chat_action", "list-single", \
-                 [str(action) for action in get_possibles_actions("chat_action")], \
-                 lambda action, default_func: is_action_possible("chat_action", \
-                                                                 action, \
-                                                                 default_func), \
-                 lambda : get_default_presence_action("chat_action")), \
-                ("online_action", "list-single", \
-                 [str(action) for action in get_possibles_actions("online_action")], \
-                 lambda action, default_func: is_action_possible("online_action", \
-                                                                 action, \
-                                                                 default_func), \
-                 lambda : get_default_presence_action("online_action")), \
-                ("away_action", "list-single", \
-                 [str(action) for action in get_possibles_actions("away_action")], \
-                 lambda action, default_func: is_action_possible("away_action", \
-                                                                 action, \
-                                                                 default_func), \
-                 lambda : get_default_presence_action("away_action")), \
-                ("xa_action", "list-single", \
-                 [str(action) for action in get_possibles_actions("xa_action")], \
-                 lambda action, default_func: is_action_possible("xa_action", \
-                                                                 action, \
-                                                                 default_func), \
-                 lambda : get_default_presence_action("xa_action")), \
-                ("dnd_action", "list-single", \
-                 [str(action) for action in get_possibles_actions("dnd_action")], \
-                 lambda action, default_func: is_action_possible("dnd_action", \
-                                                                 action, \
-                                                                 default_func), \
-                 lambda : get_default_presence_action("dnd_action")), \
-                ("offline_action", "list-single", \
-                 [str(action) for action in get_possibles_actions("offline_action")], \
-                 lambda action, default_func: is_action_possible("offline_action", \
-                                                                 action, \
-                                                                 default_func), \
-                 lambda : get_default_presence_action("offline_action"))]
-    
+            [(None, None, None, None, None),
+             ("chat_action", "list-single",
+              [str(action) for action in get_possibles_actions("chat_action")],
+              lambda action, default_func, bare_from_jid: \
+                     is_action_possible("chat_action",
+                                        action,
+                                        default_func),
+              lambda : get_default_presence_action("chat_action")),
+             ("online_action", "list-single",
+              [str(action) for action in get_possibles_actions("online_action")],
+              lambda action, default_func, bare_from_jid: \
+                  is_action_possible("online_action",
+                                     action,
+                                     default_func),
+              lambda : get_default_presence_action("online_action")),
+             ("away_action", "list-single",
+              [str(action) for action in get_possibles_actions("away_action")],
+              lambda action, default_func, bare_from_jid: \
+                  is_action_possible("away_action",
+                                     action,
+                                     default_func),
+              lambda : get_default_presence_action("away_action")),
+             ("xa_action", "list-single",
+              [str(action) for action in get_possibles_actions("xa_action")],
+              lambda action, default_func, bare_from_jid: \
+                  is_action_possible("xa_action",
+                                     action,
+                                     default_func),
+              lambda : get_default_presence_action("xa_action")),
+             ("dnd_action", "list-single",
+              [str(action) for action in get_possibles_actions("dnd_action")],
+              lambda action, default_func, bare_from_jid: \
+                  is_action_possible("dnd_action",
+                                     action,
+                                     default_func),
+              lambda : get_default_presence_action("dnd_action")),
+             ("offline_action", "list-single",
+              [str(action) for action in get_possibles_actions("offline_action")],
+              lambda action, default_func, bare_from_jid: \
+                  is_action_possible("offline_action",
+                                     action,
+                                     default_func),
+              lambda : get_default_presence_action("offline_action"))]
+
     get_register_fields = classmethod(_get_register_fields)
 
     def get_action(self):
@@ -248,5 +254,5 @@ class PresenceAccount(Account):
         if mapping.has_key(self.status):
             return mapping[self.status]
         return PresenceAccount.DO_NOTHING
-        
+
     action = property(get_action)
