@@ -40,13 +40,13 @@ ONLINE = "online"
 def default_post_func(field_value, default_func, bare_from_jid):
     """Default post process function: do nothing"""
     if field_value is None or str(field_value) == "":
-        return default_func()
+        return default_func(bare_from_jid)
     return field_value
 
 def int_post_func(field_value, default_func, bare_from_jid):
     """Return an integer from integer field value"""
     if field_value is None or str(field_value) == "":
-        return int(default_func())
+        return int(default_func(bare_from_jid))
     return int(field_value)
 
 def mandatory_field(field_value):
@@ -186,10 +186,11 @@ class PresenceAccount(Account):
         def get_possibles_actions(presence_action_field):
             return real_class.get_presence_actions_fields()[presence_action_field][0]
 
-        def is_action_possible(presence_action_field, action, default_func):
+        def is_action_possible(presence_action_field, action, default_func, 
+                               bare_from_jid):
             if int(action) in get_possibles_actions(presence_action_field):
                 return int(action)
-            raise default_func()
+            raise default_func(bare_from_jid)
 
         def get_default_presence_action(presence_action_field):
             return real_class.get_presence_actions_fields()[presence_action_field][1]
@@ -203,43 +204,51 @@ class PresenceAccount(Account):
               lambda action, default_func, bare_from_jid: \
                      is_action_possible("chat_action",
                                         action,
-                                        default_func),
-              lambda : get_default_presence_action("chat_action")),
+                                        default_func,
+                                        bare_from_jid),
+              lambda bare_from_jid: get_default_presence_action("chat_action")),
              ("online_action", "list-single",
               [str(action) for action in get_possibles_actions("online_action")],
               lambda action, default_func, bare_from_jid: \
                   is_action_possible("online_action",
                                      action,
-                                     default_func),
-              lambda : get_default_presence_action("online_action")),
+                                     default_func,
+                                     bare_from_jid),
+              lambda bare_from_jid: \
+                  get_default_presence_action("online_action")),
              ("away_action", "list-single",
               [str(action) for action in get_possibles_actions("away_action")],
               lambda action, default_func, bare_from_jid: \
                   is_action_possible("away_action",
                                      action,
-                                     default_func),
-              lambda : get_default_presence_action("away_action")),
+                                     default_func,
+                                     bare_from_jid),
+              lambda bare_from_jid: get_default_presence_action("away_action")),
              ("xa_action", "list-single",
               [str(action) for action in get_possibles_actions("xa_action")],
               lambda action, default_func, bare_from_jid: \
                   is_action_possible("xa_action",
                                      action,
-                                     default_func),
-              lambda : get_default_presence_action("xa_action")),
+                                     default_func,
+                                     bare_from_jid),
+              lambda bare_from_jid: get_default_presence_action("xa_action")),
              ("dnd_action", "list-single",
               [str(action) for action in get_possibles_actions("dnd_action")],
               lambda action, default_func, bare_from_jid: \
                   is_action_possible("dnd_action",
                                      action,
-                                     default_func),
-              lambda : get_default_presence_action("dnd_action")),
+                                     default_func,
+                                     bare_from_jid),
+              lambda bare_from_jid: get_default_presence_action("dnd_action")),
              ("offline_action", "list-single",
               [str(action) for action in get_possibles_actions("offline_action")],
               lambda action, default_func, bare_from_jid: \
                   is_action_possible("offline_action",
                                      action,
-                                     default_func),
-              lambda : get_default_presence_action("offline_action"))]
+                                     default_func,
+                                     bare_from_jid),
+              lambda bare_from_jid: \
+                  get_default_presence_action("offline_action"))]
 
     get_register_fields = classmethod(_get_register_fields)
 

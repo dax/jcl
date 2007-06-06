@@ -58,18 +58,18 @@ class ExampleAccount(Account):
             [("login", "text-single", None,
               lambda field_value, default_func, bare_from_jid: \
                  account.mandatory_field(field_value),
-              lambda : ""),
+              lambda bare_from_jid: ""),
              ("password", "text-private", None,
               lambda field_value, default_func, bare_from_jid: \
                  password_post_func(field_value),
-              lambda : ""),
+              lambda bare_from_jid: ""),
              ("store_password", "boolean", None, account.default_post_func,
-              lambda : True),
+              lambda bare_from_jid: True),
              ("test_enum", "list-single", ["choice1", "choice2", "choice3"],
               account.default_post_func,
-              lambda : "choice2"),
+              lambda bare_from_jid: "choice2"),
              ("test_int", "text-single", None, account.int_post_func,
-              lambda : 44)]
+              lambda bare_from_jid: 44)]
 
     get_register_fields = classmethod(_get_register_fields)
 
@@ -81,7 +81,7 @@ class Example2Account(Account):
             real_class = cls
         return Account.get_register_fields(real_class) + \
             [("test_new_int", "text-single", None, account.int_post_func,
-              lambda : 43)]
+              lambda bare_from_jid: 43)]
     get_register_fields = classmethod(_get_register_fields)
 
 class PresenceAccountExample(PresenceAccount):
@@ -115,7 +115,7 @@ class PresenceAccountExample(PresenceAccount):
             real_class = cls
         return PresenceAccount.get_register_fields(real_class) + \
             [("test_new_int", "text-single", None, account.int_post_func,
-              lambda : 43)]
+              lambda bare_from_jid: 43)]
     get_register_fields = classmethod(_get_register_fields)
 
 class AccountModule_TestCase(unittest.TestCase):
@@ -124,11 +124,14 @@ class AccountModule_TestCase(unittest.TestCase):
         self.assertEquals(result, "test")
 
     def test_default_post_func_default_value(self):
-        result = account.default_post_func("", lambda : "test", "user1@jcl.test.com")
+        result = account.default_post_func("",
+                                           lambda bare_from_jid: "test", \
+                                              "user1@jcl.test.com")
         self.assertEquals(result, "test")
 
     def test_default_post_func_default_value2(self):
-        result = account.default_post_func(None, lambda : "test", "user1@jcl.test.com")
+        result = account.default_post_func(None, lambda bare_from_jid: "test", \
+                                              "user1@jcl.test.com")
         self.assertEquals(result, "test")
 
     def test_int_post_func(self):
@@ -136,11 +139,13 @@ class AccountModule_TestCase(unittest.TestCase):
         self.assertEquals(result, 42)
 
     def test_int_post_func_default_value(self):
-        result = account.int_post_func("", lambda : 42, "user1@jcl.test.com")
+        result = account.int_post_func("", lambda bare_from_jid: 42, \
+                                          "user1@jcl.test.com")
         self.assertEquals(result, 42)
 
     def test_int_post_func_default_value(self):
-        result = account.int_post_func(None, lambda : 42, "user1@jcl.test.com")
+        result = account.int_post_func(None, lambda bare_from_jid: 42, \
+                                          "user1@jcl.test.com")
         self.assertEquals(result, 42)
 
     def test_mandatory_field_empty(self):
@@ -170,7 +175,8 @@ class InheritableAccount_TestCase(unittest.TestCase):
              field_default_func) in self.account_class.get_register_fields():
             if field_name is not None:
                 try:
-                    field_post_func(field_default_func(), field_default_func, "user1@jcl.test.com")
+                    field_post_func(field_default_func("user1@jcl.test.com"), 
+                                    field_default_func, "user1@jcl.test.com")
                 except FieldError, error:
                     # this type of error is OK
                     pass
@@ -269,11 +275,12 @@ class PresenceAccount_TestCase(InheritableAccount_TestCase):
                     self.assertEquals(post_func(possible_action, default_func,
                                                 "user1@jcl.test.com"),
                                       int(possible_action))
-                self.assertTrue(str(default_func()) in possibles_actions)
+                self.assertTrue(str(default_func("user1@jcl.test.com")) \
+                                   in possibles_actions)
             else:
                 try:
                     post_func("42", default_func, "user1@jcl.test.com")
-                    default_func()
+                    default_func("user1@jcl.test.com")
                 except FieldError, error:
                     pass
                 except Exception, exception:

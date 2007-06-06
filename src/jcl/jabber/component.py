@@ -1073,7 +1073,7 @@ class AccountManager(object):
                 field = reg_form.add_field(field_type=field_type,
                                            label=label,
                                            name=field_name,
-                                           value=default_func())
+                                           value=default_func(bare_from_jid))
                 if field_options is not None:
                     for option_value in field_options:
                         lang_label_attr = "field_" + field_name + "_" + option_value
