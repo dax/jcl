@@ -35,7 +35,7 @@ from pyxmpp.message import Message
 from jcl.jabber.component import JCLComponent
 from jcl.jabber.feeder import FeederComponent, Feeder, Sender, MessageSender, \
     HeadlineSender, FeederHandler
-from jcl.model.account import Account
+from jcl.model.account import Account, LegacyJID
 from jcl.model import account
 
 from jcl.model.tests.account import ExampleAccount, Example2Account
@@ -69,6 +69,7 @@ class FeederComponent_TestCase(JCLComponent_TestCase):
                                     'sqlite://' + DB_URL)
         account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
         Account.createTable(ifNotExists = True)
+        LegacyJID.createTable(ifNotExists=True)
         ExampleAccount.createTable(ifNotExists = True)
         Example2Account.createTable(ifNotExists = True)
         del account.hub.threadConnection
@@ -76,6 +77,7 @@ class FeederComponent_TestCase(JCLComponent_TestCase):
     def tearDown(self):
         account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
         Account.dropTable(ifExists = True)
+        LegacyJID.dropTable(ifExists=True)
         ExampleAccount.dropTable(ifExists = True)
         Example2Account.dropTable(ifExists = True)
         del TheURIOpener.cachedURIs['sqlite://' + DB_URL]

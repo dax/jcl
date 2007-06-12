@@ -45,7 +45,7 @@ from jcl.jabber.component import JCLComponent, Handler, \
     PasswordMessageHandler, DefaultSubscribeHandler, \
     DefaultUnsubscribeHandler, DefaultPresenceHandler
 from jcl.model import account
-from jcl.model.account import Account
+from jcl.model.account import Account, LegacyJID
 from jcl.lang import Lang
 
 from jcl.model.tests.account import ExampleAccount, Example2Account
@@ -174,6 +174,7 @@ class JCLComponent_TestCase(unittest.TestCase):
                                  'sqlite://' + DB_URL)
         account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
         Account.createTable(ifNotExists = True)
+        LegacyJID.createTable(ifNotExists=True)
         ExampleAccount.createTable(ifNotExists = True)
         Example2Account.createTable(ifNotExists = True)
         del account.hub.threadConnection
@@ -184,6 +185,7 @@ class JCLComponent_TestCase(unittest.TestCase):
         account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
         Example2Account.dropTable(ifExists = True)
         ExampleAccount.dropTable(ifExists = True)
+        LegacyJID.dropTable(ifExists=True)
         Account.dropTable(ifExists = True)
         del TheURIOpener.cachedURIs['sqlite://' + DB_URL]
         account.hub.threadConnection.close()
@@ -1474,6 +1476,88 @@ class JCLComponent_TestCase(unittest.TestCase):
                               and isinstance(presence, Presence)]), \
                           1)
 
+    def test_handle_presence_available_to_component_legacy_users(self):
+        self.comp.stream = MockStream()
+        self.comp.stream_class = MockStream
+        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
+        account11 = Account(user_jid="user1@test.com",
+                            name="account11",
+                            jid="account11@jcl.test.com")
+        account12 = Account(user_jid="user1@test.com",
+                            name="account12",
+                            jid="account12@jcl.test.com")
+        account2 = Account(user_jid="user2@test.com",
+                           name="account2",
+                           jid="account2@jcl.test.com")
+        legacy_jid111 = LegacyJID(legacy_address="u111@test.com",
+                                  jid="u111%test.com@jcl.test.com",
+                                  account=account11)
+        legacy_jid112 = LegacyJID(legacy_address="u112@test.com",
+                                  jid="u112%test.com@jcl.test.com",
+                                  account=account11)
+        legacy_jid121 = LegacyJID(legacy_address="u121@test.com",
+                                  jid="u121%test.com@jcl.test.com",
+                                  account=account12)
+        legacy_jid122 = LegacyJID(legacy_address="u122@test.com",
+                                  jid="u122%test.com@jcl.test.com",
+                                  account=account12)
+        legacy_jid21 = LegacyJID(legacy_address="u21@test.com",
+                                 jid="u21%test.com@jcl.test.com",
+                                 account=account2)
+        del account.hub.threadConnection
+        self.comp.handle_presence_available(Presence(\
+            stanza_type="available",
+            from_jid="user1@test.com",
+            to_jid="jcl.test.com"))
+        presence_sent = self.comp.stream.sent
+        self.assertEqual(len(presence_sent), 7)
+        self.assertEqual(len([presence
+                              for presence in presence_sent
+                              if presence.get_to_jid() == "user1@test.com"]),
+                         7)
+        self.assertEqual(len([presence
+                              for presence in presence_sent
+                              if presence.get_from_jid() == \
+                              "jcl.test.com"
+                              and isinstance(presence, Presence)]),
+                         1)
+        self.assertEqual(len([presence
+                              for presence in presence_sent
+                              if presence.get_from_jid() == \
+                              "account11@jcl.test.com"
+                              and isinstance(presence, Presence)]),
+                         1)
+        self.assertEqual(len([presence
+                              for presence in presence_sent
+                              if presence.get_from_jid() == \
+                              "account12@jcl.test.com"
+                              and isinstance(presence, Presence)]),
+                         1)
+        self.assertEqual(len([presence
+                              for presence in presence_sent
+                              if presence.get_from_jid() == \
+                              "u111%test.com@jcl.test.com"
+                              and isinstance(presence, Presence)]),
+                         1)
+        self.assertEqual(len([presence
+                              for presence in presence_sent
+                              if presence.get_from_jid() == \
+                              "u112%test.com@jcl.test.com"
+                              and isinstance(presence, Presence)]),
+                         1)
+        self.assertEqual(len([presence
+                              for presence in presence_sent
+                              if presence.get_from_jid() == \
+                              "u121%test.com@jcl.test.com"
+                              and isinstance(presence, Presence)]),
+                         1)
+        self.assertEqual(len([presence
+                              for presence in presence_sent
+                              if presence.get_from_jid() == \
+                              "u122%test.com@jcl.test.com"
+                              and isinstance(presence, Presence)]),
+                         1)
+
     def test_handle_presence_available_to_component_unknown_user(self):
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
@@ -1704,6 +1788,88 @@ class JCLComponent_TestCase(unittest.TestCase):
                  and presence.xpath_eval("@type")[0].get_content() \
                  == "unavailable"]), \
             1)
+
+    def test_handle_presence_unavailable_to_component_legacy_users(self):
+        self.comp.stream = MockStream()
+        self.comp.stream_class = MockStream
+        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
+        account11 = Account(user_jid="user1@test.com",
+                            name="account11",
+                            jid="account11@jcl.test.com")
+        account12 = Account(user_jid="user1@test.com",
+                            name="account12",
+                            jid="account12@jcl.test.com")
+        account2 = Account(user_jid="user2@test.com",
+                           name="account2",
+                           jid="account2@jcl.test.com")
+        legacy_jid111 = LegacyJID(legacy_address="u111@test.com",
+                                  jid="u111%test.com@jcl.test.com",
+                                  account=account11)
+        legacy_jid112 = LegacyJID(legacy_address="u112@test.com",
+                                  jid="u112%test.com@jcl.test.com",
+                                  account=account11)
+        legacy_jid121 = LegacyJID(legacy_address="u121@test.com",
+                                  jid="u121%test.com@jcl.test.com",
+                                  account=account12)
+        legacy_jid122 = LegacyJID(legacy_address="u122@test.com",
+                                  jid="u122%test.com@jcl.test.com",
+                                  account=account12)
+        legacy_jid21 = LegacyJID(legacy_address="u21@test.com",
+                                 jid="u21%test.com@jcl.test.com",
+                                 account=account2)
+        del account.hub.threadConnection
+        self.comp.handle_presence_unavailable(Presence(\
+            stanza_type="unavailable",
+            from_jid="user1@test.com",
+            to_jid="jcl.test.com"))
+        presence_sent = self.comp.stream.sent
+        self.assertEqual(len(presence_sent), 7)
+        self.assertEqual(len([presence
+                              for presence in presence_sent
+                              if presence.get_to_jid() == "user1@test.com"]),
+                         7)
+        self.assertEqual(len([presence
+                              for presence in presence_sent
+                              if presence.get_from_jid() == \
+                              "jcl.test.com"
+                              and isinstance(presence, Presence)]),
+                         1)
+        self.assertEqual(len([presence
+                              for presence in presence_sent
+                              if presence.get_from_jid() == \
+                              "account11@jcl.test.com"
+                              and isinstance(presence, Presence)]),
+                         1)
+        self.assertEqual(len([presence
+                              for presence in presence_sent
+                              if presence.get_from_jid() == \
+                              "account12@jcl.test.com"
+                              and isinstance(presence, Presence)]),
+                         1)
+        self.assertEqual(len([presence
+                              for presence in presence_sent
+                              if presence.get_from_jid() == \
+                              "u111%test.com@jcl.test.com"
+                              and isinstance(presence, Presence)]),
+                         1)
+        self.assertEqual(len([presence
+                              for presence in presence_sent
+                              if presence.get_from_jid() == \
+                              "u112%test.com@jcl.test.com"
+                              and isinstance(presence, Presence)]),
+                         1)
+        self.assertEqual(len([presence
+                              for presence in presence_sent
+                              if presence.get_from_jid() == \
+                              "u121%test.com@jcl.test.com"
+                              and isinstance(presence, Presence)]),
+                         1)
+        self.assertEqual(len([presence
+                              for presence in presence_sent
+                              if presence.get_from_jid() == \
+                              "u122%test.com@jcl.test.com"
+                              and isinstance(presence, Presence)]),
+                         1)
 
     def test_handle_presence_unavailable_to_component_unknown_user(self):
         self.comp.stream = MockStream()

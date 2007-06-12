@@ -52,7 +52,7 @@ from pyxmpp.jabber.dataforms import Form, Field, Option
 import jcl
 from jcl.jabber.error import FieldError
 from jcl.model import account
-from jcl.model.account import Account
+from jcl.model.account import Account, LegacyJID
 from jcl.lang import Lang
 
 VERSION = "0.1"
@@ -894,8 +894,9 @@ class AccountManager(object):
                                orderBy="user_jid"):
             if current_user_jid != _account.user_jid:
                 current_user_jid = _account.user_jid
-                result.extend(getattr(self, "_send_presence_" +
-                                      presence + "_root")(_account.user_jid))
+                result.extend(self._send_presence(self.component.jid,
+                                                  _account.user_jid,
+                                                  presence))
             result.extend(getattr(self, "_send_presence_" +
                                   presence)(_account))
         self.db_disconnect()
@@ -917,14 +918,13 @@ class AccountManager(object):
         return self.root_handle_presence(\
             from_jid,
             lambda _account: \
-                self._send_presence_available(_account,
-                                              show,
-                                              lang_class),
+            self._send_presence_available(_account,
+                                          show,
+                                          lang_class),
             lambda nb_accounts: \
-                self._send_presence_available_root(from_jid,
-                                                   show,
-                                                   str(nb_accounts)
-                                                   + lang_class.message_status))
+            self._send_root_presence(from_jid, show,
+                                     str(nb_accounts) +
+                                     lang_class.message_status))
 
     ###### presence_unavailable handlers ######
     def account_handle_presence_unavailable(self, name, from_jid):
@@ -939,9 +939,9 @@ class AccountManager(object):
         return self.root_handle_presence(\
             from_jid,
             lambda _account: \
-                self._send_presence_unavailable(_account),
+            self._send_presence_unavailable(_account),
             lambda nb_accounts: \
-                self._send_presence_unavailable_root(from_jid))
+            self._send_root_presence(from_jid))
 
     ###### presence_subscribe handlers ######
     def account_handle_presence_subscribe(self, name, from_jid, stanza):
@@ -1111,23 +1111,11 @@ class AccountManager(object):
         """Compose account jid from account name"""
         return name + u"@" + unicode(self.component.jid)
 
-    def _send_presence_probe_root(self, to_jid):
-        """Send presence probe to account's user from root JID"""
-        return [Presence(from_jid=self.component.jid,
-                         to_jid=to_jid,
-                         stanza_type="probe")]
-
     def _send_presence_probe(self, _account):
         """Send presence probe to account's user"""
         return [Presence(from_jid=_account.jid,
                          to_jid=_account.user_jid,
                          stanza_type="probe")]
-
-    def _send_presence_unavailable_root(self, to_jid):
-        """Send unavailable presence to account's user from root JID"""
-        return [Presence(from_jid=self.component.jid,
-                         to_jid=to_jid,
-                         stanza_type="unavailable")]
 
     def _send_presence_unavailable(self, _account):
         """Send unavailable presence to account's user"""
@@ -1136,14 +1124,24 @@ class AccountManager(object):
                          to_jid=_account.user_jid,
                          stanza_type="unavailable")]
 
-    def _send_presence_available_root(self, to_jid, show, status_msg):
-        """Send available presence to account's user from root JID"""
-        return [Presence(from_jid=self.component.jid,
-                         to_jid=to_jid,
-                         status=status_msg,
-                         show=show,
-                         stanza_type="available")]
+    def _send_root_presence(self, to_jid, show=None, status=None):
+        result = self._send_presence(self.component.jid, to_jid,
+                                     "unavailable", show=show,
+                                     status=status)
+        result.extend(self._send_root_presence_legacy(to_jid,
+                                                      "unavailable",
+                                                      show=show,
+                                                      status=status))
+        return result
 
+    def _send_presence(self, from_jid, to_jid, presence_type, status=None, show=None):
+        """Send presence stanza"""
+        return [Presence(from_jid=from_jid,
+                         to_jid=to_jid,
+                         status=status,
+                         show=show,
+                         stanza_type=presence_type)]
+        
     def _send_presence_available(self, _account, show, lang_class):
         """Send available presence to account's user and ask for password
         if necessary"""
@@ -1165,6 +1163,23 @@ class AccountManager(object):
                 and old_status == account.OFFLINE \
                 and _account.password == None :
             result.extend(self.ask_password(_account, lang_class))
+        return result
+
+    def _send_root_presence_legacy(self, to_jid, presence_type,
+                                   status=None, show=None):
+        """Send presence from legacy JID"""
+        result = []
+        self.db_connect()
+        legacy_jids = LegacyJID.select(\
+            AND(LegacyJID.q.accountID == Account.q.id,
+                Account.q.user_jid == unicode(to_jid.bare())))
+        for legacy_jid in legacy_jids:
+            result.append(Presence(from_jid=legacy_jid.jid,
+                                   to_jid=to_jid,
+                                   show=show,
+                                   status=status,
+                                   stanza_type=presence_type))
+        self.db_disconnect()
         return result
 
     def ask_password(self, _account, lang_class):
@@ -1254,7 +1269,7 @@ class PasswordMessageHandler(Handler):
     """Handle password message"""
 
     def __init__(self):
-        """Ḧandler constructor"""
+        """handler constructor"""
         self.password_regexp = re.compile("\[PASSWORD\]")
 
     def filter(self, stanza, lang_class):

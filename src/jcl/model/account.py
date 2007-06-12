@@ -27,8 +27,9 @@
 __revision__ = "$Id: account.py,v 1.3 2005/09/18 20:24:07 dax Exp $"
 
 from sqlobject.inheritance import InheritableSQLObject
-from sqlobject.col import StringCol, EnumCol, IntCol, BoolCol
+from sqlobject.col import StringCol, EnumCol, IntCol, BoolCol, ForeignKey
 from sqlobject.dbconnection import ConnectionHub
+from sqlobject.joins import MultipleJoin
 
 from jcl.lang import Lang
 from jcl.jabber.error import FieldError
@@ -69,7 +70,8 @@ class Account(InheritableSQLObject):
 ## Not yet used    first_check = BoolCol(default = True)
     __status = StringCol(default=OFFLINE, dbName="status")
     in_error = BoolCol(default=False)
-
+    legacy_jids = MultipleJoin('LegacyJID')
+    
 ## Use these attributs to support volatile password
 ##    login = StringCol(default = "")
 ##    password = StringCol(default = None)
@@ -265,3 +267,11 @@ class PresenceAccount(Account):
         return PresenceAccount.DO_NOTHING
 
     action = property(get_action)
+
+class LegacyJID(InheritableSQLObject):
+    _connection = hub
+    
+    legacy_address = StringCol()
+    jid = StringCol()
+    account = ForeignKey('Account')
+
