@@ -163,11 +163,15 @@ class AccountModule_TestCase(unittest.TestCase):
                           "value")
 
 class InheritableAccount_TestCase(unittest.TestCase):
+    def setUp(self):
+        self.db_url = DB_URL
+       
     def test_get_register_fields(self):
         """Check if post functions and default functions execute correctly.
         To be validated this test only need to be executed without any
         exception.
         """
+        account.hub.threadConnection = connectionForURI('sqlite://' + self.db_url)
         for (field_name,
              field_type,
              field_options,
@@ -180,29 +184,31 @@ class InheritableAccount_TestCase(unittest.TestCase):
                 except FieldError, error:
                     # this type of error is OK
                     pass
+        del account.hub.threadConnection
 
 class Account_TestCase(InheritableAccount_TestCase):
     def setUp(self):
         if os.path.exists(DB_PATH):
             os.unlink(DB_PATH)
-        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
+        self.db_url = DB_URL
+        account.hub.threadConnection = connectionForURI('sqlite://' + self.db_url)
         Account.createTable(ifNotExists = True)
         ExampleAccount.createTable(ifNotExists = True)
         del account.hub.threadConnection
         self.account_class = Account
 
     def tearDown(self):
-        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
+        account.hub.threadConnection = connectionForURI('sqlite://' + self.db_url)
         ExampleAccount.dropTable(ifExists = True)
         Account.dropTable(ifExists = True)
-        del TheURIOpener.cachedURIs['sqlite://' + DB_URL]
+        del TheURIOpener.cachedURIs['sqlite://' + self.db_url]
         account.hub.threadConnection.close()
         del account.hub.threadConnection
         if os.path.exists(DB_PATH):
             os.unlink(DB_PATH)
 
     def test_set_status(self):
-        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
+        account.hub.threadConnection = connectionForURI('sqlite://' + self.db_url)
         account11 = Account(user_jid="test1@test.com",
                             name="account11",
                             jid="account11@jcl.test.com")
@@ -212,7 +218,7 @@ class Account_TestCase(InheritableAccount_TestCase):
         del account.hub.threadConnection
 
     def test_set_status_live_password(self):
-        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
+        account.hub.threadConnection = connectionForURI('sqlite://' + self.db_url)
         account11 = ExampleAccount(user_jid="test1@test.com",
                                    name="account11",
                                    jid="account11@jcl.test.com",
@@ -232,7 +238,8 @@ class PresenceAccount_TestCase(InheritableAccount_TestCase):
     def setUp(self):
         if os.path.exists(DB_PATH):
             os.unlink(DB_PATH)
-        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
+        self.db_url = DB_URL
+        account.hub.threadConnection = connectionForURI('sqlite://' + self.db_url)
         Account.createTable(ifNotExists = True)
         PresenceAccount.createTable(ifNotExists = True)
         PresenceAccountExample.createTable(ifNotExists = True)
@@ -244,11 +251,11 @@ class PresenceAccount_TestCase(InheritableAccount_TestCase):
         self.account_class = PresenceAccount
 
     def tearDown(self):
-        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
+        account.hub.threadConnection = connectionForURI('sqlite://' + self.db_url)
         PresenceAccountExample.dropTable(ifExists = True)
         PresenceAccount.dropTable(ifExists = True)
         Account.dropTable(ifExists = True)
-        del TheURIOpener.cachedURIs['sqlite://' + DB_URL]
+        del TheURIOpener.cachedURIs['sqlite://' + self.db_url]
         account.hub.threadConnection.close()
         del account.hub.threadConnection
         if os.path.exists(DB_PATH):

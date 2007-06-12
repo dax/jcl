@@ -804,44 +804,44 @@ class JCLComponent_TestCase(unittest.TestCase):
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
         account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
-        account11 = Account(user_jid = "user1@test.com", \
-                           name = "account11", \
-                           jid = "account11@jcl.test.com")
-        account12 = Account(user_jid = "user1@test.com", \
-                           name = "account12", \
-                           jid = "account12@jcl.test.com")
-        account21 = Account(user_jid = "user1@test.com", \
-                           name = "account21", \
-                           jid = "account21@jcl.test.com")
+        account11 = Account(user_jid="user1@test.com",
+                           name="account11",
+                           jid="account11@jcl.test.com")
+        account12 = Account(user_jid="user1@test.com",
+                           name="account12",
+                           jid="account12@jcl.test.com")
+        account21 = Account(user_jid="user1@test.com",
+                           name="account21",
+                           jid="account21@jcl.test.com")
         del account.hub.threadConnection
-        self.comp.handle_get_register(Iq(stanza_type = "get", \
-                                         from_jid = "user1@test.com", \
-                                         to_jid = "account11@jcl.test.com"))
+        self.comp.handle_get_register(Iq(stanza_type="get",
+                                         from_jid="user1@test.com",
+                                         to_jid="account11@jcl.test.com"))
         self.assertEquals(len(self.comp.stream.sent), 1)
         iq_sent = self.comp.stream.sent[0]
         self.assertEquals(iq_sent.get_to(), "user1@test.com")
-        titles = iq_sent.xpath_eval("jir:query/jxd:x/jxd:title", \
-                                    {"jir" : "jabber:iq:register", \
+        titles = iq_sent.xpath_eval("jir:query/jxd:x/jxd:title",
+                                    {"jir" : "jabber:iq:register",
                                      "jxd" : "jabber:x:data"})
         self.assertEquals(len(titles), 1)
-        self.assertEquals(titles[0].content, \
+        self.assertEquals(titles[0].content,
                           Lang.en.register_title)
-        instructions = iq_sent.xpath_eval("jir:query/jxd:x/jxd:instructions", \
-                                          {"jir" : "jabber:iq:register", \
+        instructions = iq_sent.xpath_eval("jir:query/jxd:x/jxd:instructions",
+                                          {"jir" : "jabber:iq:register",
                                            "jxd" : "jabber:x:data"})
         self.assertEquals(len(instructions), 1)
-        self.assertEquals(instructions[0].content, \
+        self.assertEquals(instructions[0].content,
                           Lang.en.register_instructions)
-        fields = iq_sent.xpath_eval("jir:query/jxd:x/jxd:field", \
-                                    {"jir" : "jabber:iq:register", \
+        fields = iq_sent.xpath_eval("jir:query/jxd:x/jxd:field",
+                                    {"jir" : "jabber:iq:register",
                                      "jxd" : "jabber:x:data"})
         self.assertEquals(len(fields), 1)
         self.assertEquals(fields[0].prop("type"), "hidden")
         self.assertEquals(fields[0].prop("var"), "name")
         self.assertEquals(fields[0].prop("label"), Lang.en.account_name)
         self.assertEquals(fields[0].children.next.name, "required")
-        value = iq_sent.xpath_eval("jir:query/jxd:x/jxd:field/jxd:value", \
-                                   {"jir" : "jabber:iq:register", \
+        value = iq_sent.xpath_eval("jir:query/jxd:x/jxd:field/jxd:value",
+                                   {"jir" : "jabber:iq:register",
                                     "jxd" : "jabber:x:data"})
         self.assertEquals(len(value), 1)
         self.assertEquals(value[0].content, "account11")

@@ -668,9 +668,12 @@ class AccountManager(object):
                     account_class.q.user_jid == unicode(from_jid.bare())))
         if accounts is not None:
             query = info_query.new_query("jabber:iq:register")
+            _account = accounts[0]
+            self.db_disconnect()
             self.get_reg_form_init(lang_class,
-                                   accounts[0]).as_xml(query)
-        self.db_disconnect()
+                                   _account).as_xml(query)
+        else:
+            self.db_disconnect()
         return [info_query]
 
     def _account_type_get_register(self, info_query, account_class, lang_class):
@@ -1054,6 +1057,7 @@ class AccountManager(object):
                            name="name",
                            required=True)
 
+        self.db_connect()
         for (field_name,
              field_type,
              field_options,
@@ -1088,6 +1092,7 @@ class AccountManager(object):
                 except:
                     self.__logger.debug("Setting field " + field_name + " required")
                     field.required = True
+        self.db_disconnect()
         return reg_form
 
     def get_reg_form_init(self, lang_class, _account):
