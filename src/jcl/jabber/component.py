@@ -270,8 +270,10 @@ class JCLComponent(Component, object):
         lang = self.lang.get_lang_class_from_node(stanza.get_node())
         for handler in handlers:
             try:
+                self.__logger.debug("Applying filter " + repr(handler))
                 accounts = handler.filter(stanza, lang)
                 if accounts is not None:
+                    self.__logger.debug("Applying handler " + repr(handler))
                     result += handler.handle(stanza, lang, accounts)
                     if not apply_all:
                         break
@@ -906,6 +908,7 @@ class AccountManager(object):
     ###### presence_available handlers ######
     def account_handle_presence_available(self, name, from_jid, lang_class, show):
         """Handle presence \"available\" sent to an account JID"""
+        self.__logger.debug("Account handle presence available")
         return self.account_handle_presence(\
             name, from_jid,
             lambda _account: \
@@ -915,6 +918,7 @@ class AccountManager(object):
 
     def root_handle_presence_available(self, from_jid, lang_class, show):
         """Handle presence \"available\" sent to component JID"""
+        self.__logger.debug("Root handle presence available")
         return self.root_handle_presence(\
             from_jid,
             lambda _account: \
@@ -922,13 +926,14 @@ class AccountManager(object):
                                           show,
                                           lang_class),
             lambda nb_accounts: \
-            self._send_root_presence(from_jid, show,
+            self._send_root_presence(from_jid, "available", show,
                                      str(nb_accounts) +
                                      lang_class.message_status))
 
     ###### presence_unavailable handlers ######
     def account_handle_presence_unavailable(self, name, from_jid):
         """Handle presence \"unavailable\" sent to an account JID"""
+        self.__logger.debug("Account handle presence available")
         return self.account_handle_presence(\
             name, from_jid,
             lambda _account: \
@@ -936,12 +941,13 @@ class AccountManager(object):
 
     def root_handle_presence_unavailable(self, from_jid):
         """Handle presence \"unavailable\" sent to component JID"""
+        self.__logger.debug("Root handle presence available")
         return self.root_handle_presence(\
             from_jid,
             lambda _account: \
             self._send_presence_unavailable(_account),
             lambda nb_accounts: \
-            self._send_root_presence(from_jid))
+            self._send_root_presence(from_jid, "unavailable"))
 
     ###### presence_subscribe handlers ######
     def account_handle_presence_subscribe(self, name, from_jid, stanza):
@@ -1124,12 +1130,13 @@ class AccountManager(object):
                          to_jid=_account.user_jid,
                          stanza_type="unavailable")]
 
-    def _send_root_presence(self, to_jid, show=None, status=None):
+    def _send_root_presence(self, to_jid, presence_type,
+                            show=None, status=None):
         result = self._send_presence(self.component.jid, to_jid,
-                                     "unavailable", show=show,
+                                     presence_type, show=show,
                                      status=status)
         result.extend(self._send_root_presence_legacy(to_jid,
-                                                      "unavailable",
+                                                      presence_type,
                                                       show=show,
                                                       status=status))
         return result

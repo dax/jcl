@@ -1455,25 +1455,29 @@ class JCLComponent_TestCase(unittest.TestCase):
         self.assertEqual(len(presence_sent), 3)
         self.assertEqual(len([presence \
                               for presence in presence_sent \
-                              if presence.get_to_jid() == "user1@test.com"]), \
+                              if presence.get_to_jid() == "user1@test.com" \
+                              and presence.get_type() is None]), \
                           3)
         self.assertEqual(len([presence \
                               for presence in presence_sent \
                               if presence.get_from_jid() == \
                               "jcl.test.com" \
-                              and isinstance(presence, Presence)]), \
+                              and isinstance(presence, Presence) \
+                              and presence.get_type() is None]), \
                           1)
         self.assertEqual(len([presence \
                               for presence in presence_sent \
                               if presence.get_from_jid() == \
                               "account11@jcl.test.com" \
-                              and isinstance(presence, Presence)]), \
+                              and isinstance(presence, Presence) \
+                              and presence.get_type() is None]), \
                           1)
         self.assertEqual(len([presence \
                               for presence in presence_sent \
                               if presence.get_from_jid() == \
                               "account12@jcl.test.com" \
-                              and isinstance(presence, Presence)]), \
+                              and isinstance(presence, Presence) \
+                              and presence.get_type() is None]), \
                           1)
 
     def test_handle_presence_available_to_component_legacy_users(self):
@@ -1513,49 +1517,57 @@ class JCLComponent_TestCase(unittest.TestCase):
         self.assertEqual(len(presence_sent), 7)
         self.assertEqual(len([presence
                               for presence in presence_sent
-                              if presence.get_to_jid() == "user1@test.com"]),
+                              if presence.get_to_jid() == "user1@test.com" \
+                              and presence.get_type() is None]),
                          7)
         self.assertEqual(len([presence
                               for presence in presence_sent
                               if presence.get_from_jid() == \
                               "jcl.test.com"
-                              and isinstance(presence, Presence)]),
+                              and isinstance(presence, Presence) \
+                              and presence.get_type() is None]),
                          1)
         self.assertEqual(len([presence
                               for presence in presence_sent
                               if presence.get_from_jid() == \
                               "account11@jcl.test.com"
-                              and isinstance(presence, Presence)]),
+                              and isinstance(presence, Presence) \
+                              and presence.get_type() is None]),
                          1)
         self.assertEqual(len([presence
                               for presence in presence_sent
                               if presence.get_from_jid() == \
                               "account12@jcl.test.com"
-                              and isinstance(presence, Presence)]),
+                              and isinstance(presence, Presence) \
+                              and presence.get_type() is None]),
                          1)
         self.assertEqual(len([presence
                               for presence in presence_sent
                               if presence.get_from_jid() == \
                               "u111%test.com@jcl.test.com"
-                              and isinstance(presence, Presence)]),
+                              and isinstance(presence, Presence) \
+                              and presence.get_type() is None]),
                          1)
         self.assertEqual(len([presence
                               for presence in presence_sent
                               if presence.get_from_jid() == \
                               "u112%test.com@jcl.test.com"
-                              and isinstance(presence, Presence)]),
+                              and isinstance(presence, Presence) \
+                              and presence.get_type() is None]),
                          1)
         self.assertEqual(len([presence
                               for presence in presence_sent
                               if presence.get_from_jid() == \
                               "u121%test.com@jcl.test.com"
-                              and isinstance(presence, Presence)]),
+                              and isinstance(presence, Presence) \
+                              and presence.get_type() is None]),
                          1)
         self.assertEqual(len([presence
                               for presence in presence_sent
                               if presence.get_from_jid() == \
                               "u122%test.com@jcl.test.com"
-                              and isinstance(presence, Presence)]),
+                              and isinstance(presence, Presence) \
+                              and presence.get_type() is None]),
                          1)
 
     def test_handle_presence_available_to_component_unknown_user(self):
@@ -1602,6 +1614,7 @@ class JCLComponent_TestCase(unittest.TestCase):
         self.assertEqual(presence_sent[0].get_to(), "user1@test.com")
         self.assertEqual(presence_sent[0].get_from(), "account11@jcl.test.com")
         self.assertTrue(isinstance(presence_sent[0], Presence))
+        self.assertEqual(presence_sent[0].get_type(), None)
 
     def test_handle_presence_available_to_registered_handlers(self):
         self.comp.stream = MockStream()
@@ -1627,6 +1640,7 @@ class JCLComponent_TestCase(unittest.TestCase):
         self.assertEqual(presence_sent[0].get_to(), "user1@test.com")
         self.assertEqual(presence_sent[0].get_from(), "user1%test.com@jcl.test.com")
         self.assertTrue(isinstance(presence_sent[0], Presence))
+        self.assertEqual(presence_sent[0].get_type(), None)
 
     def test_handle_presence_available_to_account_unknown_user(self):
         self.comp.stream = MockStream()
@@ -1696,6 +1710,7 @@ class JCLComponent_TestCase(unittest.TestCase):
         self.assertTrue(isinstance(presence, Presence))
         self.assertEqual(presence.get_from_jid(), "account11@jcl.test.com")
         self.assertEqual(presence.get_to_jid(), "user1@test.com")
+        self.assertEqual(presence.get_type(), None)
 
     def test_handle_presence_available_to_account_live_password_complex(self):
         account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
@@ -1730,6 +1745,7 @@ class JCLComponent_TestCase(unittest.TestCase):
         self.assertTrue(isinstance(presence, Presence))
         self.assertEqual(presence.get_from_jid(), "account11@jcl.test.com")
         self.assertEqual(presence.get_to_jid(), "user1@test.com")
+        self.assertEqual(presence.get_type(), None)
 
         self.assertEqual(unicode(password_message.get_from_jid()), \
                          "account11@jcl.test.com")
@@ -1762,7 +1778,8 @@ class JCLComponent_TestCase(unittest.TestCase):
         self.assertEqual(len(presence_sent), 3)
         self.assertEqual(len([presence \
                               for presence in presence_sent \
-                              if presence.get_to_jid() == "user1@test.com"]), \
+                              if presence.get_to_jid() == "user1@test.com" \
+                              and presence.get_type() == "unavailable"]), \
                           3)
         self.assertEqual(\
             len([presence \
@@ -1826,49 +1843,57 @@ class JCLComponent_TestCase(unittest.TestCase):
         self.assertEqual(len(presence_sent), 7)
         self.assertEqual(len([presence
                               for presence in presence_sent
-                              if presence.get_to_jid() == "user1@test.com"]),
+                              if presence.get_to_jid() == "user1@test.com" \
+                              and presence.get_type() == "unavailable"]),
                          7)
         self.assertEqual(len([presence
                               for presence in presence_sent
                               if presence.get_from_jid() == \
                               "jcl.test.com"
-                              and isinstance(presence, Presence)]),
+                              and isinstance(presence, Presence) \
+                              and presence.get_type() == "unavailable"]),
                          1)
         self.assertEqual(len([presence
                               for presence in presence_sent
                               if presence.get_from_jid() == \
                               "account11@jcl.test.com"
-                              and isinstance(presence, Presence)]),
+                              and isinstance(presence, Presence) \
+                              and presence.get_type() == "unavailable"]),
                          1)
         self.assertEqual(len([presence
                               for presence in presence_sent
                               if presence.get_from_jid() == \
                               "account12@jcl.test.com"
-                              and isinstance(presence, Presence)]),
+                              and isinstance(presence, Presence) \
+                              and presence.get_type() == "unavailable"]),
                          1)
         self.assertEqual(len([presence
                               for presence in presence_sent
                               if presence.get_from_jid() == \
                               "u111%test.com@jcl.test.com"
-                              and isinstance(presence, Presence)]),
+                              and isinstance(presence, Presence) \
+                              and presence.get_type() == "unavailable"]),
                          1)
         self.assertEqual(len([presence
                               for presence in presence_sent
                               if presence.get_from_jid() == \
                               "u112%test.com@jcl.test.com"
-                              and isinstance(presence, Presence)]),
+                              and isinstance(presence, Presence) \
+                              and presence.get_type() == "unavailable"]),
                          1)
         self.assertEqual(len([presence
                               for presence in presence_sent
                               if presence.get_from_jid() == \
                               "u121%test.com@jcl.test.com"
-                              and isinstance(presence, Presence)]),
+                              and isinstance(presence, Presence) \
+                              and presence.get_type() == "unavailable"]),
                          1)
         self.assertEqual(len([presence
                               for presence in presence_sent
                               if presence.get_from_jid() == \
                               "u122%test.com@jcl.test.com"
-                              and isinstance(presence, Presence)]),
+                              and isinstance(presence, Presence) \
+                              and presence.get_type() == "unavailable"]),
                          1)
 
     def test_handle_presence_unavailable_to_component_unknown_user(self):
@@ -2432,9 +2457,9 @@ class DefaultSubscribeHandler_TestCase(unittest.TestCase):
         self.handler = DefaultSubscribeHandler()
 
     def test_handle(self):
-        presence = Presence(from_jid = "user1@test.com", \
-                               to_jid = "user1%test.com@jcl.test.com", \
-                               stanza_type = "subscribe")
+        presence = Presence(from_jid="user1@test.com",
+                            to_jid="user1%test.com@jcl.test.com",
+                            stanza_type="subscribe")
         result = self.handler.handle(presence, None, [])
         self.assertEquals(len(result), 2)
         self.assertEquals(result[0].get_to(), "user1@test.com")
