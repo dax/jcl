@@ -488,7 +488,7 @@ class JCLComponent_TestCase(unittest.TestCase):
         self.assertEquals(len(self.comp.stream.sent), 1)
         iq_sent = self.comp.stream.sent[0]
         self.assertEquals(iq_sent.get_to(), "user1@test.com")
-        self.assertEquals(len(iq_sent.xpath_eval("*/*")), 1)
+        self.assertEquals(len(iq_sent.xpath_eval("*/*")), 2)
         jid_nodes = iq_sent.xpath_eval("jig:query/jig:jid",
                                        {"jig" : "jabber:iq:gateway"})
         self.assertEquals(len(jid_nodes), 1)

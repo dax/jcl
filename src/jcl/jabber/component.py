@@ -317,6 +317,8 @@ class JCLComponent(Component, object):
         info_query = info_query.make_result_response()
         query = info_query.new_query("jabber:iq:gateway")
         query.newTextChild(query.ns(), "jid", jid)
+        # XEP-0100 - section 6: should be <jid> but PSI only work with <prompt>
+        query.newTextChild(query.ns(), "prompt", jid)
         self.stream.send(info_query)
         return 1
 
