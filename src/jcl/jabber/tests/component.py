@@ -498,9 +498,9 @@ class JCLComponent_TestCase(unittest.TestCase):
     # 'disco_get_info' tests
     ###########################################################################
     def test_disco_get_info(self):
-        info_query = Iq(stanza_type = "get", \
-                        from_jid = "user1@test.com", \
-                        to_jid = "jcl.test.com")
+        info_query = Iq(stanza_type="get",
+                        from_jid="user1@test.com",
+                        to_jid="jcl.test.com")
         disco_info = self.comp.disco_get_info(None, info_query)
         self.assertEquals(disco_info.get_identities()[0].get_name(), self.comp.name)
         self.assertTrue(disco_info.has_feature("jabber:iq:version"))
@@ -508,28 +508,28 @@ class JCLComponent_TestCase(unittest.TestCase):
 
     def test_disco_get_info_multiple_account_type(self):
         self.comp.account_manager.account_classes = (ExampleAccount, Example2Account)
-        info_query = Iq(stanza_type = "get", \
-                        from_jid = "user1@test.com", \
-                        to_jid = "jcl.test.com")
+        info_query = Iq(stanza_type="get",
+                        from_jid="user1@test.com",
+                        to_jid="jcl.test.com")
         disco_info = self.comp.disco_get_info(None, info_query)
-        self.assertEquals(disco_info.get_identities()[0].get_name(), \
+        self.assertEquals(disco_info.get_identities()[0].get_name(),
                           self.comp.name)
         self.assertTrue(disco_info.has_feature("jabber:iq:version"))
         self.assertFalse(disco_info.has_feature("jabber:iq:register"))
 
     def test_disco_get_info_node(self):
-        info_query = Iq(stanza_type = "get", \
-                        from_jid = "user1@test.com", \
-                        to_jid = "node_test@jcl.test.com")
+        info_query = Iq(stanza_type="get",
+                        from_jid="user1@test.com",
+                        to_jid="node_test@jcl.test.com")
         disco_info = self.comp.disco_get_info("node_test", info_query)
         self.assertTrue(disco_info.has_feature("jabber:iq:register"))
 
     def test_disco_get_info_long_node(self):
         self.comp.account_manager.account_classes = (ExampleAccount, Example2Account)
-        info_query = Iq(stanza_type = "get", \
-                        from_jid = "user1@test.com", \
-                        to_jid = "node_test@jcl.test.com/node_type")
-        disco_info = self.comp.disco_get_info("node_type/node_test", \
+        info_query = Iq(stanza_type="get",
+                        from_jid="user1@test.com",
+                        to_jid="node_test@jcl.test.com/node_type")
+        disco_info = self.comp.disco_get_info("node_type/node_test",
                                               info_query)
         self.assertTrue(disco_info.has_feature("jabber:iq:register"))
 

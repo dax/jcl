@@ -75,16 +75,16 @@ class JCLComponent(Component, object):
                  server,
                  port,
                  db_connection_str,
-                 disco_category="gateway",
-                 disco_type="headline",
+                 disco_category="headline",
+                 disco_type="x-unknown",
                  lang=Lang()):
         Component.__init__(self,
                            JID(jid),
                            secret,
                            server,
                            port,
-                           disco_category,
-                           disco_type)
+                           disco_category=disco_category,
+                           disco_type=disco_type)
         # default values
         self.name = lang.get_default_lang_class().component_name
         self.spool_dir = "."
