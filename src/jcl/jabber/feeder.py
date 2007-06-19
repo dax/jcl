@@ -92,23 +92,32 @@ class Sender(object):
 class MessageSender(Sender):
     """Send data as Jabber Message"""
 
-    def send(self, to_account, subject, body):
-        """Implement abstract method from Sender class and send data as Jabber message"""
-        self.component.stream.send(Message(from_jid=to_account.jid,
-                                           to_jid=to_account.user_jid,
-                                           subject=subject,
-                                           body=body))
+    def create_message(self, to_account, data):
+        """Create message to send"""
+        subject, body = data
+        return Message(from_jid=to_account.jid,
+                       to_jid=to_account.user_jid,
+                       subject=subject,
+                       body=body)
 
-class HeadlineSender(Sender):
+    def send(self, to_account, data):
+        """Implement abstract method from Sender class and send
+        data as Jabber message.
+        """
+        self.component.stream.send(self.create_message(to_account,
+                                                       data))
+
+class HeadlineSender(MessageSender):
     """Send data as Jabber Headline"""
 
-    def send(self, to_account, subject, body):
-        """Implement abstract method from Sender class and send data as Jabber headline"""
-        self.component.stream.send(Message(from_jid=to_account.jid,
-                                           to_jid=to_account.user_jid,
-                                           subject=subject,
-                                           stanza_type="headline",
-                                           body=body))
+    def create_message(self, to_account, data):
+        """Create headline to send"""
+        subject, body = data
+        return Message(from_jid=to_account.jid,
+                       to_jid=to_account.user_jid,
+                       subject=subject,
+                       stanza_type="headline",
+                       body=body)
 
 class FeederHandler(Handler):
     """Filter (nothing by default) and call sender for each message from
@@ -133,7 +142,7 @@ class FeederHandler(Handler):
         Do nothing by default.
         """
         for _account in accounts:
-            for subject, body in self.feeder.feed(_account):
-                self.sender.send(_account, subject, body)
+            for data in self.feeder.feed(_account):
+                self.sender.send(_account, data)
         return []
 

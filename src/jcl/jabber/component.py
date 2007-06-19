@@ -332,10 +332,10 @@ class JCLComponent(Component, object):
             lambda name, from_jid, account_type, lang_class: \
                 self.account_manager.account_type_disco_get_info(),
             lambda name, from_jid, account_type, lang_class: \
-                self.account_manager.root_disco_get_info(
-                self.name,
-                self.disco_identity.category,
-                self.disco_identity.type))
+                self.account_manager.root_disco_get_info(\
+                    self.name,
+                    self.disco_identity.category,
+                    self.disco_identity.type))
 
     def disco_get_items(self, node, info_query):
         """Discovery get nested nodes handler

@@ -55,8 +55,8 @@ class SenderMock(object):
     def __init__(self):
         self.sent = []
 
-    def send(self, _account, subject, body):
-        self.sent.append((_account, subject, body))
+    def send(self, _account, data):
+        self.sent.append((_account, data))
 
 class FeederComponent_TestCase(JCLComponent_TestCase):
     def setUp(self):
@@ -214,7 +214,7 @@ class MessageSender_TestCase(unittest.TestCase):
         account11 = Account(user_jid = "user1@test.com", \
                             name = "account11", \
                             jid = "account11@jcl.test.com")
-        self.sender.send(account11, "subject", "Body message")
+        self.sender.send(account11, ("subject", "Body message"))
         self.assertEquals(len(self.comp.stream.sent), 1)
         message = self.comp.stream.sent[0]
         self.assertEquals(message.get_from(), account11.jid)
@@ -277,8 +277,8 @@ class FeederHandler_TestCase(unittest.TestCase):
         accounts = self.handler.handle(None, None, [account11, account12])
         sent = self.handler.sender.sent
         self.assertEquals(len(sent), 2)
-        self.assertEquals(sent[0], (account11, "subject", "body"))
-        self.assertEquals(sent[1], (account12, "subject", "body"))
+        self.assertEquals(sent[0], (account11, ("subject", "body")))
+        self.assertEquals(sent[1], (account12, ("subject", "body")))
         del account.hub.threadConnection
 
 def suite():
