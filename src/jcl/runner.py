@@ -194,7 +194,8 @@ class JCLRunner(object):
             run_func()
             self.logger.debug(self.component_name + " is exiting")
         finally:
-            os.remove(self.pid_file)
+            if os.path.exists(self.pid_file):
+                os.remove(self.pid_file)
 
     def run(self):
         def run_func():
