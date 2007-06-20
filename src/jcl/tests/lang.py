@@ -114,6 +114,8 @@ class Language_TestCase(unittest.TestCase):
         self.assertNotEquals(self.lang_class.get_gateway_desc, None)
         self.assertNotEquals(self.lang_class.get_gateway_prompt, None)
 
+        self.assertNotEquals(self.lang_class.command_list, None)
+
 class Language_fr_TestCase(Language_TestCase):
     def setUp(self):
         self.lang_class = Lang.fr

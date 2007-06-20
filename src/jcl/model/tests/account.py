@@ -27,7 +27,7 @@ import os
 from sqlobject import *
 from sqlobject.dbconnection import TheURIOpener
 
-from jcl.jabber.error import FieldError
+from jcl.error import FieldError
 from jcl.model import account
 from jcl.model.account import Account, PresenceAccount
 

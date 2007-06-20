@@ -32,7 +32,7 @@ from sqlobject.dbconnection import ConnectionHub
 from sqlobject.joins import MultipleJoin
 
 from jcl.lang import Lang
-from jcl.jabber.error import FieldError
+from jcl.error import FieldError
 
 OFFLINE = "offline"
 ONLINE = "online"

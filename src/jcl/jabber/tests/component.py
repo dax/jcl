@@ -533,6 +533,28 @@ class JCLComponent_TestCase(unittest.TestCase):
                                               info_query)
         self.assertTrue(disco_info.has_feature("jabber:iq:register"))
 
+    def test_disco_get_info_root_unknown_node(self):
+        info_query = Iq(stanza_type="get",
+                        from_jid="user1@test.com",
+                        to_jid="jcl.test.com")
+        disco_info = self.comp.disco_get_info("unknown", info_query)
+        self.assertEquals(disco_info, None)
+
+    def test_disco_get_info_command_list(self):
+        info_query = Iq(stanza_type="get",
+                        from_jid="user1@test.com",
+                        to_jid="jcl.test.com")
+        disco_info = self.comp.disco_get_info("list", info_query)
+        self.assertNotEquals(disco_info, None)
+        self.assertTrue(disco_info.has_feature("http://jabber.org/protocol/commands"))
+        self.assertEquals(len(disco_info.get_identities()), 1)
+        self.assertEquals(disco_info.get_identities()[0].get_category(),
+                          "automation")
+        self.assertEquals(disco_info.get_identities()[0].get_type(),
+                          "command-node")
+        self.assertEquals(disco_info.get_identities()[0].get_name(),
+                          Lang.en.command_list)
+
     ###########################################################################
     # 'disco_get_items' tests
     ###########################################################################
@@ -546,25 +568,32 @@ class JCLComponent_TestCase(unittest.TestCase):
         info_query = Iq(stanza_type = "get", \
                         from_jid = "user1@test.com", \
                         to_jid = "jcl.test.com")
-        disco_items = self.comp.disco_get_items(None, info_query)
+        disco_items = self.comp.disco_get_items("unknown", info_query)
         self.assertEquals(len(disco_items.get_items()), 1)
         disco_item = disco_items.get_items()[0]
         self.assertEquals(disco_item.get_jid(), account1.jid)
         self.assertEquals(disco_item.get_node(), account1.name)
         self.assertEquals(disco_item.get_name(), account1.long_name)
 
+    def test_disco_get_items_unknown_node(self):
+        info_query = Iq(stanza_type="get",
+                        from_jid="user1@test.com",
+                        to_jid="jcl.test.com")
+        disco_items = self.comp.disco_get_items(None, info_query)
+        self.assertEquals(disco_items, None)
+
     def test_disco_get_items_1type_with_node(self):
         """get_items on an account. Must return nothing"""
         account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
-        account1 = Account(user_jid = "user1@test.com", \
-                           name = "account1", \
-                           jid = "account1@jcl.test.com")
+        account1 = Account(user_jid="user1@test.com",
+                           name="account1",
+                           jid="account1@jcl.test.com")
         del account.hub.threadConnection
-        info_query = Iq(stanza_type = "get", \
-                        from_jid = "user1@test.com", \
-                        to_jid = "account1@jcl.test.com")
+        info_query = Iq(stanza_type="get",
+                        from_jid="user1@test.com",
+                        to_jid="account1@jcl.test.com")
         disco_items = self.comp.disco_get_items("account1", info_query)
-        self.assertEquals(disco_items.get_items(), [])
+        self.assertEquals(disco_items, None)
 
     def test_disco_get_items_2types_no_node(self):
         """get_items on main entity. Must account types"""
@@ -663,7 +692,7 @@ class JCLComponent_TestCase(unittest.TestCase):
                         from_jid = "user1@test.com", \
                         to_jid = "account1@jcl.test.com/Example")
         disco_items = self.comp.disco_get_items("Example/account1", info_query)
-        self.assertEquals(disco_items.get_items(), [])
+        self.assertEquals(disco_items, None)
 
     def test_disco_get_items_2types_with_long_node2(self):
         """get_items on a second type account. Must return nothing"""
@@ -677,8 +706,19 @@ class JCLComponent_TestCase(unittest.TestCase):
                         from_jid = "user1@test.com", \
                         to_jid = "account1@jcl.test.com/Example2")
         disco_items = self.comp.disco_get_items("Example2/account1", info_query)
-        self.assertEquals(disco_items.get_items(), [])
+        self.assertEquals(disco_items, None)
 
+    def test_disco_get_items_list_commands(self):
+        info_query = Iq(stanza_type="get",
+                        from_jid="user1@test.com",
+                        to_jid="jcl.test.com")
+        disco_items = self.comp.disco_get_items("http://jabber.org/protocol/commands",
+                                                info_query)
+        self.assertEquals(len(disco_items.get_items()), 1)
+        item = disco_items.get_items()[0]
+        self.assertEquals(item.get_node(), "list")
+        self.assertEquals(item.get_name(), Lang.en.command_list)
+        
     ###########################################################################
     # 'handle_get_version' tests
     ###########################################################################

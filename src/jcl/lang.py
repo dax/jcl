@@ -110,6 +110,8 @@ class Lang:
         get_gateway_desc = u"Please enter the email address of your contact"
         get_gateway_prompt = u"Email address"
 
+        command_list = u"List accounts"
+
     class fr:
         component_name = u"composant générique Jabber Component Library"
         register_title = u"Enregistrement d'une nouvelle connexion"
@@ -150,6 +152,8 @@ class Lang:
 
         get_gateway_desc = u"Entrer l'adresse email de votre contact"
         get_gateway_prompt = u"Adresse email"
+
+        command_list = u"List les comptes"
 
     class nl:
         # TODO: when finish, delete this line and uncomment in tests/lang.py the makeSuite(Language_nl_TestCase, 'test') line
