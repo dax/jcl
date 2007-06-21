@@ -174,10 +174,10 @@ class JCLComponent(Component, object):
             while (self.running and self.stream
                    and not self.stream.eof
                    and self.stream.socket is not None):
+                self.wait_event.wait(self.time_unit)
                 self.handle_tick()
                 self.__logger.debug("Resetting alarm signal")
                 ##time.sleep(self.time_unit)
-                self.wait_event.wait(self.time_unit)
         except Exception, exception:
             self.queue.put(exception)
         self.__logger.info("Timer thread terminated...")
