@@ -331,10 +331,6 @@ class JCLComponent(Component, object):
         self.stream.send(info_query)
         return 1
 
-    def disco_get_commands_list():
-        """Return Ad-Hoc commands list"""
-        return None
-
     def disco_get_info(self, node, info_query):
         """Discovery get info handler
         """
@@ -370,7 +366,8 @@ class JCLComponent(Component, object):
                 self.account_manager.account_type_disco_get_items(from_jid,
                                                                   account_type),
             lambda name, from_jid, account_type, lang_class: \
-                self.account_manager.root_disco_get_items(from_jid,
+                self.account_manager.root_disco_get_items(node,
+                                                          from_jid,
                                                           lang_class))
         if result is None:
             lang_class = self.lang.get_lang_class_from_node(info_query.get_node())
@@ -644,6 +641,7 @@ class AccountManager(object):
         if not node:
             disco_info = DiscoInfo()
             disco_info.add_feature("jabber:iq:version")
+            disco_info.add_feature("http://jabber.org/protocol/commands")
             if not self.has_multiple_account_type:
                 disco_info.add_feature("jabber:iq:register")
             DiscoIdentity(disco_info, name,
@@ -667,27 +665,24 @@ class AccountManager(object):
                                 + " class not in account_classes")
             return None
 
-    def root_disco_get_items(self, from_jid, lang_class):
+    def root_disco_get_items(self, node, from_jid, lang_class):
         """Discovery get_items on root node"""
+        if node is not None:
+            return None
         disco_items = None
         if self.has_multiple_account_type: # list accounts with only one type declared
-            def _list_account_types(disco_items, account_class, bare_from_jid, account_type):
+            disco_items = DiscoItems()
+            for account_type in self.account_types:
                 type_label_attr = "type_" + account_type.lower() + "_name"
                 if hasattr(lang_class, type_label_attr):
                     type_label = getattr(lang_class, type_label_attr)
                 else:
                     type_label = account_type
-                return DiscoItem(disco_items,
-                                 JID(unicode(self.component.jid) + "/" +
-                                     account_type),
-                                 account_type,
-                                 type_label)
-            disco_items = DiscoItems()
-            for account_type in self.account_types:
-                _list_account_types(disco_items,
-                                    self._get_account_class(account_type
-                                                            + "Account"),
-                                    from_jid.bare(), account_type)
+                DiscoItem(disco_items,
+                          JID(unicode(self.component.jid) + "/" +
+                              account_type),
+                          account_type,
+                          type_label)
         else:
             disco_items = self._list_accounts(self.account_classes[0],
                                               from_jid.bare())

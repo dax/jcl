@@ -153,7 +153,7 @@ class Lang:
         get_gateway_desc = u"Entrer l'adresse email de votre contact"
         get_gateway_prompt = u"Adresse email"
 
-        command_list = u"List les comptes"
+        command_list = u"Liste les comptes"
 
     class nl:
         # TODO: when finish, delete this line and uncomment in tests/lang.py the makeSuite(Language_nl_TestCase, 'test') line

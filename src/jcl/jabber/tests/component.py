@@ -568,7 +568,7 @@ class JCLComponent_TestCase(unittest.TestCase):
         info_query = Iq(stanza_type = "get", \
                         from_jid = "user1@test.com", \
                         to_jid = "jcl.test.com")
-        disco_items = self.comp.disco_get_items("unknown", info_query)
+        disco_items = self.comp.disco_get_items(None, info_query)
         self.assertEquals(len(disco_items.get_items()), 1)
         disco_item = disco_items.get_items()[0]
         self.assertEquals(disco_item.get_jid(), account1.jid)
@@ -576,10 +576,33 @@ class JCLComponent_TestCase(unittest.TestCase):
         self.assertEquals(disco_item.get_name(), account1.long_name)
 
     def test_disco_get_items_unknown_node(self):
+        self.comp.account_manager.account_classes = (ExampleAccount, )
+        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
+        account11 = ExampleAccount(user_jid="user1@test.com",
+                                   name="account11",
+                                   jid="account11@jcl.test.com")
+        del account.hub.threadConnection
         info_query = Iq(stanza_type="get",
                         from_jid="user1@test.com",
                         to_jid="jcl.test.com")
-        disco_items = self.comp.disco_get_items(None, info_query)
+        disco_items = self.comp.disco_get_items("unknown", info_query)
+        self.assertEquals(disco_items, None)
+
+    def test_disco_get_items_unknown_node_multiple_account_types(self):
+        self.comp.account_manager.account_classes = (ExampleAccount, Example2Account)
+        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
+        account11 = ExampleAccount(user_jid="user1@test.com",
+                                   name="account11",
+                                   jid="account11@jcl.test.com")
+        account21 = Example2Account(user_jid="user1@test.com",
+                                    name="account21",
+                                    jid="account21@jcl.test.com")
+        del account.hub.threadConnection
+        info_query = Iq(stanza_type="get",
+                        from_jid="user1@test.com",
+                        to_jid="jcl.test.com")
+        self.comp.account_manager.has_multiple_account_type = True
+        disco_items = self.comp.disco_get_items("unknown", info_query)
         self.assertEquals(disco_items, None)
 
     def test_disco_get_items_1type_with_node(self):
@@ -600,24 +623,27 @@ class JCLComponent_TestCase(unittest.TestCase):
         self.comp.lang = LangExample()
         self.comp.account_manager.account_classes = (ExampleAccount, Example2Account)
         account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
-        account11 = ExampleAccount(user_jid = "user1@test.com", \
-                                   name = "account11", \
-                                   jid = "account11@jcl.test.com")
-        account21 = Example2Account(user_jid = "user1@test.com", \
-                                    name = "account21", \
-                                    jid = "account21@jcl.test.com")
+        account11 = ExampleAccount(user_jid="user1@test.com",
+                                   name="account11",
+                                   jid="account11@jcl.test.com")
+        account21 = Example2Account(user_jid="user1@test.com",
+                                    name="account21",
+                                    jid="account21@jcl.test.com")
         del account.hub.threadConnection
-        info_query = Iq(stanza_type = "get", \
-                        from_jid = "user1@test.com", \
-                        to_jid = "jcl.test.com")
+        info_query = Iq(stanza_type="get",
+                        from_jid="user1@test.com",
+                        to_jid="jcl.test.com")
         disco_items = self.comp.disco_get_items(None, info_query)
         self.assertEquals(len(disco_items.get_items()), 2)
         disco_item = disco_items.get_items()[0]
-        self.assertEquals(unicode(disco_item.get_jid()), unicode(self.comp.jid) + "/Example")
+        self.assertEquals(unicode(disco_item.get_jid()),
+                          unicode(self.comp.jid) + "/Example")
         self.assertEquals(disco_item.get_node(), "Example")
-        self.assertEquals(disco_item.get_name(), LangExample.en.type_example_name)
+        self.assertEquals(disco_item.get_name(),
+                          LangExample.en.type_example_name)
         disco_item = disco_items.get_items()[1]
-        self.assertEquals(unicode(disco_item.get_jid()), unicode(self.comp.jid) + "/Example2")
+        self.assertEquals(unicode(disco_item.get_jid()),
+                          unicode(self.comp.jid) + "/Example2")
         self.assertEquals(disco_item.get_node(), "Example2")
         # no name in language class for type Example2, so fallback on type name
         self.assertEquals(disco_item.get_name(), "Example2")
