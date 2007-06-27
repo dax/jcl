@@ -73,13 +73,14 @@ class MockStream(object):
         self.sent.append(iq)
 
     def set_iq_set_handler(self, iq_type, ns, handler):
-        if not iq_type in ["query"]:
+        if not iq_type in ["query", "command"]:
             raise Exception("IQ type unknown: " + iq_type)
         if not ns in ["jabber:iq:version",
                       "jabber:iq:register",
                       "jabber:iq:gateway",
                       "http://jabber.org/protocol/disco#items",
-                      "http://jabber.org/protocol/disco#info"]:
+                      "http://jabber.org/protocol/disco#info",
+                      "http://jabber.org/protocol/commands"]:
             raise Exception("Unknown namespace: " + ns)
         if handler is None:
             raise Exception("Handler must not be None")
@@ -744,7 +745,7 @@ class JCLComponent_TestCase(unittest.TestCase):
         item = disco_items.get_items()[0]
         self.assertEquals(item.get_node(), "list")
         self.assertEquals(item.get_name(), Lang.en.command_list)
-        
+
     ###########################################################################
     # 'handle_get_version' tests
     ###########################################################################
@@ -2484,6 +2485,45 @@ class JCLComponent_TestCase(unittest.TestCase):
         self.comp.stream_class = MockStream
         self.comp.send_stanzas(None)
         self.assertEquals(len(self.comp.stream.sent), 0)
+
+
+    ###########################################################################
+    # 'handle_command' tests
+    ###########################################################################
+    def test_handle_command_execute_list(self):
+        self.comp.stream = MockStream()
+        self.comp.stream_class = MockStream
+        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
+        account11 = ExampleAccount(user_jid="user1@test.com",
+                                   name="account11",
+                                   jid="account11@jcl.test.com")
+        account12 = Example2Account(user_jid="user1@test.com",
+                                    name="account12",
+                                    jid="account12@jcl.test.com")
+        account2 = ExampleAccount(user_jid="user2@test.com",
+                                  name="account2",
+                                  jid="account2@jcl.test.com")
+        del account.hub.threadConnection
+        info_query = Iq(stanza_type="set",
+                        from_jid="user1@test.com",
+                        to_jid="jcl.test.com")
+        command_node = info_query.set_new_content("http://jabber.org/protocol/commands",
+                                                  "command")
+        command_node.setProp("node", "list")
+        command_node.setProp("action", "execute")
+        self.comp.handle_command(info_query)
+        result = self.comp.stream.sent
+        self.assertNotEquals(result, None)
+        self.assertEquals(len(result), 1)
+        command_result = result[0].xpath_eval("c:command",
+                                              {"c": "http://jabber.org/protocol/commands"})
+        self.assertEquals(len(command_result), 1)
+        self.assertEquals(command_result[0].prop("status"), "completed")
+        # TODO : test sessionid prop, usage (cf XEP) ?
+        items = result[0].xpath_eval("c:command/data:x/data:item",
+                                     {"c": "http://jabber.org/protocol/commands",
+                                      "data": "jabber:x:data"})
+        self.assertEquals(len(items), 2)
 
 class Handler_TestCase(unittest.TestCase):
     def setUp(self):

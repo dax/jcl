@@ -200,6 +200,9 @@ class JCLComponent(Component, object):
         self.stream.set_iq_set_handler("query", "jabber:iq:gateway",
                                        self.handle_set_gateway)
 
+        self.stream.set_iq_set_handler("command", command.COMMAND_NS,
+                                       self.handle_command)
+
         self.stream.set_presence_handler("available",
                                          self.handle_presence_available)
 
@@ -568,6 +571,23 @@ class JCLComponent(Component, object):
         self.apply_registered_behavior(self.msg_handlers, message, False)
         return 1
 
+    def handle_command(self, info_query):
+        """
+        Handle command IQ
+        """
+        self.__logger.debug("COMMAND")
+        _command = info_query.xpath_eval("c:command",
+                                         {"c": command.COMMAND_NS})[0]
+        command_node = _command.prop("node")
+        action = _command.prop("action")
+        if action is None:
+            action = "execute"
+        result = command.command_manager.apply_command_action(info_query,
+                                                              command_node,
+                                                              action)
+        self.send_stanzas(result)
+        return 1
+        
     ###########################################################################
     # Utils
     ###########################################################################
@@ -575,7 +595,6 @@ class JCLComponent(Component, object):
         """ """
         self.send_stanzas(self.account_manager.send_error(_account, exception))
         type, value, stack = sys.exc_info()
-        # TODO : not checking email here
         self.__logger.debug("Error: %s\n%s"
                             % (exception, "".join(traceback.format_exception
                                                   (type, value, stack, 5))))
@@ -641,7 +660,7 @@ class AccountManager(object):
         if not node:
             disco_info = DiscoInfo()
             disco_info.add_feature("jabber:iq:version")
-            disco_info.add_feature("http://jabber.org/protocol/commands")
+            disco_info.add_feature(command.COMMAND_NS)
             if not self.has_multiple_account_type:
                 disco_info.add_feature("jabber:iq:register")
             DiscoIdentity(disco_info, name,

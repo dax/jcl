@@ -21,9 +21,13 @@
 ##
 
 from pyxmpp.jabber.disco import DiscoInfo, DiscoItems, DiscoItem, DiscoIdentity
+from pyxmpp.jabber.dataforms import Form, Field
 
 import jcl
 from jcl.jabber import DiscoHandler
+from jcl.model.account import Account
+
+COMMAND_NS = "http://jabber.org/protocol/commands"
 
 class CommandManager(object):
     """Handle Ad-Hoc commands"""
@@ -62,6 +66,14 @@ class CommandManager(object):
         else:
             return disco_info
 
+    def apply_command_action(self, info_query, command, action):
+        """Apply action on command"""
+        action_command_method = action + "_" + command
+        if hasattr(self, action_command_method):
+            return getattr(self, action_command_method)(info_query)
+        else:
+            return None
+
 command_manager = CommandManager()
 
 class JCLCommandManager(CommandManager):
@@ -74,12 +86,36 @@ class JCLCommandManager(CommandManager):
 
     def get_list_info(self, disco_info, lang_class):
         """Return infos for 'list' command"""
-        disco_info.add_feature("http://jabber.org/protocol/commands")
+        disco_info.add_feature(COMMAND_NS)
         DiscoIdentity(disco_info,
                       self.get_command_desc("list", lang_class),
                       "automation",
                       "command-node")
         return disco_info
+
+    def execute_list(self, info_query):
+        """Execute command 'list'. List accounts"""
+        response = info_query.make_result_response()
+        command_node = response.set_new_content(COMMAND_NS, "command")
+        command_node.setProp("node", "list")
+        command_node.setProp("status", "completed")
+        #command_node.setProp("sessionid", "????") # TODO
+        result_form = Form(xmlnode_or_type="result",
+                           title="Registered account") # TODO : add to Lang
+        result_form.reported_fields.append(Field(name="name",
+                                                 field_type="fixed",
+                                                 label="Account name")) # TODO: add to Lang
+        bare_from_jid = unicode(info_query.get_from().bare())
+        self.account_manager.db_connect()
+        accounts = Account.select(Account.q.user_jid == bare_from_jid)
+        for _account in accounts:
+            fields = [Field(name="name",
+                            field_type="fixed",
+                            value=_account.name)]
+            result_form.add_item(fields)
+        self.account_manager.db_disconnect()
+        result_form.as_xml(command_node)
+        return [response]
 
 class CommandDiscoGetInfoHandler(DiscoHandler):
     """Handle Ad-Hoc command disco get info requests"""
