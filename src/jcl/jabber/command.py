@@ -20,10 +20,13 @@
 ## Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 ##
 
+import re
+
 from pyxmpp.jabber.disco import DiscoInfo, DiscoItems, DiscoItem, DiscoIdentity
 from pyxmpp.jabber.dataforms import Form, Field
 
 import jcl
+from jcl.lang import Lang
 from jcl.jabber import DiscoHandler
 from jcl.model.account import Account
 
@@ -37,14 +40,17 @@ class CommandManager(object):
         self.component = component
         self.account_manager = account_manager
         self.commands = []
+        self.command_re = re.compile("([^#]*#)?(.*)")
 
     def get_command_desc(self, command_name, lang_class):
         """Return localized command description"""
-        command_desc_attribut = "command_" + command_name
+        match = self.command_re.match(command_name)
+        short_command_name = match.group(2)
+        command_desc_attribut = "command_" + short_command_name
         if hasattr(lang_class, command_desc_attribut):
             command_desc = getattr(lang_class, command_desc_attribut)
         else:
-            command_desc = command_name
+            command_desc = short_command_name
         return command_desc
 
     def list_commands(self, disco_items, lang_class):
