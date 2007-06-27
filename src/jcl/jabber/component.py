@@ -21,7 +21,8 @@
 ## Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 ##
 
-"""JCL base component
+"""
+JCL base component
 """
 
 __revision__ = "$Id: component.py,v 1.3 2005/09/18 20:24:07 dax Exp $"
@@ -50,8 +51,9 @@ from pyxmpp.presence import Presence
 from pyxmpp.jabber.dataforms import Form, Field, Option
 
 import jcl
-from jcl.jabber import Handler
 from jcl.error import FieldError
+from jcl.jabber import Handler
+from jcl.jabber.message import PasswordMessageHandler
 import jcl.jabber.command as command
 from jcl.jabber.command import CommandDiscoGetItemsHandler, \
      CommandDiscoGetInfoHandler, CommandManager, JCLCommandManager
@@ -283,10 +285,10 @@ class JCLComponent(Component, object):
         for handler in handlers:
             try:
                 self.__logger.debug("Applying filter " + repr(handler))
-                accounts = handler.filter(stanza, lang)
-                if accounts is not None:
+                data = handler.filter(stanza, lang)
+                if data:
                     self.__logger.debug("Applying handler " + repr(handler))
-                    result += handler.handle(stanza, lang, accounts)
+                    result += handler.handle(stanza, lang, data)
                     if not apply_all:
                         break
             except Exception, e:
@@ -1276,82 +1278,3 @@ class AccountManager(object):
                                   body=_account.default_lang_class.error_body \
                                       % (exception)))
         return result
-
-class DefaultPresenceHandler(Handler):
-    """Handle presence"""
-
-    def handle(self, presence, lang_class, accounts):
-        """Return same presence as receive one"""
-        to_jid = presence.get_to()
-        from_jid = presence.get_from()
-        presence.set_to(from_jid)
-        presence.set_from(to_jid)
-        return [presence]
-
-class DefaultSubscribeHandler(Handler):
-    """Return default response to subscribe queries"""
-
-    def handle(self, stanza, lang_class, accounts):
-        """Create subscribe response"""
-        result = []
-        result.append(Presence(from_jid=stanza.get_to(),
-                               to_jid=stanza.get_from(),
-                               stanza_type="subscribe"))
-        result.append(Presence(from_jid=stanza.get_to(),
-                               to_jid=stanza.get_from(),
-                               stanza_type="subscribed"))
-        return result
-
-class DefaultUnsubscribeHandler(Handler):
-    """Return default response to subscribe queries"""
-
-    def handle(self, stanza, lang_class, accounts):
-        """Create subscribe response"""
-        result = []
-        result.append(Presence(from_jid=stanza.get_to(),
-                               to_jid=stanza.get_from(),
-                               stanza_type="unsubscribe"))
-        result.append(Presence(from_jid=stanza.get_to(),
-                               to_jid=stanza.get_from(),
-                               stanza_type="unsubscribed"))
-        return result
-
-class PasswordMessageHandler(Handler):
-    """Handle password message"""
-
-    def __init__(self):
-        """handler constructor"""
-        self.password_regexp = re.compile("\[PASSWORD\]")
-
-    def filter(self, stanza, lang_class):
-        """Return the uniq account associated with a name and user JID.
-        DB connection might already be opened."""
-        name = stanza.get_to().node
-        bare_from_jid = unicode(stanza.get_from().bare())
-        accounts = Account.select(\
-            AND(Account.q.name == name,
-                Account.q.user_jid == bare_from_jid))
-        if accounts.count() > 1:
-            print >>sys.stderr, "Account " + name + " for user " + \
-                bare_from_jid + " must be uniq"
-        elif accounts.count() == 0:
-            return None
-        _account = accounts[0]
-        if hasattr(_account, 'password') \
-                and hasattr(_account, 'waiting_password_reply') \
-                and (getattr(_account, 'waiting_password_reply') == True) \
-                and self.password_regexp.search(stanza.get_subject()) \
-                is not None:
-            return accounts
-        else:
-            return None
-
-    def handle(self, stanza, lang_class, accounts):
-        """Receive password in stanza (must be a Message) for given account"""
-        _account = accounts[0]
-        _account.password = stanza.get_body()
-        _account.waiting_password_reply = False
-        return [Message(from_jid=_account.jid,
-                        to_jid=stanza.get_from(),
-                        subject=lang_class.password_saved_for_session,
-                        body=lang_class.password_saved_for_session)]

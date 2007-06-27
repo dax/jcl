@@ -36,10 +36,13 @@ from jcl.model.account import Account
 from pyxmpp.message import Message
 
 class FeederComponent(JCLComponent):
-    """Implement a feeder sender behavior based on the
+    """
+    Implement a feeder sender behavior based on the
     regular interval behavior of JCLComponent
     feed data from given Feeder and send it to user
-    through the given Sender."""
+    through the given Sender.
+    """
+
     def __init__(self,
                  jid,
                  secret,
@@ -121,7 +124,8 @@ class HeadlineSender(MessageSender):
                        body=body)
 
 class FeederHandler(Handler):
-    """Filter (nothing by default) and call sender for each message from
+    """
+    Filter (nothing by default) and call sender for each message from
     Feeder.
     """
 
@@ -131,18 +135,20 @@ class FeederHandler(Handler):
         self.sender = sender
 
     def filter(self, stanza, lang_class):
-        """Filter account to be processed by the handler
+        """
+        Filter account to be processed by the handler
         return all accounts.
         """
         accounts = Account.select(clauseTables=["account"],
                                   orderBy="user_jid")
         return accounts
 
-    def handle(self, stanza, lang_class, accounts):
-        """Apply actions to do on given accounts
+    def handle(self, stanza, lang_class, data):
+        """
+        Apply actions to do on given accounts
         Do nothing by default.
         """
-        for _account in accounts:
+        for _account in data:
             for data in self.feeder.feed(_account):
                 self.sender.send(_account, data)
         return []

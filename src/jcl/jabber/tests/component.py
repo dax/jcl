@@ -41,8 +41,9 @@ from pyxmpp.presence import Presence
 from pyxmpp.message import Message
 from pyxmpp.jabber.dataforms import Form, Field, Option
 
-from jcl.jabber.component import JCLComponent, Handler, \
-    PasswordMessageHandler, DefaultSubscribeHandler, \
+from jcl.jabber.component import JCLComponent, Handler
+from jcl.jabber.message import PasswordMessageHandler
+from jcl.jabber.presence import DefaultSubscribeHandler, \
     DefaultUnsubscribeHandler, DefaultPresenceHandler
 from jcl.model import account
 from jcl.model.account import Account, LegacyJID
@@ -154,12 +155,12 @@ class HandlerMock(object):
     def __init__(self):
         self.handled = []
 
-    def filter(self, message, lang_class):
+    def filter(self, stanza, lang_class):
         return []
 
-    def handle(self, stanza, lang_class, accounts):
-        self.handled.append((stanza, lang_class, accounts))
-        return [(stanza, lang_class, accounts)]
+    def handle(self, stanza, lang_class, data):
+        self.handled.append((stanza, lang_class, data))
+        return [(stanza, lang_class, data)]
 
 class JCLComponent_TestCase(unittest.TestCase):
     ###########################################################################
@@ -1688,24 +1689,25 @@ class JCLComponent_TestCase(unittest.TestCase):
         self.comp.stream_class = MockStream
         self.comp.available_handlers += [DefaultPresenceHandler()]
         account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
-        account11 = Account(user_jid = "user1@test.com", \
-                            name = "account11", \
-                            jid = "account11@jcl.test.com")
-        account12 = Account(user_jid = "user1@test.com", \
-                            name = "account12", \
-                            jid = "account12@jcl.test.com")
-        account2 = Account(user_jid = "user2@test.com", \
-                           name = "account2", \
-                           jid = "account2@jcl.test.com")
+        account11 = Account(user_jid="user1@test.com",
+                            name="account11",
+                            jid="account11@jcl.test.com")
+        account12 = Account(user_jid="user1@test.com",
+                            name="account12",
+                            jid="account12@jcl.test.com")
+        account2 = Account(user_jid="user2@test.com",
+                           name="account2",
+                           jid="account2@jcl.test.com")
         del account.hub.threadConnection
         self.comp.handle_presence_available(Presence(\
-            stanza_type = "available", \
-            from_jid = "user1@test.com",\
-            to_jid = "user1%test.com@jcl.test.com"))
+            stanza_type="available",
+            from_jid="user1@test.com",
+            to_jid="user1%test.com@jcl.test.com"))
         presence_sent = self.comp.stream.sent
         self.assertEqual(len(presence_sent), 1)
         self.assertEqual(presence_sent[0].get_to(), "user1@test.com")
-        self.assertEqual(presence_sent[0].get_from(), "user1%test.com@jcl.test.com")
+        self.assertEqual(presence_sent[0].get_from(),
+                         "user1%test.com@jcl.test.com")
         self.assertTrue(isinstance(presence_sent[0], Presence))
         self.assertEqual(presence_sent[0].get_type(), None)
 
