@@ -3,7 +3,7 @@ __revision__ = ""
 
 import unittest
 
-from jcl.jabber.tests import component, feeder
+from jcl.jabber.tests import component, feeder, command
 
 def suite():
     suite = unittest.TestSuite()

@@ -42,10 +42,17 @@ class CommandManager(object):
         self.commands = []
         self.command_re = re.compile("([^#]*#)?(.*)")
 
+    def get_short_command_name(self, command_name):
+        """
+        Return short command name associated to given command name:
+        'http://jabber.org/protocol/admin#add-user' -> 'add-user'
+        """
+        match = self.command_re.match(command_name)
+        return match.group(2)
+
     def get_command_desc(self, command_name, lang_class):
         """Return localized command description"""
-        match = self.command_re.match(command_name)
-        short_command_name = match.group(2)
+        short_command_name = self.get_short_command_name(command_name)
         command_desc_attribut = "command_" + short_command_name
         if hasattr(lang_class, command_desc_attribut):
             command_desc = getattr(lang_class, command_desc_attribut)
@@ -63,18 +70,19 @@ class CommandManager(object):
                                             lang_class))
         return disco_items
 
-    def get_command_info(self, disco_info, command, lang_class):
+    def get_command_info(self, disco_info, command_name, lang_class):
         """Return command infos"""
-        get_command_info_method_name = "get_" + command + "_info"
-        if hasattr(self, get_command_info_method_name):
-            return getattr(self, get_command_info_method_name)(disco_info,
-                                                               lang_class)
-        else:
-            return disco_info
+        disco_info.add_feature(COMMAND_NS)
+        DiscoIdentity(disco_info,
+                      self.get_command_desc(command_name, lang_class),
+                      "automation",
+                      "command-node")
+        return disco_info
 
-    def apply_command_action(self, info_query, command, action):
+    def apply_command_action(self, info_query, command_name, action):
         """Apply action on command"""
-        action_command_method = action + "_" + command
+        short_command_name = self.get_short_command_name(command_name)
+        action_command_method = action + "_" + short_command_name
         if hasattr(self, action_command_method):
             return getattr(self, action_command_method)(info_query)
         else:
@@ -88,16 +96,42 @@ class JCLCommandManager(CommandManager):
     def __init__(self, component=None, account_manager=None):
         """JCLCommandManager constructor"""
         CommandManager.__init__(self, component, account_manager)
-        self.commands.extend(["list"])
-
-    def get_list_info(self, disco_info, lang_class):
-        """Return infos for 'list' command"""
-        disco_info.add_feature(COMMAND_NS)
-        DiscoIdentity(disco_info,
-                      self.get_command_desc("list", lang_class),
-                      "automation",
-                      "command-node")
-        return disco_info
+        self.commands.extend(["list",
+                              "http://jabber.org/protocol/admin#add-user",
+                              "http://jabber.org/protocol/admin#delete-user",
+                              "http://jabber.org/protocol/admin#disable-user",
+                              "http://jabber.org/protocol/admin#reenable-user",
+                              "http://jabber.org/protocol/admin#end-user-session",
+                              "http://jabber.org/protocol/admin#get-user-password",
+                              "http://jabber.org/protocol/admin#change-user-password",
+                              "http://jabber.org/protocol/admin#get-user-roster",
+                              "http://jabber.org/protocol/admin#get-user-lastlogin",
+                              "http://jabber.org/protocol/admin#user-stats",
+                              "http://jabber.org/protocol/admin#edit-blacklist",
+                              "http://jabber.org/protocol/admin#add-to-blacklist-in",
+                              "http://jabber.org/protocol/admin#add-to-blacklist-out",
+                              "http://jabber.org/protocol/admin#edit-whitelist",
+                              "http://jabber.org/protocol/admin#add-to-whitelist-in",
+                              "http://jabber.org/protocol/admin#add-to-whitelist-out",
+                              "http://jabber.org/protocol/admin#get-registered-users-num",
+                              "http://jabber.org/protocol/admin#get-disabled-users-num",
+                              "http://jabber.org/protocol/admin#get-online-users-num",
+                              "http://jabber.org/protocol/admin#get-active-users-num",
+                              "http://jabber.org/protocol/admin#get-idle-users-num",
+                              "http://jabber.org/protocol/admin#get-registered-users-list",
+                              "http://jabber.org/protocol/admin#get-disabled-users-list"
+                              "http://jabber.org/protocol/admin#get-online-users",
+                              "http://jabber.org/protocol/admin#get-active-users",
+                              "http://jabber.org/protocol/admin#get-idle-users",
+                              "http://jabber.org/protocol/admin#announce",
+                              "http://jabber.org/protocol/admin#set-motd",
+                              "http://jabber.org/protocol/admin#edit-motd",
+                              "http://jabber.org/protocol/admin#delete-motd",
+                              "http://jabber.org/protocol/admin#set-welcome",
+                              "http://jabber.org/protocol/admin#delete-welcome",
+                              "http://jabber.org/protocol/admin#edit-admin",
+                              "http://jabber.org/protocol/admin#restart",
+                              "http://jabber.org/protocol/admin#shutdown"])
 
     def execute_list(self, info_query):
         """Execute command 'list'. List accounts"""
