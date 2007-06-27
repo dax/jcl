@@ -591,9 +591,9 @@ class JCLComponent(Component, object):
     ###########################################################################
     # Utils
     ###########################################################################
-    def send_error(self, _account, exception):
+    def send_error_to_account(self, _account, exception):
         """ """
-        self.send_stanzas(self.account_manager.send_error(_account, exception))
+        self.send_stanzas(self.account_manager.send_error_from_account(_account, exception))
         type, value, stack = sys.exc_info()
         self.__logger.debug("Error: %s\n%s"
                             % (exception, "".join(traceback.format_exception
@@ -1263,7 +1263,7 @@ class AccountManager(object):
                                       (_account.name)))
         return result
 
-    def send_error(self, _account, exception):
+    def send_error_from_account(self, _account, exception):
         """Send an error message only one time until _account.in_error
         has been reset to False"""
         result = []

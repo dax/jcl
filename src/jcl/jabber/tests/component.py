@@ -2447,7 +2447,7 @@ class JCLComponent_TestCase(unittest.TestCase):
                            name = "account11", \
                            jid = "account11@jcl.test.com")
         exception = Exception("test exception")
-        self.comp.send_error(_account, exception)
+        self.comp.send_error_to_account(_account, exception)
         self.assertEqual(len(self.comp.stream.sent), 1)
         error_sent = self.comp.stream.sent[0]
         self.assertEqual(error_sent.get_to(), _account.user_jid)
@@ -2467,7 +2467,7 @@ class JCLComponent_TestCase(unittest.TestCase):
                            jid = "account11@jcl.test.com")
         _account.in_error = True
         exception = Exception("test exception")
-        self.comp.send_error(_account, exception)
+        self.comp.send_error_to_account(_account, exception)
         self.assertEqual(len(self.comp.stream.sent), 0)
 
     def test_send_stanzas(self):
@@ -2524,6 +2524,636 @@ class JCLComponent_TestCase(unittest.TestCase):
                                      {"c": "http://jabber.org/protocol/commands",
                                       "data": "jabber:x:data"})
         self.assertEquals(len(items), 2)
+
+    def test_handle_command_execute_add_user(self):
+        #TODO : implement command
+        self.comp.stream = MockStream()
+        self.comp.stream_class = MockStream
+        info_query = Iq(stanza_type="set",
+                        from_jid="user1@test.com",
+                        to_jid="jcl.test.com")
+        command_node = info_query.set_new_content("http://jabber.org/protocol/commands",
+                                                  "command")
+        command_node.setProp("node", "http://jabber.org/protocol/admin#add-user")
+        command_node.setProp("action", "execute")
+        self.comp.handle_command(info_query)
+        result = self.comp.stream.sent
+        self.assertNotEquals(result, None)
+        self.assertEquals(len(result), 1)
+        error = result[0].get_error()
+        self.assertNotEquals(error, None)
+
+    def test_handle_command_execute_delete_user(self):
+        #TODO : implement command
+        self.comp.stream = MockStream()
+        self.comp.stream_class = MockStream
+        info_query = Iq(stanza_type="set",
+                        from_jid="user1@test.com",
+                        to_jid="jcl.test.com")
+        command_node = info_query.set_new_content("http://jabber.org/protocol/commands",
+                                                  "command")
+        command_node.setProp("node", "http://jabber.org/protocol/admin#delete-user")
+        command_node.setProp("action", "execute")
+        self.comp.handle_command(info_query)
+        result = self.comp.stream.sent
+        self.assertNotEquals(result, None)
+        self.assertEquals(len(result), 1)
+        error = result[0].get_error()
+        self.assertNotEquals(error, None)
+
+    def test_handle_command_execute_disable_user(self):
+        #TODO : implement command
+        self.comp.stream = MockStream()
+        self.comp.stream_class = MockStream
+        info_query = Iq(stanza_type="set",
+                        from_jid="user1@test.com",
+                        to_jid="jcl.test.com")
+        command_node = info_query.set_new_content("http://jabber.org/protocol/commands",
+                                                  "command")
+        command_node.setProp("node", "http://jabber.org/protocol/admin#disable-user")
+        command_node.setProp("action", "execute")
+        self.comp.handle_command(info_query)
+        result = self.comp.stream.sent
+        self.assertNotEquals(result, None)
+        self.assertEquals(len(result), 1)
+        error = result[0].get_error()
+        self.assertNotEquals(error, None)
+
+    def test_handle_command_execute_reenable_user(self):
+        #TODO : implement command
+        self.comp.stream = MockStream()
+        self.comp.stream_class = MockStream
+        info_query = Iq(stanza_type="set",
+                        from_jid="user1@test.com",
+                        to_jid="jcl.test.com")
+        command_node = info_query.set_new_content("http://jabber.org/protocol/commands",
+                                                  "command")
+        command_node.setProp("node", "http://jabber.org/protocol/admin#reenable-user")
+        command_node.setProp("action", "execute")
+        self.comp.handle_command(info_query)
+        result = self.comp.stream.sent
+        self.assertNotEquals(result, None)
+        self.assertEquals(len(result), 1)
+        error = result[0].get_error()
+        self.assertNotEquals(error, None)
+
+    def test_handle_command_execute_end_user_session(self):
+        #TODO : implement command
+        self.comp.stream = MockStream()
+        self.comp.stream_class = MockStream
+        info_query = Iq(stanza_type="set",
+                        from_jid="user1@test.com",
+                        to_jid="jcl.test.com")
+        command_node = info_query.set_new_content("http://jabber.org/protocol/commands",
+                                                  "command")
+        command_node.setProp("node", "http://jabber.org/protocol/admin#end-user-session")
+        command_node.setProp("action", "execute")
+        self.comp.handle_command(info_query)
+        result = self.comp.stream.sent
+        self.assertNotEquals(result, None)
+        self.assertEquals(len(result), 1)
+        error = result[0].get_error()
+        self.assertNotEquals(error, None)
+
+    def test_handle_command_execute_get_user_password(self):
+        #TODO : implement command
+        self.comp.stream = MockStream()
+        self.comp.stream_class = MockStream
+        info_query = Iq(stanza_type="set",
+                        from_jid="user1@test.com",
+                        to_jid="jcl.test.com")
+        command_node = info_query.set_new_content("http://jabber.org/protocol/commands",
+                                                  "command")
+        command_node.setProp("node", "http://jabber.org/protocol/admin#get-user-password")
+        command_node.setProp("action", "execute")
+        self.comp.handle_command(info_query)
+        result = self.comp.stream.sent
+        self.assertNotEquals(result, None)
+        self.assertEquals(len(result), 1)
+        error = result[0].get_error()
+        self.assertNotEquals(error, None)
+
+    def test_handle_command_execute_change_user_password(self):
+        #TODO : implement command
+        self.comp.stream = MockStream()
+        self.comp.stream_class = MockStream
+        info_query = Iq(stanza_type="set",
+                        from_jid="user1@test.com",
+                        to_jid="jcl.test.com")
+        command_node = info_query.set_new_content("http://jabber.org/protocol/commands",
+                                                  "command")
+        command_node.setProp("node", "http://jabber.org/protocol/admin#get_user_password")
+        command_node.setProp("action", "execute")
+        self.comp.handle_command(info_query)
+        result = self.comp.stream.sent
+        self.assertNotEquals(result, None)
+        self.assertEquals(len(result), 1)
+        error = result[0].get_error()
+        self.assertNotEquals(error, None)
+
+    def test_handle_command_execute_get_user_roster(self):
+        #TODO : implement command
+        self.comp.stream = MockStream()
+        self.comp.stream_class = MockStream
+        info_query = Iq(stanza_type="set",
+                        from_jid="user1@test.com",
+                        to_jid="jcl.test.com")
+        command_node = info_query.set_new_content("http://jabber.org/protocol/commands",
+                                                  "command")
+        command_node.setProp("node", "http://jabber.org/protocol/admin#get-user-roster")
+        command_node.setProp("action", "execute")
+        self.comp.handle_command(info_query)
+        result = self.comp.stream.sent
+        self.assertNotEquals(result, None)
+        self.assertEquals(len(result), 1)
+        error = result[0].get_error()
+        self.assertNotEquals(error, None)
+
+    def test_handle_command_execute_get_user_last_login(self):
+        #TODO : implement command
+        self.comp.stream = MockStream()
+        self.comp.stream_class = MockStream
+        info_query = Iq(stanza_type="set",
+                        from_jid="user1@test.com",
+                        to_jid="jcl.test.com")
+        command_node = info_query.set_new_content("http://jabber.org/protocol/commands",
+                                                  "command")
+        command_node.setProp("node", "http://jabber.org/protocol/admin#get-user-last-login")
+        command_node.setProp("action", "execute")
+        self.comp.handle_command(info_query)
+        result = self.comp.stream.sent
+        self.assertNotEquals(result, None)
+        self.assertEquals(len(result), 1)
+        error = result[0].get_error()
+        self.assertNotEquals(error, None)
+
+    def test_handle_command_execute_user_stats(self):
+        #TODO : implement command
+        self.comp.stream = MockStream()
+        self.comp.stream_class = MockStream
+        info_query = Iq(stanza_type="set",
+                        from_jid="user1@test.com",
+                        to_jid="jcl.test.com")
+        command_node = info_query.set_new_content("http://jabber.org/protocol/commands",
+                                                  "command")
+        command_node.setProp("node", "http://jabber.org/protocol/admin#user-stats")
+        command_node.setProp("action", "execute")
+        self.comp.handle_command(info_query)
+        result = self.comp.stream.sent
+        self.assertNotEquals(result, None)
+        self.assertEquals(len(result), 1)
+        error = result[0].get_error()
+        self.assertNotEquals(error, None)
+
+    def test_handle_command_execute_edit_blacklist(self):
+        #TODO : implement command
+        self.comp.stream = MockStream()
+        self.comp.stream_class = MockStream
+        info_query = Iq(stanza_type="set",
+                        from_jid="user1@test.com",
+                        to_jid="jcl.test.com")
+        command_node = info_query.set_new_content("http://jabber.org/protocol/commands",
+                                                  "command")
+        command_node.setProp("node", "http://jabber.org/protocol/admin#edit-blacklist")
+        command_node.setProp("action", "execute")
+        self.comp.handle_command(info_query)
+        result = self.comp.stream.sent
+        self.assertNotEquals(result, None)
+        self.assertEquals(len(result), 1)
+        error = result[0].get_error()
+        self.assertNotEquals(error, None)
+
+    def test_handle_command_execute_add_to_blacklist_in(self):
+        #TODO : implement command
+        self.comp.stream = MockStream()
+        self.comp.stream_class = MockStream
+        info_query = Iq(stanza_type="set",
+                        from_jid="user1@test.com",
+                        to_jid="jcl.test.com")
+        command_node = info_query.set_new_content("http://jabber.org/protocol/commands",
+                                                  "command")
+        command_node.setProp("node", "http://jabber.org/protocol/admin#add-to-blacklist-in")
+        command_node.setProp("action", "execute")
+        self.comp.handle_command(info_query)
+        result = self.comp.stream.sent
+        self.assertNotEquals(result, None)
+        self.assertEquals(len(result), 1)
+        error = result[0].get_error()
+        self.assertNotEquals(error, None)
+
+    def test_handle_command_execute_add_to_blacklist_out(self):
+        #TODO : implement command
+        self.comp.stream = MockStream()
+        self.comp.stream_class = MockStream
+        info_query = Iq(stanza_type="set",
+                        from_jid="user1@test.com",
+                        to_jid="jcl.test.com")
+        command_node = info_query.set_new_content("http://jabber.org/protocol/commands",
+                                                  "command")
+        command_node.setProp("node", "http://jabber.org/protocol/admin#add-to-blacklist-out")
+        command_node.setProp("action", "execute")
+        self.comp.handle_command(info_query)
+        result = self.comp.stream.sent
+        self.assertNotEquals(result, None)
+        self.assertEquals(len(result), 1)
+        error = result[0].get_error()
+        self.assertNotEquals(error, None)
+
+    def test_handle_command_execute_edit_whitelist(self):
+        #TODO : implement command
+        self.comp.stream = MockStream()
+        self.comp.stream_class = MockStream
+        info_query = Iq(stanza_type="set",
+                        from_jid="user1@test.com",
+                        to_jid="jcl.test.com")
+        command_node = info_query.set_new_content("http://jabber.org/protocol/commands",
+                                                  "command")
+        command_node.setProp("node", "http://jabber.org/protocol/admin#edit-whitelist")
+        command_node.setProp("action", "execute")
+        self.comp.handle_command(info_query)
+        result = self.comp.stream.sent
+        self.assertNotEquals(result, None)
+        self.assertEquals(len(result), 1)
+        error = result[0].get_error()
+        self.assertNotEquals(error, None)
+
+    def test_handle_command_execute_add_to_whitelist_in(self):
+        #TODO : implement command
+        self.comp.stream = MockStream()
+        self.comp.stream_class = MockStream
+        info_query = Iq(stanza_type="set",
+                        from_jid="user1@test.com",
+                        to_jid="jcl.test.com")
+        command_node = info_query.set_new_content("http://jabber.org/protocol/commands",
+                                                  "command")
+        command_node.setProp("node", "http://jabber.org/protocol/admin#add-to-whitelist-in")
+        command_node.setProp("action", "execute")
+        self.comp.handle_command(info_query)
+        result = self.comp.stream.sent
+        self.assertNotEquals(result, None)
+        self.assertEquals(len(result), 1)
+        error = result[0].get_error()
+        self.assertNotEquals(error, None)
+
+    def test_handle_command_execute_add_to_whitelist_out(self):
+        #TODO : implement command
+        self.comp.stream = MockStream()
+        self.comp.stream_class = MockStream
+        info_query = Iq(stanza_type="set",
+                        from_jid="user1@test.com",
+                        to_jid="jcl.test.com")
+        command_node = info_query.set_new_content("http://jabber.org/protocol/commands",
+                                                  "command")
+        command_node.setProp("node", "http://jabber.org/protocol/admin#add-to-whitelist-out")
+        command_node.setProp("action", "execute")
+        self.comp.handle_command(info_query)
+        result = self.comp.stream.sent
+        self.assertNotEquals(result, None)
+        self.assertEquals(len(result), 1)
+        error = result[0].get_error()
+        self.assertNotEquals(error, None)
+
+    def test_handle_command_execute_get_registered_users_num(self):
+        #TODO : implement command
+        self.comp.stream = MockStream()
+        self.comp.stream_class = MockStream
+        info_query = Iq(stanza_type="set",
+                        from_jid="user1@test.com",
+                        to_jid="jcl.test.com")
+        command_node = info_query.set_new_content("http://jabber.org/protocol/commands",
+                                                  "command")
+        command_node.setProp("node", "http://jabber.org/protocol/admin#get-registered-users-num")
+        command_node.setProp("action", "execute")
+        self.comp.handle_command(info_query)
+        result = self.comp.stream.sent
+        self.assertNotEquals(result, None)
+        self.assertEquals(len(result), 1)
+        error = result[0].get_error()
+        self.assertNotEquals(error, None)
+
+    def test_handle_command_execute_get_disabled_users_num(self):
+        #TODO : implement command
+        self.comp.stream = MockStream()
+        self.comp.stream_class = MockStream
+        info_query = Iq(stanza_type="set",
+                        from_jid="user1@test.com",
+                        to_jid="jcl.test.com")
+        command_node = info_query.set_new_content("http://jabber.org/protocol/commands",
+                                                  "command")
+        command_node.setProp("node", "http://jabber.org/protocol/admin#get-disabled-users-num")
+        command_node.setProp("action", "execute")
+        self.comp.handle_command(info_query)
+        result = self.comp.stream.sent
+        self.assertNotEquals(result, None)
+        self.assertEquals(len(result), 1)
+        error = result[0].get_error()
+        self.assertNotEquals(error, None)
+
+    def test_handle_command_execute_get_online_users_num(self):
+        #TODO : implement command
+        self.comp.stream = MockStream()
+        self.comp.stream_class = MockStream
+        info_query = Iq(stanza_type="set",
+                        from_jid="user1@test.com",
+                        to_jid="jcl.test.com")
+        command_node = info_query.set_new_content("http://jabber.org/protocol/commands",
+                                                  "command")
+        command_node.setProp("node", "http://jabber.org/protocol/admin#get-online-users-num")
+        command_node.setProp("action", "execute")
+        self.comp.handle_command(info_query)
+        result = self.comp.stream.sent
+        self.assertNotEquals(result, None)
+        self.assertEquals(len(result), 1)
+        error = result[0].get_error()
+        self.assertNotEquals(error, None)
+
+    def test_handle_command_execute_get_active_users_num(self):
+        #TODO : implement command
+        self.comp.stream = MockStream()
+        self.comp.stream_class = MockStream
+        info_query = Iq(stanza_type="set",
+                        from_jid="user1@test.com",
+                        to_jid="jcl.test.com")
+        command_node = info_query.set_new_content("http://jabber.org/protocol/commands",
+                                                  "command")
+        command_node.setProp("node", "http://jabber.org/protocol/admin#get-active-users-num")
+        command_node.setProp("action", "execute")
+        self.comp.handle_command(info_query)
+        result = self.comp.stream.sent
+        self.assertNotEquals(result, None)
+        self.assertEquals(len(result), 1)
+        error = result[0].get_error()
+        self.assertNotEquals(error, None)
+
+    def test_handle_command_execute_get_idle_users_num(self):
+        #TODO : implement command
+        self.comp.stream = MockStream()
+        self.comp.stream_class = MockStream
+        info_query = Iq(stanza_type="set",
+                        from_jid="user1@test.com",
+                        to_jid="jcl.test.com")
+        command_node = info_query.set_new_content("http://jabber.org/protocol/commands",
+                                                  "command")
+        command_node.setProp("node", "http://jabber.org/protocol/admin#get-idle-users-num")
+        command_node.setProp("action", "execute")
+        self.comp.handle_command(info_query)
+        result = self.comp.stream.sent
+        self.assertNotEquals(result, None)
+        self.assertEquals(len(result), 1)
+        error = result[0].get_error()
+        self.assertNotEquals(error, None)
+
+    def test_handle_command_execute_get_registered_users_list(self):
+        #TODO : implement command
+        self.comp.stream = MockStream()
+        self.comp.stream_class = MockStream
+        info_query = Iq(stanza_type="set",
+                        from_jid="user1@test.com",
+                        to_jid="jcl.test.com")
+        command_node = info_query.set_new_content("http://jabber.org/protocol/commands",
+                                                  "command")
+        command_node.setProp("node", "http://jabber.org/protocol/admin#get-registered-users-list")
+        command_node.setProp("action", "execute")
+        self.comp.handle_command(info_query)
+        result = self.comp.stream.sent
+        self.assertNotEquals(result, None)
+        self.assertEquals(len(result), 1)
+        error = result[0].get_error()
+        self.assertNotEquals(error, None)
+
+    def test_handle_command_execute_get_disabled_users_list(self):
+        #TODO : implement command
+        self.comp.stream = MockStream()
+        self.comp.stream_class = MockStream
+        info_query = Iq(stanza_type="set",
+                        from_jid="user1@test.com",
+                        to_jid="jcl.test.com")
+        command_node = info_query.set_new_content("http://jabber.org/protocol/commands",
+                                                  "command")
+        command_node.setProp("node", "http://jabber.org/protocol/admin#get-disabled-users-list")
+        command_node.setProp("action", "execute")
+        self.comp.handle_command(info_query)
+        result = self.comp.stream.sent
+        self.assertNotEquals(result, None)
+        self.assertEquals(len(result), 1)
+        error = result[0].get_error()
+        self.assertNotEquals(error, None)
+
+    def test_handle_command_execute_get_online_users(self):
+        #TODO : implement command
+        self.comp.stream = MockStream()
+        self.comp.stream_class = MockStream
+        info_query = Iq(stanza_type="set",
+                        from_jid="user1@test.com",
+                        to_jid="jcl.test.com")
+        command_node = info_query.set_new_content("http://jabber.org/protocol/commands",
+                                                  "command")
+        command_node.setProp("node", "http://jabber.org/protocol/admin#get-online-users")
+        command_node.setProp("action", "execute")
+        self.comp.handle_command(info_query)
+        result = self.comp.stream.sent
+        self.assertNotEquals(result, None)
+        self.assertEquals(len(result), 1)
+        error = result[0].get_error()
+        self.assertNotEquals(error, None)
+
+    def test_handle_command_execute_get_active_users(self):
+        #TODO : implement command
+        self.comp.stream = MockStream()
+        self.comp.stream_class = MockStream
+        info_query = Iq(stanza_type="set",
+                        from_jid="user1@test.com",
+                        to_jid="jcl.test.com")
+        command_node = info_query.set_new_content("http://jabber.org/protocol/commands",
+                                                  "command")
+        command_node.setProp("node", "http://jabber.org/protocol/admin#get-active-users")
+        command_node.setProp("action", "execute")
+        self.comp.handle_command(info_query)
+        result = self.comp.stream.sent
+        self.assertNotEquals(result, None)
+        self.assertEquals(len(result), 1)
+        error = result[0].get_error()
+        self.assertNotEquals(error, None)
+
+    def test_handle_command_execute_get_idle_users(self):
+        #TODO : implement command
+        self.comp.stream = MockStream()
+        self.comp.stream_class = MockStream
+        info_query = Iq(stanza_type="set",
+                        from_jid="user1@test.com",
+                        to_jid="jcl.test.com")
+        command_node = info_query.set_new_content("http://jabber.org/protocol/commands",
+                                                  "command")
+        command_node.setProp("node", "http://jabber.org/protocol/admin#get-idle-users")
+        command_node.setProp("action", "execute")
+        self.comp.handle_command(info_query)
+        result = self.comp.stream.sent
+        self.assertNotEquals(result, None)
+        self.assertEquals(len(result), 1)
+        error = result[0].get_error()
+        self.assertNotEquals(error, None)
+
+    def test_handle_command_execute_announce(self):
+        #TODO : implement command
+        self.comp.stream = MockStream()
+        self.comp.stream_class = MockStream
+        info_query = Iq(stanza_type="set",
+                        from_jid="user1@test.com",
+                        to_jid="jcl.test.com")
+        command_node = info_query.set_new_content("http://jabber.org/protocol/commands",
+                                                  "command")
+        command_node.setProp("node", "http://jabber.org/protocol/admin#announce")
+        command_node.setProp("action", "execute")
+        self.comp.handle_command(info_query)
+        result = self.comp.stream.sent
+        self.assertNotEquals(result, None)
+        self.assertEquals(len(result), 1)
+        error = result[0].get_error()
+        self.assertNotEquals(error, None)
+
+    def test_handle_command_execute_set_motd(self):
+        #TODO : implement command
+        self.comp.stream = MockStream()
+        self.comp.stream_class = MockStream
+        info_query = Iq(stanza_type="set",
+                        from_jid="user1@test.com",
+                        to_jid="jcl.test.com")
+        command_node = info_query.set_new_content("http://jabber.org/protocol/commands",
+                                                  "command")
+        command_node.setProp("node", "http://jabber.org/protocol/admin#set-motd")
+        command_node.setProp("action", "execute")
+        self.comp.handle_command(info_query)
+        result = self.comp.stream.sent
+        self.assertNotEquals(result, None)
+        self.assertEquals(len(result), 1)
+        error = result[0].get_error()
+        self.assertNotEquals(error, None)
+
+    def test_handle_command_execute_edit_motd(self):
+        #TODO : implement command
+        self.comp.stream = MockStream()
+        self.comp.stream_class = MockStream
+        info_query = Iq(stanza_type="set",
+                        from_jid="user1@test.com",
+                        to_jid="jcl.test.com")
+        command_node = info_query.set_new_content("http://jabber.org/protocol/commands",
+                                                  "command")
+        command_node.setProp("node", "http://jabber.org/protocol/admin#edit-motd")
+        command_node.setProp("action", "execute")
+        self.comp.handle_command(info_query)
+        result = self.comp.stream.sent
+        self.assertNotEquals(result, None)
+        self.assertEquals(len(result), 1)
+        error = result[0].get_error()
+        self.assertNotEquals(error, None)
+
+    def test_handle_command_execute_delete_motd(self):
+        #TODO : implement command
+        self.comp.stream = MockStream()
+        self.comp.stream_class = MockStream
+        info_query = Iq(stanza_type="set",
+                        from_jid="user1@test.com",
+                        to_jid="jcl.test.com")
+        command_node = info_query.set_new_content("http://jabber.org/protocol/commands",
+                                                  "command")
+        command_node.setProp("node", "http://jabber.org/protocol/admin#delete-motd")
+        command_node.setProp("action", "execute")
+        self.comp.handle_command(info_query)
+        result = self.comp.stream.sent
+        self.assertNotEquals(result, None)
+        self.assertEquals(len(result), 1)
+        error = result[0].get_error()
+        self.assertNotEquals(error, None)
+
+    def test_handle_command_execute_set_welcome(self):
+        #TODO : implement command
+        self.comp.stream = MockStream()
+        self.comp.stream_class = MockStream
+        info_query = Iq(stanza_type="set",
+                        from_jid="user1@test.com",
+                        to_jid="jcl.test.com")
+        command_node = info_query.set_new_content("http://jabber.org/protocol/commands",
+                                                  "command")
+        command_node.setProp("node", "http://jabber.org/protocol/admin#set-welcome")
+        command_node.setProp("action", "execute")
+        self.comp.handle_command(info_query)
+        result = self.comp.stream.sent
+        self.assertNotEquals(result, None)
+        self.assertEquals(len(result), 1)
+        error = result[0].get_error()
+        self.assertNotEquals(error, None)
+
+    def test_handle_command_execute_delete_welcome(self):
+        #TODO : implement command
+        self.comp.stream = MockStream()
+        self.comp.stream_class = MockStream
+        info_query = Iq(stanza_type="set",
+                        from_jid="user1@test.com",
+                        to_jid="jcl.test.com")
+        command_node = info_query.set_new_content("http://jabber.org/protocol/commands",
+                                                  "command")
+        command_node.setProp("node", "http://jabber.org/protocol/admin#delete-welcome")
+        command_node.setProp("action", "execute")
+        self.comp.handle_command(info_query)
+        result = self.comp.stream.sent
+        self.assertNotEquals(result, None)
+        self.assertEquals(len(result), 1)
+        error = result[0].get_error()
+        self.assertNotEquals(error, None)
+
+    def test_handle_command_execute_edit_admin(self):
+        #TODO : implement command
+        self.comp.stream = MockStream()
+        self.comp.stream_class = MockStream
+        info_query = Iq(stanza_type="set",
+                        from_jid="user1@test.com",
+                        to_jid="jcl.test.com")
+        command_node = info_query.set_new_content("http://jabber.org/protocol/commands",
+                                                  "command")
+        command_node.setProp("node", "http://jabber.org/protocol/admin#edit-admin")
+        command_node.setProp("action", "execute")
+        self.comp.handle_command(info_query)
+        result = self.comp.stream.sent
+        self.assertNotEquals(result, None)
+        self.assertEquals(len(result), 1)
+        error = result[0].get_error()
+        self.assertNotEquals(error, None)
+
+    def test_handle_command_execute_restart(self):
+        #TODO : implement command
+        self.comp.stream = MockStream()
+        self.comp.stream_class = MockStream
+        info_query = Iq(stanza_type="set",
+                        from_jid="user1@test.com",
+                        to_jid="jcl.test.com")
+        command_node = info_query.set_new_content("http://jabber.org/protocol/commands",
+                                                  "command")
+        command_node.setProp("node", "http://jabber.org/protocol/admin#restart")
+        command_node.setProp("action", "execute")
+        self.comp.handle_command(info_query)
+        result = self.comp.stream.sent
+        self.assertNotEquals(result, None)
+        self.assertEquals(len(result), 1)
+        error = result[0].get_error()
+        self.assertNotEquals(error, None)
+
+    def test_handle_command_execute_shutdown(self):
+        #TODO : implement command
+        self.comp.stream = MockStream()
+        self.comp.stream_class = MockStream
+        info_query = Iq(stanza_type="set",
+                        from_jid="user1@test.com",
+                        to_jid="jcl.test.com")
+        command_node = info_query.set_new_content("http://jabber.org/protocol/commands",
+                                                  "command")
+        command_node.setProp("node", "http://jabber.org/protocol/admin#shutdown")
+        command_node.setProp("action", "execute")
+        self.comp.handle_command(info_query)
+        result = self.comp.stream.sent
+        self.assertNotEquals(result, None)
+        self.assertEquals(len(result), 1)
+        error = result[0].get_error()
+        self.assertNotEquals(error, None)
 
 class Handler_TestCase(unittest.TestCase):
     def setUp(self):

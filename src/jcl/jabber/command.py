@@ -86,7 +86,7 @@ class CommandManager(object):
         if hasattr(self, action_command_method):
             return getattr(self, action_command_method)(info_query)
         else:
-            return None
+            return [info_query.make_error_response("feature-not-implemented")]
 
 command_manager = CommandManager()
 
