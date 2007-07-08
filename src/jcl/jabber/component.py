@@ -285,7 +285,8 @@ class JCLComponent(Component, object):
 
     def apply_registered_behavior(self, handlers, stanza,
                                   apply_filter_func=None,
-                                  apply_handle_func=None):
+                                  apply_handle_func=None,
+                                  send_result=True):
         """Execute handler if their filter method does not return None"""
         result = []
         lang_class = self.lang.get_lang_class_from_node(stanza.get_node())
@@ -322,7 +323,8 @@ class JCLComponent(Component, object):
                                        stanza_type="error",
                                        subject=lang_class.error_subject,
                                        body=lang_class.error_body % (e.message))]
-        self.send_stanzas(result)
+        if send_result:
+            self.send_stanzas(result)
         return result
 
     def handle_get_gateway(self, info_query):
@@ -365,8 +367,12 @@ class JCLComponent(Component, object):
             lambda filter_func, stanza, lang_class: \
                 filter_func(stanza, lang_class, node),
             lambda handle_func, stanza, lang_class, data, result: \
-                handle_func(stanza, lang_class, node, result, data))
-        return result
+                handle_func(stanza, lang_class, node, result, data),
+            send_result=False)
+        if len(result) > 0:
+            return result[0]
+        else:
+            return None
 
     def disco_get_items(self, node, info_query):
         """
@@ -378,8 +384,12 @@ class JCLComponent(Component, object):
             lambda filter_func, stanza, lang_class: \
                 filter_func(stanza, lang_class, node),
             lambda handle_func, stanza, lang_class, data, result: \
-                handle_func(stanza, lang_class, node, result, data))
-        return result
+                handle_func(stanza, lang_class, node, result, data),
+            send_result=False)
+        if len(result) > 0:
+            return result[0]
+        else:
+            return None
 
     def handle_get_version(self, info_query):
         """Get Version handler
