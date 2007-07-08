@@ -31,6 +31,7 @@ import logging
 from jcl.jabber import Handler
 from jcl.jabber.component import JCLComponent
 from jcl.lang import Lang
+import jcl.model as model
 from jcl.model.account import Account
 
 from pyxmpp.message import Message
@@ -48,14 +49,12 @@ class FeederComponent(JCLComponent):
                  secret,
                  server,
                  port,
-                 db_connection_str,
                  lang = Lang()):
         JCLComponent.__init__(self,
                               jid,
                               secret,
                               server,
                               port,
-                              db_connection_str,
                               lang=lang)
         # Define default feeder and sender, can be override
         self.handler = FeederHandler(Feeder(self), Sender(self))
@@ -65,12 +64,12 @@ class FeederComponent(JCLComponent):
         
     def handle_tick(self):
         """Implement main feed/send behavior"""
-        self.db_connect()
+        model.db_connect()
         self.handler.handle(\
             None, self.lang.get_default_lang_class(), 
             self.handler.filter(None, 
                                 self.lang.get_default_lang_class()))
-        self.db_disconnect()
+        model.db_disconnect()
 
 
 

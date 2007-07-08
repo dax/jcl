@@ -27,7 +27,8 @@ from pyxmpp.jabber.dataforms import Form, Field
 
 import jcl
 from jcl.lang import Lang
-from jcl.jabber import DiscoHandler
+from jcl.jabber.disco import DiscoHandler, RootDiscoGetInfoHandler
+import jcl.model as model
 from jcl.model.account import Account
 
 COMMAND_NS = "http://jabber.org/protocol/commands"
@@ -146,47 +147,60 @@ class JCLCommandManager(CommandManager):
                                                  field_type="fixed",
                                                  label="Account name")) # TODO: add to Lang
         bare_from_jid = unicode(info_query.get_from().bare())
-        self.account_manager.db_connect()
+        model.db_connect()
         accounts = Account.select(Account.q.user_jid == bare_from_jid)
         for _account in accounts:
             fields = [Field(name="name",
                             field_type="fixed",
                             value=_account.name)]
             result_form.add_item(fields)
-        self.account_manager.db_disconnect()
+        model.db_disconnect()
         result_form.as_xml(command_node)
         return [response]
+
+class CommandRootDiscoGetInfoHandler(RootDiscoGetInfoHandler):
+
+    def handle(self, info_query, lang_class, node, disco_obj, data):
+        """Add command feature to DiscoInfo"""
+        disco_infos = RootDiscoGetInfoHandler.handle(self, info_query,
+                                                    lang_class, node,
+                                                    disco_obj, data)
+        disco_infos[0].add_feature(COMMAND_NS)
+        return disco_infos
 
 class CommandDiscoGetInfoHandler(DiscoHandler):
     """Handle Ad-Hoc command disco get info requests"""
 
-    def filter(self, node, info_query):
+    def filter(self, info_query, lang_class, node):
         """
         Filter requests to be handled. Only known commands
         """
         return (node in command_manager.commands)
 
-    def handle(self, disco_info, node, info_query, data, lang_class):
+    def handle(self, info_query, lang_class, node, disco_obj, data):
         """
         Return infos for given command
         """
-        if not disco_info:
-            disco_info = DiscoInfo()
-        return command_manager.get_command_info(disco_info, node, lang_class)
+        if not disco_obj:
+            disco_obj = DiscoInfo()
+        return [command_manager.get_command_info(disco_info=disco_obj,
+                                                 command_name=node,
+                                                 lang_class=lang_class)]
 
 class CommandDiscoGetItemsHandler(DiscoHandler):
     """Handle Ad-Hoc command disco get items requests"""
 
-    def filter(self, node, info_query):
+    def filter(self, info_query, lang_class, node):
         """
         Filter requests to be handled.
         """
         return (node == 'http://jabber.org/protocol/commands')
 
-    def handle(self, disco_items, node, info_query, data, lang_class):
+    def handle(self, info_query, lang_class, node, disco_obj, data):
         """
         """
-        if not disco_items:
-            disco_items = DiscoItems()
-        return command_manager.list_commands(disco_items, lang_class)
+        if not disco_obj:
+            disco_obj = DiscoItems()
+        return [command_manager.list_commands(disco_items=disco_obj,
+                                              lang_class=lang_class)]
 

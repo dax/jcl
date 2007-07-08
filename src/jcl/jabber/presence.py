@@ -24,17 +24,19 @@
 from pyxmpp.presence import Presence
 
 from jcl.jabber import Handler
+import jcl.jabber as jabber
+import jcl.model as model
 
 class DefaultPresenceHandler(Handler):
     """Handle presence"""
 
-    def handle(self, presence, lang_class, data):
+    def handle(self, stanza, lang_class, data):
         """Return same presence as receive one"""
-        to_jid = presence.get_to()
-        from_jid = presence.get_from()
-        presence.set_to(from_jid)
-        presence.set_from(to_jid)
-        return [presence]
+        to_jid = stanza.get_to()
+        from_jid = stanza.get_from()
+        stanza.set_to(from_jid)
+        stanza.set_from(to_jid)
+        return [stanza]
 
 class DefaultSubscribeHandler(Handler):
     """Return default response to subscribe queries"""
@@ -64,3 +66,94 @@ class DefaultUnsubscribeHandler(Handler):
                                stanza_type="unsubscribed"))
         return result
 
+class AccountPresenceHandler(Handler):
+    filter = jabber.get_account_filter
+    
+    def handle(self, stanza, lang_class, data):
+        """Handle presence sent to an account JID"""
+        result = []
+        _account = data
+        result.extend(self.get_account_presence(stanza, lang_class, _account))
+        return result
+
+class AccountPresenceAvailableHandler(AccountPresenceHandler):
+    def get_account_presence(self, stanza, lang_class, _account):
+        return self.component.account_manager.send_presence_available(_account,
+                                                                      stanza.get_show(),
+                                                                      lang_class)
+
+class RootPresenceHandler(Handler):
+    filter = jabber.get_accounts_root_filter
+
+    def handle(self, stanza, lang_class, data):
+        """handle presence sent to component JID"""
+        result = []
+        accounts_length = 0
+        accounts = data
+        for _account in accounts:
+            accounts_length += 1
+            result.extend(self.get_account_presence(stanza, lang_class, _account))
+        if accounts_length > 0:
+            result.extend(self.get_root_presence(stanza, lang_class, accounts_length))
+        return result
+        
+class RootPresenceAvailableHandler(RootPresenceHandler, AccountPresenceAvailableHandler):
+    def get_root_presence(self, stanza, lang_class, nb_accounts):
+        return self.component.account_manager.send_root_presence(stanza.get_from(),
+                                                                 "available",
+                                                                 stanza.get_show(),
+                                                                 str(nb_accounts) +
+                                                                 lang_class.message_status)
+        
+
+class AccountPresenceUnavailableHandler(AccountPresenceHandler):
+    def get_account_presence(self, stanza, lang_class, _account):
+        return self.component.account_manager.send_presence_unavailable(_account)
+
+class RootPresenceUnavailableHandler(RootPresenceHandler, AccountPresenceUnavailableHandler):    
+    def get_root_presence(self, stanza, lang_class, nb_accounts):
+        return self.component.account_manager.send_root_presence(stanza.get_from(),
+                                                                 "unavailable")
+
+class AccountPresenceSubscribeHandler(Handler):
+    """"""
+
+    filter = jabber.get_account_filter
+
+    def handle(self, stanza, lang_class, data):
+        """Handle \"subscribe\" iq sent to an account JID"""
+        return [stanza.make_accept_response()]
+
+class RootPresenceSubscribeHandler(AccountPresenceSubscribeHandler):
+    """"""
+
+    filter = jabber.get_accounts_root_filter
+
+    def handle(self, stanza, lang_class, data):
+        """Handle \"subscribe\" iq sent to component JID"""
+        if list(data) != []:
+            return AccountPresenceSubscribeHandler.handle(self, stanza,
+                                                          lang_class, None)
+        else:
+            return None
+
+class AccountPresenceUnsubscribeHandler(Handler):
+    """"""
+
+    filter = jabber.get_account_filter
+
+    def handle(self, stanza, lang_class, data):
+        """Handle \"unsubscribe\" iq sent to account JID"""
+        result = []
+        from_jid = stanza.get_from()
+        _account = data
+        model.db_connect()
+        result.append(Presence(from_jid=_account.jid,
+                               to_jid=from_jid,
+                               stanza_type="unsubscribe"))
+        result.append(Presence(from_jid=_account.jid,
+                               to_jid=from_jid,
+                               stanza_type="unsubscribed"))
+        _account.destroySelf()
+        model.db_disconnect()
+        return result

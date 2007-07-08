@@ -28,6 +28,7 @@ from getopt import gnu_getopt
 
 from sqlobject import *
 
+import jcl.model as model
 from jcl.model import account
 from jcl.model.account import Account, PresenceAccount
 
@@ -48,35 +49,35 @@ class JCLRunner(object):
         self.language = "en"
         self.db_url = "sqlite:///var/spool/jabber/jcl.db"
         self.pid_file = "/var/run/jabber/jcl.pid"
-        self.options = [("c:", "config-file=", None, \
-                         " FILE\t\t\t\tConfiguration file to use", \
-                         lambda arg: self.set_attr("config_file", arg)), \
-                        ("S:", "server=", "jabber", \
-                         " SERVER_ADDRESS\t\t\tAddress of the Jabber server", \
-                         lambda arg: self.set_attr("server", arg)), \
-                        ("P:", "port=", "jabber", \
-                         " PORT\t\t\t\t\tPort of the Jabber server to connect the component", \
-                         lambda arg: self.set_attr("port", int(arg))), \
-                        ("s:", "secret=", "jabber", \
-                         " SECRET\t\t\t\tComponent password to connect to the Jabber server", \
-                         lambda arg: self.set_attr("secret", arg)), \
-                        ("j:", "service-jid=", "jabber", \
-                         " JID\t\t\t\tJID of the component", \
-                         lambda arg: self.set_attr("service_jid", arg)), \
-                        ("l:", "language=", "jabber", \
-                         " LANG\t\t\t\tDefault Language of the component", \
-                         lambda arg: self.set_attr("language", arg)), \
-                        ("u:", "db-url=", "db", \
-                         " URL\t\t\t\tDatabase URL", \
-                         lambda arg: self.set_attr("db_url", arg)), \
-                        ("p:", "pid-file=", "component", \
-                         " FILE\t\t\t\tPath of the PID file", \
-                         lambda arg: self.set_attr("pid_file", arg)), \
-                        ("d", "debug", None, \
-                         "\t\t\t\t\tEnable debug traces", \
-                         lambda arg: self.set_attr("debug", True)), \
-                        ("h", "help", None, \
-                         "\t\t\t\t\tThis help", \
+        self.options = [("c:", "config-file=", None,
+                         " FILE\t\t\t\tConfiguration file to use",
+                         lambda arg: self.set_attr("config_file", arg)),
+                        ("S:", "server=", "jabber",
+                         " SERVER_ADDRESS\t\t\tAddress of the Jabber server",
+                         lambda arg: self.set_attr("server", arg)),
+                        ("P:", "port=", "jabber",
+                         " PORT\t\t\t\t\tPort of the Jabber server to connect the component",
+                         lambda arg: self.set_attr("port", int(arg))),
+                        ("s:", "secret=", "jabber",
+                         " SECRET\t\t\t\tComponent password to connect to the Jabber server",
+                         lambda arg: self.set_attr("secret", arg)),
+                        ("j:", "service-jid=", "jabber",
+                         " JID\t\t\t\tJID of the component",
+                         lambda arg: self.set_attr("service_jid", arg)),
+                        ("l:", "language=", "jabber",
+                         " LANG\t\t\t\tDefault Language of the component",
+                         lambda arg: self.set_attr("language", arg)),
+                        ("u:", "db-url=", "db",
+                         " URL\t\t\t\tDatabase URL",
+                         lambda arg: self.set_attr("db_url", arg)),
+                        ("p:", "pid-file=", "component",
+                         " FILE\t\t\t\tPath of the PID file",
+                         lambda arg: self.set_attr("pid_file", arg)),
+                        ("d", "debug", None,
+                         "\t\t\t\t\tEnable debug traces",
+                         lambda arg: self.set_attr("debug", True)),
+                        ("h", "help", None,
+                         "\t\t\t\t\tThis help",
                          lambda arg: self.print_help())]
         self.logger = logging.getLogger()
         self.logger.addHandler(logging.StreamHandler())
@@ -97,7 +98,7 @@ class JCLRunner(object):
     def __apply_commandline_args(self, commandline_args, cleanopts):
         for arg in commandline_args:
             value = commandline_args[arg]
-            self.logger.debug("Applying argument " + arg + " = " + \
+            self.logger.debug("Applying argument " + arg + " = " +
                               value)
             cleanopts[arg][1](value)
 
@@ -118,9 +119,9 @@ class JCLRunner(object):
                     if section is not None:
                         attr = opt.replace("-", "_")
                         config_property = self.config.get(section, attr)
-                        self.logger.debug("Setting " + attr + " = " + \
-                                          config_property + \
-                                          " from configuration file " + \
+                        self.logger.debug("Setting " + attr + " = " +
+                                          config_property +
+                                          " from configuration file " +
                                           self.config_file)
                         set_func(config_property)
         
@@ -175,8 +176,8 @@ class JCLRunner(object):
     
     
     def setup_db(self):
-        Account.createTable(ifNotExists = True)
-        PresenceAccount.createTable(ifNotExists = True)
+        Account.createTable(ifNotExists=True)
+        PresenceAccount.createTable(ifNotExists=True)
 
     def setup_pidfile(self):
         pidfile = open(self.pid_file, "w")
@@ -186,10 +187,11 @@ class JCLRunner(object):
     def _run(self, run_func):
         try:
             self.setup_pidfile()
-            account.hub.threadConnection = connectionForURI(self.db_url)
+            model.db_connection_str = self.db_url
+            model.db_connect()
             self.setup_db()
-            del account.hub.threadConnection
-            self.logger.debug(self.component_name + " v" + \
+            model.db_disconnect()
+            self.logger.debug(self.component_name + " v" +
                               self.component_version + " is starting ...")
             run_func()
             self.logger.debug(self.component_name + " is exiting")
@@ -199,12 +201,11 @@ class JCLRunner(object):
 
     def run(self):
         def run_func():
-            component = JCLComponent(jid = self.service_jid, \
-                                      secret = self.secret, \
-                                      server = self.server, \
-                                      port = self.port, \
-                                      db_connection_str = self.db_url, \
-                                      lang = Lang(self.language))
+            component = JCLComponent(jid=self.service_jid,
+                                     secret=self.secret,
+                                     server=self.server,
+                                     port=self.port,
+                                     lang=Lang(self.language))
             component.run()
         self._run(run_func)
 

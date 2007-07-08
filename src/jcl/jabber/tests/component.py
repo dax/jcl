@@ -45,6 +45,7 @@ from jcl.jabber.component import JCLComponent, Handler
 from jcl.jabber.message import PasswordMessageHandler
 from jcl.jabber.presence import DefaultSubscribeHandler, \
     DefaultUnsubscribeHandler, DefaultPresenceHandler
+import jcl.model as model
 from jcl.model import account
 from jcl.model.account import Account, LegacyJID
 from jcl.lang import Lang
@@ -156,7 +157,7 @@ class HandlerMock(object):
         self.handled = []
 
     def filter(self, stanza, lang_class):
-        return []
+        return True
 
     def handle(self, stanza, lang_class, data):
         self.handled.append((stanza, lang_class, data))
@@ -172,26 +173,26 @@ class JCLComponent_TestCase(unittest.TestCase):
         self.comp = JCLComponent("jcl.test.com",
                                  "password",
                                  "localhost",
-                                 "5347",
-                                 'sqlite://' + DB_URL)
-        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
+                                 "5347")
+        model.db_connection_str = 'sqlite://' + DB_URL
+        model.db_connect()
         Account.createTable(ifNotExists = True)
         LegacyJID.createTable(ifNotExists=True)
         ExampleAccount.createTable(ifNotExists = True)
         Example2Account.createTable(ifNotExists = True)
-        del account.hub.threadConnection
+        model.db_disconnect()
         self.max_tick_count = 1
         self.saved_time_handler = None
 
     def tearDown(self):
-        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
+        model.db_connect()
         Example2Account.dropTable(ifExists = True)
         ExampleAccount.dropTable(ifExists = True)
         LegacyJID.dropTable(ifExists=True)
         Account.dropTable(ifExists = True)
         del TheURIOpener.cachedURIs['sqlite://' + DB_URL]
-        account.hub.threadConnection.close()
-        del account.hub.threadConnection
+        model.hub.threadConnection.close()
+        model.db_disconnect()
         if os.path.exists(DB_PATH):
             os.unlink(DB_PATH)
 
@@ -199,9 +200,9 @@ class JCLComponent_TestCase(unittest.TestCase):
     # Constructor tests
     ###########################################################################
     def test_constructor(self):
-        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
+        model.db_connect()
         self.assertTrue(Account._connection.tableExists("account"))
-        del account.hub.threadConnection
+        model.db_disconnect()
 
     ###########################################################################
     # apply_registered_behavior tests
@@ -211,7 +212,7 @@ class JCLComponent_TestCase(unittest.TestCase):
         self.comp.stream_class = MockStreamNoConnect
         message = Message(from_jid="user1@test.com",
                           to_jid="account11@jcl.test.com")
-        result = self.comp.apply_registered_behavior([ErrorHandler()], message)
+        result = self.comp.apply_registered_behavior([[ErrorHandler(None)]], message)
         self.assertEquals(len(result), 1)
         self.assertEquals(result[0].get_type(), "error")
         self.assertEquals(len(self.comp.stream.sent), 1)
@@ -224,7 +225,7 @@ class JCLComponent_TestCase(unittest.TestCase):
                           to_jid="account11@jcl.test.com")
         handler1 = HandlerMock()
         handler2 = HandlerMock()
-        result = self.comp.apply_registered_behavior([handler1, handler2],
+        result = self.comp.apply_registered_behavior([[handler1], [handler2]],
                                                      message)
         self.assertEquals(len(result), 2)
         self.assertEquals(result[0][0], message)
@@ -237,9 +238,8 @@ class JCLComponent_TestCase(unittest.TestCase):
                           to_jid="account11@jcl.test.com")
         handler1 = HandlerMock()
         handler2 = HandlerMock()
-        result = self.comp.apply_registered_behavior([handler1, handler2],
-                                                     message,
-                                                     apply_all=False)
+        result = self.comp.apply_registered_behavior([[handler1, handler2]],
+                                                     message)
         self.assertEquals(len(result), 1)
         self.assertEquals(result[0][0], message)
         self.assertEquals(len(handler1.handled), 1)
@@ -316,7 +316,7 @@ class JCLComponent_TestCase(unittest.TestCase):
         self.comp.time_unit = 1
         self.max_tick_count = 1
         self.comp.handle_tick = self.__handle_tick_test_time_handler
-        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
+        model.db_connect()
         account11 = Account(user_jid = "test1@test.com", \
                             name = "account11", \
                             jid = "account11@jcl.test.com")
@@ -326,7 +326,7 @@ class JCLComponent_TestCase(unittest.TestCase):
         account2 = Account(user_jid = "test2@test.com", \
                            name = "account2", \
                            jid = "account2@jcl.test.com")
-        del account.hub.threadConnection
+        model.db_disconnect()
         self.comp.run()
         self.assertTrue(self.comp.stream.connection_started)
         threads = threading.enumerate()
@@ -404,7 +404,7 @@ class JCLComponent_TestCase(unittest.TestCase):
         self.assertTrue(True)
 
     def test_authenticated_send_probe(self):
-        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
+        model.db_connect()
         account11 = Account(user_jid = "test1@test.com", \
                             name = "account11", \
                             jid = "account11@jcl.test.com")
@@ -414,7 +414,7 @@ class JCLComponent_TestCase(unittest.TestCase):
         account2 = Account(user_jid = "test2@test.com", \
                            name = "account2", \
                            jid = "account2@jcl.test.com")
-        del account.hub.threadConnection
+        model.db_disconnect()
         self.comp.stream = MockStream()
         self.comp.authenticated()
         self.assertEqual(len(self.comp.stream.sent), 5)
@@ -500,39 +500,55 @@ class JCLComponent_TestCase(unittest.TestCase):
     # 'disco_get_info' tests
     ###########################################################################
     def test_disco_get_info(self):
+        self.comp.stream = MockStream()
+        self.comp.stream_class = MockStream
         info_query = Iq(stanza_type="get",
                         from_jid="user1@test.com",
                         to_jid="jcl.test.com")
-        disco_info = self.comp.disco_get_info(None, info_query)
+        disco_infos = self.comp.disco_get_info(None, info_query)
+        self.assertEquals(len(disco_infos), 1)
+        disco_info = disco_infos[0]
         self.assertEquals(disco_info.get_identities()[0].get_name(), self.comp.name)
         self.assertTrue(disco_info.has_feature("jabber:iq:version"))
         self.assertTrue(disco_info.has_feature("jabber:iq:register"))
 
     def test_disco_get_info_multiple_account_type(self):
         self.comp.account_manager.account_classes = (ExampleAccount, Example2Account)
+        self.comp.stream = MockStream()
+        self.comp.stream_class = MockStream
         info_query = Iq(stanza_type="get",
                         from_jid="user1@test.com",
                         to_jid="jcl.test.com")
-        disco_info = self.comp.disco_get_info(None, info_query)
+        disco_infos = self.comp.disco_get_info(None, info_query)
+        self.assertEquals(len(disco_infos), 1)
+        disco_info = disco_infos[0]
         self.assertEquals(disco_info.get_identities()[0].get_name(),
                           self.comp.name)
         self.assertTrue(disco_info.has_feature("jabber:iq:version"))
         self.assertFalse(disco_info.has_feature("jabber:iq:register"))
 
     def test_disco_get_info_node(self):
+        self.comp.stream = MockStream()
+        self.comp.stream_class = MockStream
         info_query = Iq(stanza_type="get",
                         from_jid="user1@test.com",
                         to_jid="node_test@jcl.test.com")
-        disco_info = self.comp.disco_get_info("node_test", info_query)
+        disco_infos = self.comp.disco_get_info("node_test", info_query)
+        self.assertEquals(len(disco_infos), 1)
+        disco_info = disco_infos[0]
         self.assertTrue(disco_info.has_feature("jabber:iq:register"))
 
     def test_disco_get_info_long_node(self):
         self.comp.account_manager.account_classes = (ExampleAccount, Example2Account)
+        self.comp.stream = MockStream()
+        self.comp.stream_class = MockStream
         info_query = Iq(stanza_type="get",
                         from_jid="user1@test.com",
                         to_jid="node_test@jcl.test.com/node_type")
-        disco_info = self.comp.disco_get_info("node_type/node_test",
-                                              info_query)
+        disco_infos = self.comp.disco_get_info("node_type/node_test",
+                                               info_query)
+        self.assertEquals(len(disco_infos), 1)
+        disco_info = disco_infos[0]
         self.assertTrue(disco_info.has_feature("jabber:iq:register"))
 
     def test_disco_get_info_root_unknown_node(self):
@@ -540,14 +556,17 @@ class JCLComponent_TestCase(unittest.TestCase):
                         from_jid="user1@test.com",
                         to_jid="jcl.test.com")
         disco_info = self.comp.disco_get_info("unknown", info_query)
-        self.assertEquals(disco_info, None)
+        self.assertEquals(disco_info, [])
 
     def test_disco_get_info_command_list(self):
+        self.comp.stream = MockStream()
+        self.comp.stream_class = MockStream
         info_query = Iq(stanza_type="get",
                         from_jid="user1@test.com",
                         to_jid="jcl.test.com")
-        disco_info = self.comp.disco_get_info("list", info_query)
-        self.assertNotEquals(disco_info, None)
+        disco_infos = self.comp.disco_get_info("list", info_query)
+        self.assertEquals(len(disco_infos), 1)
+        disco_info = disco_infos[0]
         self.assertTrue(disco_info.has_feature("http://jabber.org/protocol/commands"))
         self.assertEquals(len(disco_info.get_identities()), 1)
         self.assertEquals(disco_info.get_identities()[0].get_category(),
@@ -562,88 +581,92 @@ class JCLComponent_TestCase(unittest.TestCase):
     ###########################################################################
     def test_disco_get_items_1type_no_node(self):
         """get_items on main entity. Must list accounts"""
-        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
+        model.db_connect()
+        self.comp.stream = MockStream()
+        self.comp.stream_class = MockStream
         account1 = Account(user_jid = "user1@test.com", \
                            name = "account1", \
                            jid = "account1@jcl.test.com")
-        del account.hub.threadConnection
+        model.db_disconnect()
         info_query = Iq(stanza_type = "get", \
                         from_jid = "user1@test.com", \
                         to_jid = "jcl.test.com")
         disco_items = self.comp.disco_get_items(None, info_query)
-        self.assertEquals(len(disco_items.get_items()), 1)
-        disco_item = disco_items.get_items()[0]
+        self.assertEquals(len(disco_items[0].get_items()), 1)
+        disco_item = disco_items[0].get_items()[0]
         self.assertEquals(disco_item.get_jid(), account1.jid)
         self.assertEquals(disco_item.get_node(), account1.name)
         self.assertEquals(disco_item.get_name(), account1.long_name)
 
     def test_disco_get_items_unknown_node(self):
         self.comp.account_manager.account_classes = (ExampleAccount, )
-        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
+        model.db_connect()
         account11 = ExampleAccount(user_jid="user1@test.com",
                                    name="account11",
                                    jid="account11@jcl.test.com")
-        del account.hub.threadConnection
+        model.db_disconnect()
         info_query = Iq(stanza_type="get",
                         from_jid="user1@test.com",
                         to_jid="jcl.test.com")
         disco_items = self.comp.disco_get_items("unknown", info_query)
-        self.assertEquals(disco_items, None)
+        self.assertEquals(disco_items, [])
 
     def test_disco_get_items_unknown_node_multiple_account_types(self):
         self.comp.account_manager.account_classes = (ExampleAccount, Example2Account)
-        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
+        model.db_connect()
         account11 = ExampleAccount(user_jid="user1@test.com",
                                    name="account11",
                                    jid="account11@jcl.test.com")
         account21 = Example2Account(user_jid="user1@test.com",
                                     name="account21",
                                     jid="account21@jcl.test.com")
-        del account.hub.threadConnection
+        model.db_disconnect()
         info_query = Iq(stanza_type="get",
                         from_jid="user1@test.com",
                         to_jid="jcl.test.com")
         self.comp.account_manager.has_multiple_account_type = True
         disco_items = self.comp.disco_get_items("unknown", info_query)
-        self.assertEquals(disco_items, None)
+        self.assertEquals(disco_items, [])
 
     def test_disco_get_items_1type_with_node(self):
         """get_items on an account. Must return nothing"""
-        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
+        model.db_connect()
         account1 = Account(user_jid="user1@test.com",
                            name="account1",
                            jid="account1@jcl.test.com")
-        del account.hub.threadConnection
+        model.db_disconnect()
         info_query = Iq(stanza_type="get",
                         from_jid="user1@test.com",
                         to_jid="account1@jcl.test.com")
         disco_items = self.comp.disco_get_items("account1", info_query)
-        self.assertEquals(disco_items, None)
+        self.assertEquals(disco_items, [])
 
     def test_disco_get_items_2types_no_node(self):
         """get_items on main entity. Must account types"""
         self.comp.lang = LangExample()
         self.comp.account_manager.account_classes = (ExampleAccount, Example2Account)
-        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
+        self.comp.stream = MockStream()
+        self.comp.stream_class = MockStream
+        model.db_connect()
         account11 = ExampleAccount(user_jid="user1@test.com",
                                    name="account11",
                                    jid="account11@jcl.test.com")
         account21 = Example2Account(user_jid="user1@test.com",
                                     name="account21",
                                     jid="account21@jcl.test.com")
-        del account.hub.threadConnection
+        model.db_disconnect()
         info_query = Iq(stanza_type="get",
                         from_jid="user1@test.com",
                         to_jid="jcl.test.com")
         disco_items = self.comp.disco_get_items(None, info_query)
-        self.assertEquals(len(disco_items.get_items()), 2)
-        disco_item = disco_items.get_items()[0]
+        self.assertEquals(len(disco_items[0].get_items()), 2)
+        disco_item = disco_items[0].get_items()[0]
         self.assertEquals(unicode(disco_item.get_jid()),
                           unicode(self.comp.jid) + "/Example")
         self.assertEquals(disco_item.get_node(), "Example")
         self.assertEquals(disco_item.get_name(),
                           LangExample.en.type_example_name)
-        disco_item = disco_items.get_items()[1]
+        disco_item = disco_items[0].get_items()[1]
         self.assertEquals(unicode(disco_item.get_jid()),
                           unicode(self.comp.jid) + "/Example2")
         self.assertEquals(disco_item.get_node(), "Example2")
@@ -656,26 +679,28 @@ class JCLComponent_TestCase(unittest.TestCase):
         """get_items on the first account type node. Must return account list of
         that type for the current user"""
         self.comp.account_manager.account_classes = (ExampleAccount, Example2Account)
-        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
-        account11 = ExampleAccount(user_jid = "user1@test.com", \
-                                   name = "account11", \
-                                   jid = "account11@jcl.test.com")
-        account12 = ExampleAccount(user_jid = "user2@test.com", \
-                                   name = "account12", \
-                                   jid = "account12@jcl.test.com")
-        account21 = Example2Account(user_jid = "user1@test.com", \
-                                    name = "account21", \
-                                    jid = "account21@jcl.test.com")
-        account22 = Example2Account(user_jid = "user2@test.com", \
-                                    name = "account22", \
-                                    jid = "account22@jcl.test.com")
-        del account.hub.threadConnection
-        info_query = Iq(stanza_type = "get", \
-                        from_jid = "user1@test.com", \
-                        to_jid = "jcl.test.com/Example")
+        self.comp.stream = MockStream()
+        self.comp.stream_class = MockStream
+        model.db_connect()
+        account11 = ExampleAccount(user_jid="user1@test.com",
+                                   name="account11",
+                                   jid="account11@jcl.test.com")
+        account12 = ExampleAccount(user_jid="user2@test.com",
+                                   name="account12",
+                                   jid="account12@jcl.test.com")
+        account21 = Example2Account(user_jid="user1@test.com",
+                                    name="account21",
+                                    jid="account21@jcl.test.com")
+        account22 = Example2Account(user_jid="user2@test.com",
+                                    name="account22",
+                                    jid="account22@jcl.test.com")
+        model.db_disconnect()
+        info_query = Iq(stanza_type="get",
+                        from_jid="user1@test.com",
+                        to_jid="jcl.test.com/Example")
         disco_items = self.comp.disco_get_items("Example", info_query)
-        self.assertEquals(len(disco_items.get_items()), 1)
-        disco_item = disco_items.get_items()[0]
+        self.assertEquals(len(disco_items[0].get_items()), 1)
+        disco_item = disco_items[0].get_items()[0]
         self.assertEquals(unicode(disco_item.get_jid()), unicode(account11.jid) + "/Example")
         self.assertEquals(disco_item.get_node(), "Example/" + account11.name)
         self.assertEquals(disco_item.get_name(), account11.long_name)
@@ -684,26 +709,28 @@ class JCLComponent_TestCase(unittest.TestCase):
         """get_items on the second account type node. Must return account list of
         that type for the current user"""
         self.comp.account_manager.account_classes = (ExampleAccount, Example2Account)
-        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
-        account11 = ExampleAccount(user_jid = "user1@test.com", \
-                                   name = "account11", \
-                                   jid = "account11@jcl.test.com")
-        account12 = ExampleAccount(user_jid = "user2@test.com", \
-                                   name = "account12", \
-                                   jid = "account12@jcl.test.com")
-        account21 = Example2Account(user_jid = "user1@test.com", \
-                                    name = "account21", \
-                                    jid = "account21@jcl.test.com")
-        account22 = Example2Account(user_jid = "user2@test.com", \
-                                    name = "account22", \
-                                    jid = "account22@jcl.test.com")
-        del account.hub.threadConnection
-        info_query = Iq(stanza_type = "get", \
-                        from_jid = "user2@test.com", \
-                        to_jid = "jcl.test.com/Example2")
+        self.comp.stream = MockStream()
+        self.comp.stream_class = MockStream
+        model.db_connect()
+        account11 = ExampleAccount(user_jid="user1@test.com",
+                                   name="account11",
+                                   jid="account11@jcl.test.com")
+        account12 = ExampleAccount(user_jid="user2@test.com",
+                                   name="account12",
+                                   jid="account12@jcl.test.com")
+        account21 = Example2Account(user_jid="user1@test.com",
+                                    name="account21",
+                                    jid="account21@jcl.test.com")
+        account22 = Example2Account(user_jid="user2@test.com",
+                                    name="account22",
+                                    jid="account22@jcl.test.com")
+        model.db_disconnect()
+        info_query = Iq(stanza_type="get",
+                        from_jid="user2@test.com",
+                        to_jid="jcl.test.com/Example2")
         disco_items = self.comp.disco_get_items("Example2", info_query)
-        self.assertEquals(len(disco_items.get_items()), 1)
-        disco_item = disco_items.get_items()[0]
+        self.assertEquals(len(disco_items[0].get_items()), 1)
+        disco_item = disco_items[0].get_items()[0]
         self.assertEquals(unicode(disco_item.get_jid()), unicode(account22.jid) + "/Example2")
         self.assertEquals(disco_item.get_node(), "Example2/" + account22.name)
         self.assertEquals(disco_item.get_name(), account22.long_name)
@@ -711,39 +738,41 @@ class JCLComponent_TestCase(unittest.TestCase):
     def test_disco_get_items_2types_with_long_node(self):
         """get_items on a first type account. Must return nothing"""
         self.comp.account_manager.account_classes = (ExampleAccount, Example2Account)
-        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
-        account1 = ExampleAccount(user_jid = "user1@test.com", \
-                                  name = "account1", \
-                                  jid = "account1@jcl.test.com")
-        del account.hub.threadConnection
-        info_query = Iq(stanza_type = "get", \
-                        from_jid = "user1@test.com", \
-                        to_jid = "account1@jcl.test.com/Example")
+        model.db_connect()
+        account1 = ExampleAccount(user_jid="user1@test.com",
+                                  name="account1",
+                                  jid="account1@jcl.test.com")
+        model.db_disconnect()
+        info_query = Iq(stanza_type="get",
+                        from_jid="user1@test.com",
+                        to_jid="account1@jcl.test.com/Example")
         disco_items = self.comp.disco_get_items("Example/account1", info_query)
-        self.assertEquals(disco_items, None)
+        self.assertEquals(disco_items, [])
 
     def test_disco_get_items_2types_with_long_node2(self):
         """get_items on a second type account. Must return nothing"""
         self.comp.account_manager.account_classes = (ExampleAccount, Example2Account)
-        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
-        account1 = Example2Account(user_jid = "user1@test.com", \
-                                   name = "account1", \
-                                   jid = "account1@jcl.test.com")
-        del account.hub.threadConnection
-        info_query = Iq(stanza_type = "get", \
-                        from_jid = "user1@test.com", \
-                        to_jid = "account1@jcl.test.com/Example2")
+        model.db_connect()
+        account1 = Example2Account(user_jid="user1@test.com",
+                                   name="account1",
+                                   jid="account1@jcl.test.com")
+        model.db_disconnect()
+        info_query = Iq(stanza_type="get",
+                        from_jid="user1@test.com",
+                        to_jid="account1@jcl.test.com/Example2")
         disco_items = self.comp.disco_get_items("Example2/account1", info_query)
-        self.assertEquals(disco_items, None)
+        self.assertEquals(disco_items, [])
 
     def test_disco_get_items_list_commands(self):
+        self.comp.stream = MockStream()
+        self.comp.stream_class = MockStream
         info_query = Iq(stanza_type="get",
                         from_jid="user1@test.com",
                         to_jid="jcl.test.com")
         disco_items = self.comp.disco_get_items("http://jabber.org/protocol/commands",
                                                 info_query)
-        self.assertEquals(len(disco_items.get_items()), 35)
-        item = disco_items.get_items()[0]
+        self.assertEquals(len(disco_items[0].get_items()), 35)
+        item = disco_items[0].get_items()[0]
         self.assertEquals(item.get_node(), "list")
         self.assertEquals(item.get_name(), Lang.en.command_list)
 
@@ -873,7 +902,7 @@ class JCLComponent_TestCase(unittest.TestCase):
     def test_handle_get_register_exist(self):
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
-        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
+        model.db_connect()
         account11 = Account(user_jid="user1@test.com",
                            name="account11",
                            jid="account11@jcl.test.com")
@@ -883,7 +912,7 @@ class JCLComponent_TestCase(unittest.TestCase):
         account21 = Account(user_jid="user1@test.com",
                            name="account21",
                            jid="account21@jcl.test.com")
-        del account.hub.threadConnection
+        model.db_disconnect()
         self.comp.handle_get_register(Iq(stanza_type="get",
                                          from_jid="user1@test.com",
                                          to_jid="account11@jcl.test.com"))
@@ -917,7 +946,7 @@ class JCLComponent_TestCase(unittest.TestCase):
         self.assertEquals(value[0].content, "account11")
 
     def test_handle_get_register_exist_complex(self):
-        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
+        model.db_connect()
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
         account1 = ExampleAccount(user_jid = "user1@test.com", \
@@ -944,7 +973,7 @@ class JCLComponent_TestCase(unittest.TestCase):
                                    store_password = False, \
                                    test_enum = "choice1", \
                                    test_int = 21)
-        del account.hub.threadConnection
+        model.db_disconnect()
         self.comp.handle_get_register(Iq(stanza_type = "get", \
                                          from_jid = "user1@test.com", \
                                          to_jid = "account1@jcl.test.com"))
@@ -1082,7 +1111,7 @@ class JCLComponent_TestCase(unittest.TestCase):
         x_data.as_xml(query, None)
         self.comp.handle_set_register(iq_set)
 
-        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
+        model.db_connect()
         accounts = Account.select(\
             Account.q.user_jid == "user1@test.com" \
             and Account.q.name == "account1")
@@ -1091,7 +1120,7 @@ class JCLComponent_TestCase(unittest.TestCase):
         self.assertEquals(_account.user_jid, "user1@test.com")
         self.assertEquals(_account.name, "account1")
         self.assertEquals(_account.jid, "account1@jcl.test.com")
-        del account.hub.threadConnection
+        model.db_disconnect()
 
         stanza_sent = self.comp.stream.sent
         self.assertEquals(len(stanza_sent), 4)
@@ -1139,7 +1168,7 @@ class JCLComponent_TestCase(unittest.TestCase):
         x_data.as_xml(query, None)
         self.comp.handle_set_register(iq_set)
 
-        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
+        model.db_connect()
         accounts = Account.select(\
             Account.q.user_jid == "user1@test.com" \
             and Account.q.name == "account1")
@@ -1148,7 +1177,7 @@ class JCLComponent_TestCase(unittest.TestCase):
         self.assertEquals(_account.user_jid, "user1@test.com")
         self.assertEquals(_account.name, "account1")
         self.assertEquals(_account.jid, "account1@jcl.test.com")
-        del account.hub.threadConnection
+        model.db_disconnect()
 
         stanza_sent = self.comp.stream.sent
         self.assertEquals(len(stanza_sent), 4)
@@ -1211,7 +1240,7 @@ class JCLComponent_TestCase(unittest.TestCase):
         x_data.as_xml(query, None)
         self.comp.handle_set_register(iq_set)
 
-        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
+        model.db_connect()
         accounts = Account.select(\
             Account.q.user_jid == "user1@test.com" \
             and Account.q.name == "account1")
@@ -1225,7 +1254,7 @@ class JCLComponent_TestCase(unittest.TestCase):
         self.assertFalse(_account.store_password)
         self.assertEquals(_account.test_enum, "choice3")
         self.assertEquals(_account.test_int, 43)
-        del account.hub.threadConnection
+        model.db_disconnect()
 
         stanza_sent = self.comp.stream.sent
         self.assertEquals(len(stanza_sent), 4)
@@ -1276,7 +1305,7 @@ class JCLComponent_TestCase(unittest.TestCase):
         x_data.as_xml(query)
         self.comp.handle_set_register(iq_set)
 
-        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
+        model.db_connect()
         accounts = Account.select(\
             Account.q.user_jid == "user1@test.com" \
             and Account.q.name == "account1")
@@ -1290,7 +1319,7 @@ class JCLComponent_TestCase(unittest.TestCase):
         self.assertTrue(_account.store_password)
         self.assertEquals(_account.test_enum, "choice2")
         self.assertEquals(_account.test_int, 44)
-        del account.hub.threadConnection
+        model.db_disconnect()
 
     def test_handle_set_register_new_name_mandatory(self):
         self.comp.stream = MockStream()
@@ -1303,12 +1332,12 @@ class JCLComponent_TestCase(unittest.TestCase):
         x_data.as_xml(query)
         self.comp.handle_set_register(iq_set)
 
-        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
+        model.db_connect()
         accounts = Account.select(\
             Account.q.user_jid == "user1@test.com" \
             and Account.q.name == "account1")
         self.assertEquals(accounts.count(), 0)
-        del account.hub.threadConnection
+        model.db_disconnect()
 
         stanza_sent = self.comp.stream.sent
         self.assertEquals(len(stanza_sent), 1)
@@ -1335,12 +1364,12 @@ class JCLComponent_TestCase(unittest.TestCase):
         x_data.as_xml(query)
         self.comp.handle_set_register(iq_set)
 
-        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
+        model.db_connect()
         accounts = Account.select(\
             Account.q.user_jid == "user1@test.com" \
             and Account.q.name == "account1")
         self.assertEquals(accounts.count(), 0)
-        del account.hub.threadConnection
+        model.db_disconnect()
 
         stanza_sent = self.comp.stream.sent
         self.assertEquals(len(stanza_sent), 1)
@@ -1353,7 +1382,7 @@ class JCLComponent_TestCase(unittest.TestCase):
                           Lang.en.mandatory_field % ("login"))
 
     def test_handle_set_register_update_complex(self):
-        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
+        model.db_connect()
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
         self.comp.account_manager.account_classes = (Example2Account, ExampleAccount)
@@ -1373,7 +1402,7 @@ class JCLComponent_TestCase(unittest.TestCase):
                                          store_password = True, \
                                          test_enum = "choice1", \
                                          test_int = 21)
-        del account.hub.threadConnection
+        model.db_disconnect()
         x_data = Form("submit")
         x_data.add_field(name = "name", \
                          value = "account1", \
@@ -1400,7 +1429,7 @@ class JCLComponent_TestCase(unittest.TestCase):
         x_data.as_xml(query)
         self.comp.handle_set_register(iq_set)
 
-        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
+        model.db_connect()
         accounts = Account.select(\
             Account.q.user_jid == "user1@test.com" \
             and Account.q.name == "account1")
@@ -1415,7 +1444,7 @@ class JCLComponent_TestCase(unittest.TestCase):
         self.assertFalse(_account.store_password)
         self.assertEquals(_account.test_enum, "choice3")
         self.assertEquals(_account.test_int, 43)
-        del account.hub.threadConnection
+        model.db_disconnect()
 
         stanza_sent = self.comp.stream.sent
         self.assertEquals(len(stanza_sent), 2)
@@ -1437,7 +1466,7 @@ class JCLComponent_TestCase(unittest.TestCase):
     def test_handle_set_register_remove(self):
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
-        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
+        model.db_connect()
         account11 = Account(user_jid = "user1@test.com", \
                             name = "account1", \
                             jid = "account1@jcl.test.com")
@@ -1447,7 +1476,7 @@ class JCLComponent_TestCase(unittest.TestCase):
         account21 = Account(user_jid = "user2@test.com", \
                             name = "account1", \
                             jid = "account1@jcl.test.com")
-        del account.hub.threadConnection
+        model.db_disconnect()
         iq_set = Iq(stanza_type = "set", \
                     from_jid = "user1@test.com", \
                     to_jid = "jcl.test.com")
@@ -1455,7 +1484,7 @@ class JCLComponent_TestCase(unittest.TestCase):
         query.newChild(None, "remove", None)
         self.comp.handle_set_register(iq_set)
 
-        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
+        model.db_connect()
         accounts = Account.select(\
             Account.q.user_jid == "user1@test.com")
         self.assertEquals(accounts.count(), 0)
@@ -1466,7 +1495,7 @@ class JCLComponent_TestCase(unittest.TestCase):
         self.assertEquals(_account.user_jid, "user2@test.com")
         self.assertEquals(_account.name, "account1")
         self.assertEquals(_account.jid, "account1@jcl.test.com")
-        del account.hub.threadConnection
+        model.db_disconnect()
 
         stanza_sent = self.comp.stream.sent
         self.assertEquals(len(stanza_sent), 6)
@@ -1504,7 +1533,7 @@ class JCLComponent_TestCase(unittest.TestCase):
     def test_handle_presence_available_to_component(self):
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
-        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
+        model.db_connect()
         account11 = Account(user_jid = "user1@test.com", \
                             name = "account11", \
                             jid = "account11@jcl.test.com")
@@ -1514,7 +1543,7 @@ class JCLComponent_TestCase(unittest.TestCase):
         account2 = Account(user_jid = "user2@test.com", \
                            name = "account2", \
                            jid = "account2@jcl.test.com")
-        del account.hub.threadConnection
+        model.db_disconnect()
         self.comp.handle_presence_available(Presence(\
             stanza_type = "available", \
             from_jid = "user1@test.com",\
@@ -1551,7 +1580,7 @@ class JCLComponent_TestCase(unittest.TestCase):
     def test_handle_presence_available_to_component_legacy_users(self):
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
-        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
+        model.db_connect()
         account11 = Account(user_jid="user1@test.com",
                             name="account11",
                             jid="account11@jcl.test.com")
@@ -1576,7 +1605,7 @@ class JCLComponent_TestCase(unittest.TestCase):
         legacy_jid21 = LegacyJID(legacy_address="u21@test.com",
                                  jid="u21%test.com@jcl.test.com",
                                  account=account2)
-        del account.hub.threadConnection
+        model.db_disconnect()
         self.comp.handle_presence_available(Presence(\
             stanza_type="available",
             from_jid="user1@test.com",
@@ -1641,7 +1670,7 @@ class JCLComponent_TestCase(unittest.TestCase):
     def test_handle_presence_available_to_component_unknown_user(self):
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
-        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
+        model.db_connect()
         account11 = Account(user_jid = "user1@test.com", \
                             name = "account11", \
                             jid = "account11@jcl.test.com")
@@ -1651,7 +1680,7 @@ class JCLComponent_TestCase(unittest.TestCase):
         account2 = Account(user_jid = "user2@test.com", \
                            name = "account2", \
                            jid = "account2@jcl.test.com")
-        del account.hub.threadConnection
+        model.db_disconnect()
         self.comp.handle_presence_available(Presence(\
             stanza_type = "available", \
             from_jid = "unknown@test.com",\
@@ -1662,7 +1691,7 @@ class JCLComponent_TestCase(unittest.TestCase):
     def test_handle_presence_available_to_account(self):
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
-        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
+        model.db_connect()
         account11 = Account(user_jid = "user1@test.com", \
                             name = "account11", \
                             jid = "account11@jcl.test.com")
@@ -1672,7 +1701,7 @@ class JCLComponent_TestCase(unittest.TestCase):
         account2 = Account(user_jid = "user2@test.com", \
                            name = "account2", \
                            jid = "account2@jcl.test.com")
-        del account.hub.threadConnection
+        model.db_disconnect()
         self.comp.handle_presence_available(Presence(\
             stanza_type = "available", \
             from_jid = "user1@test.com",\
@@ -1687,8 +1716,8 @@ class JCLComponent_TestCase(unittest.TestCase):
     def test_handle_presence_available_to_registered_handlers(self):
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
-        self.comp.available_handlers += [DefaultPresenceHandler()]
-        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
+        self.comp.presence_available_handlers += [(DefaultPresenceHandler(self.comp),)]
+        model.db_connect()
         account11 = Account(user_jid="user1@test.com",
                             name="account11",
                             jid="account11@jcl.test.com")
@@ -1698,7 +1727,7 @@ class JCLComponent_TestCase(unittest.TestCase):
         account2 = Account(user_jid="user2@test.com",
                            name="account2",
                            jid="account2@jcl.test.com")
-        del account.hub.threadConnection
+        model.db_disconnect()
         self.comp.handle_presence_available(Presence(\
             stanza_type="available",
             from_jid="user1@test.com",
@@ -1714,7 +1743,7 @@ class JCLComponent_TestCase(unittest.TestCase):
     def test_handle_presence_available_to_account_unknown_user(self):
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
-        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
+        model.db_connect()
         account11 = Account(user_jid = "user1@test.com", \
                             name = "account11", \
                             jid = "account11@jcl.test.com")
@@ -1724,7 +1753,7 @@ class JCLComponent_TestCase(unittest.TestCase):
         account2 = Account(user_jid = "user2@test.com", \
                            name = "account2", \
                            jid = "account2@jcl.test.com")
-        del account.hub.threadConnection
+        model.db_disconnect()
         self.comp.handle_presence_available(Presence(\
             stanza_type = "available", \
             from_jid = "unknown@test.com",\
@@ -1735,7 +1764,7 @@ class JCLComponent_TestCase(unittest.TestCase):
     def test_handle_presence_available_to_unknown_account(self):
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
-        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
+        model.db_connect()
         account11 = Account(user_jid = "user1@test.com", \
                             name = "account11", \
                             jid = "account11@jcl.test.com")
@@ -1745,7 +1774,7 @@ class JCLComponent_TestCase(unittest.TestCase):
         account2 = Account(user_jid = "user2@test.com", \
                            name = "account2", \
                            jid = "account2@jcl.test.com")
-        del account.hub.threadConnection
+        model.db_disconnect()
         self.comp.handle_presence_available(Presence(\
             stanza_type = "available", \
             from_jid = "user1@test.com",\
@@ -1756,7 +1785,7 @@ class JCLComponent_TestCase(unittest.TestCase):
     def test_handle_presence_available_to_account_live_password(self):
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
-        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
+        model.db_connect()
         account11 = Account(user_jid = "user1@test.com", \
                             name = "account11", \
                             jid = "account11@jcl.test.com")
@@ -1767,7 +1796,7 @@ class JCLComponent_TestCase(unittest.TestCase):
         account2 = Account(user_jid = "user2@test.com", \
                            name = "account2", \
                            jid = "account2@jcl.test.com")
-        del account.hub.threadConnection
+        model.db_disconnect()
         self.comp.handle_presence_available(Presence(\
             stanza_type = "available", \
             from_jid = "user1@test.com",\
@@ -1782,7 +1811,7 @@ class JCLComponent_TestCase(unittest.TestCase):
         self.assertEqual(presence.get_type(), None)
 
     def test_handle_presence_available_to_account_live_password_complex(self):
-        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
+        model.db_connect()
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
         account11 = ExampleAccount(user_jid = "user1@test.com", \
@@ -1795,7 +1824,7 @@ class JCLComponent_TestCase(unittest.TestCase):
         account2 = ExampleAccount(user_jid = "user2@test.com", \
                                   name = "account2", \
                                   jid = "account2@jcl.test.com")
-        del account.hub.threadConnection
+        model.db_disconnect()
         self.comp.handle_presence_available(Presence(\
             stanza_type = "available", \
             from_jid = "user1@test.com",\
@@ -1828,7 +1857,7 @@ class JCLComponent_TestCase(unittest.TestCase):
     def test_handle_presence_unavailable_to_component(self):
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
-        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
+        model.db_connect()
         account11 = Account(user_jid = "user1@test.com", \
                             name = "account11", \
                             jid = "account11@jcl.test.com")
@@ -1838,7 +1867,7 @@ class JCLComponent_TestCase(unittest.TestCase):
         account2 = Account(user_jid = "user2@test.com", \
                            name = "account2", \
                            jid = "account2@jcl.test.com")
-        del account.hub.threadConnection
+        model.db_disconnect()
         self.comp.handle_presence_unavailable(Presence(\
             stanza_type = "unavailable", \
             from_jid = "user1@test.com",\
@@ -1878,7 +1907,7 @@ class JCLComponent_TestCase(unittest.TestCase):
     def test_handle_presence_unavailable_to_component_legacy_users(self):
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
-        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
+        model.db_connect()
         account11 = Account(user_jid="user1@test.com",
                             name="account11",
                             jid="account11@jcl.test.com")
@@ -1903,7 +1932,7 @@ class JCLComponent_TestCase(unittest.TestCase):
         legacy_jid21 = LegacyJID(legacy_address="u21@test.com",
                                  jid="u21%test.com@jcl.test.com",
                                  account=account2)
-        del account.hub.threadConnection
+        model.db_disconnect()
         self.comp.handle_presence_unavailable(Presence(\
             stanza_type="unavailable",
             from_jid="user1@test.com",
@@ -1968,7 +1997,7 @@ class JCLComponent_TestCase(unittest.TestCase):
     def test_handle_presence_unavailable_to_component_unknown_user(self):
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
-        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
+        model.db_connect()
         account11 = Account(user_jid = "user1@test.com", \
                             name = "account11", \
                             jid = "account11@jcl.test.com")
@@ -1978,7 +2007,7 @@ class JCLComponent_TestCase(unittest.TestCase):
         account2 = Account(user_jid = "user2@test.com", \
                            name = "account2", \
                            jid = "account2@jcl.test.com")
-        del account.hub.threadConnection
+        model.db_disconnect()
         self.comp.handle_presence_unavailable(Presence(\
             stanza_type = "unavailable", \
             from_jid = "unknown@test.com",\
@@ -1989,34 +2018,34 @@ class JCLComponent_TestCase(unittest.TestCase):
     def test_handle_presence_unavailable_to_account(self):
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
-        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
-        account11 = Account(user_jid = "user1@test.com", \
-                            name = "account11", \
-                            jid = "account11@jcl.test.com")
-        account12 = Account(user_jid = "user1@test.com", \
-                            name = "account12", \
-                            jid = "account12@jcl.test.com")
-        account2 = Account(user_jid = "user2@test.com", \
-                           name = "account2", \
-                           jid = "account2@jcl.test.com")
-        del account.hub.threadConnection
+        model.db_connect()
+        account11 = Account(user_jid="user1@test.com",
+                            name="account11",
+                            jid="account11@jcl.test.com")
+        account12 = Account(user_jid="user1@test.com",
+                            name="account12",
+                            jid="account12@jcl.test.com")
+        account2 = Account(user_jid="user2@test.com",
+                           name="account2",
+                           jid="account2@jcl.test.com")
+        model.db_disconnect()
         self.comp.handle_presence_unavailable(Presence(\
-            stanza_type = "unavailable", \
-            from_jid = "user1@test.com",\
-            to_jid = "account11@jcl.test.com"))
+            stanza_type="unavailable",
+            from_jid="user1@test.com",
+            to_jid="account11@jcl.test.com"))
         presence_sent = self.comp.stream.sent
         self.assertEqual(len(presence_sent), 1)
         self.assertEqual(presence_sent[0].get_to(), "user1@test.com")
         self.assertEqual(presence_sent[0].get_from(), "account11@jcl.test.com")
         self.assertEqual(\
-            presence_sent[0].xpath_eval("@type")[0].get_content(), \
+            presence_sent[0].xpath_eval("@type")[0].get_content(),
             "unavailable")
 
     def test_handle_presence_unavailable_to_registered_handlers(self):
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
-        self.comp.unavailable_handlers += [DefaultPresenceHandler()]
-        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
+        self.comp.presence_unavailable_handlers += [(DefaultPresenceHandler(self.comp),)]
+        model.db_connect()
         account11 = Account(user_jid = "user1@test.com", \
                             name = "account11", \
                             jid = "account11@jcl.test.com")
@@ -2026,7 +2055,7 @@ class JCLComponent_TestCase(unittest.TestCase):
         account2 = Account(user_jid = "user2@test.com", \
                            name = "account2", \
                            jid = "account2@jcl.test.com")
-        del account.hub.threadConnection
+        model.db_disconnect()
         self.comp.handle_presence_unavailable(Presence(\
             stanza_type = "unavailable", \
             from_jid = "user1@test.com",\
@@ -2042,7 +2071,7 @@ class JCLComponent_TestCase(unittest.TestCase):
     def test_handle_presence_unavailable_to_account_unknown_user(self):
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
-        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
+        model.db_connect()
         account11 = Account(user_jid = "user1@test.com", \
                             name = "account11", \
                             jid = "account11@jcl.test.com")
@@ -2052,7 +2081,7 @@ class JCLComponent_TestCase(unittest.TestCase):
         account2 = Account(user_jid = "user2@test.com", \
                            name = "account2", \
                            jid = "account2@jcl.test.com")
-        del account.hub.threadConnection
+        model.db_disconnect()
         self.comp.handle_presence_unavailable(Presence(\
             stanza_type = "unavailable", \
             from_jid = "unknown@test.com",\
@@ -2063,7 +2092,7 @@ class JCLComponent_TestCase(unittest.TestCase):
     def test_handle_presence_unavailable_to_unknown_account(self):
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
-        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
+        model.db_connect()
         account11 = Account(user_jid = "user1@test.com", \
                             name = "account11", \
                             jid = "account11@jcl.test.com")
@@ -2073,7 +2102,7 @@ class JCLComponent_TestCase(unittest.TestCase):
         account2 = Account(user_jid = "user2@test.com", \
                            name = "account2", \
                            jid = "account2@jcl.test.com")
-        del account.hub.threadConnection
+        model.db_disconnect()
         self.comp.handle_presence_unavailable(Presence(\
             stanza_type = "unavailable", \
             from_jid = "user1@test.com",\
@@ -2084,7 +2113,7 @@ class JCLComponent_TestCase(unittest.TestCase):
     def test_handle_presence_subscribe_to_component(self):
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
-        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
+        model.db_connect()
         account11 = Account(user_jid = "user1@test.com", \
                             name = "account11", \
                             jid = "account11@jcl.test.com")
@@ -2094,7 +2123,7 @@ class JCLComponent_TestCase(unittest.TestCase):
         account2 = Account(user_jid = "user2@test.com", \
                            name = "account2", \
                            jid = "account2@jcl.test.com")
-        del account.hub.threadConnection
+        model.db_disconnect()
         self.comp.handle_presence_subscribe(Presence(\
             stanza_type = "subscribe", \
             from_jid = "user1@test.com",\
@@ -2110,28 +2139,28 @@ class JCLComponent_TestCase(unittest.TestCase):
     def test_handle_presence_subscribe_to_component_unknown_user(self):
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
-        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
-        account11 = Account(user_jid = "user1@test.com", \
-                            name = "account11", \
-                            jid = "account11@jcl.test.com")
-        account12 = Account(user_jid = "user1@test.com", \
-                            name = "account12", \
-                            jid = "account12@jcl.test.com")
-        account2 = Account(user_jid = "user2@test.com", \
-                           name = "account2", \
-                           jid = "account2@jcl.test.com")
-        del account.hub.threadConnection
+        model.db_connect()
+        account11 = Account(user_jid="user1@test.com",
+                            name="account11",
+                            jid="account11@jcl.test.com")
+        account12 = Account(user_jid="user1@test.com",
+                            name="account12",
+                            jid="account12@jcl.test.com")
+        account2 = Account(user_jid="user2@test.com",
+                           name="account2",
+                           jid="account2@jcl.test.com")
+        model.db_disconnect()
         self.comp.handle_presence_subscribe(Presence(\
-            stanza_type = "subscribe", \
-            from_jid = "unknown@test.com",\
-            to_jid = "jcl.test.com"))
+            stanza_type="subscribe",
+            from_jid="unknown@test.com",
+            to_jid="jcl.test.com"))
         presence_sent = self.comp.stream.sent
         self.assertEqual(len(presence_sent), 0)
 
     def test_handle_presence_subscribe_to_account(self):
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
-        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
+        model.db_connect()
         account11 = Account(user_jid = "user1@test.com", \
                             name = "account11", \
                             jid = "account11@jcl.test.com")
@@ -2141,7 +2170,7 @@ class JCLComponent_TestCase(unittest.TestCase):
         account2 = Account(user_jid = "user2@test.com", \
                            name = "account2", \
                            jid = "account2@jcl.test.com")
-        del account.hub.threadConnection
+        model.db_disconnect()
         self.comp.handle_presence_subscribe(Presence(\
             stanza_type = "subscribe", \
             from_jid = "user1@test.com",\
@@ -2157,28 +2186,28 @@ class JCLComponent_TestCase(unittest.TestCase):
     def test_handle_presence_subscribe_to_account_unknown_user(self):
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
-        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
-        account11 = Account(user_jid = "user1@test.com", \
-                            name = "account11", \
-                            jid = "account11@jcl.test.com")
-        account12 = Account(user_jid = "user1@test.com", \
-                            name = "account12", \
-                            jid = "account12@jcl.test.com")
-        account2 = Account(user_jid = "user2@test.com", \
-                           name = "account2", \
-                           jid = "account2@jcl.test.com")
-        del account.hub.threadConnection
+        model.db_connect()
+        account11 = Account(user_jid="user1@test.com",
+                            name="account11",
+                            jid="account11@jcl.test.com")
+        account12 = Account(user_jid="user1@test.com",
+                            name="account12",
+                            jid="account12@jcl.test.com")
+        account2 = Account(user_jid="user2@test.com",
+                           name="account2",
+                           jid="account2@jcl.test.com")
+        model.db_disconnect()
         self.comp.handle_presence_subscribe(Presence(\
-            stanza_type = "subscribe", \
-            from_jid = "unknown@test.com",\
-            to_jid = "account11@jcl.test.com"))
+            stanza_type="subscribe",
+            from_jid="unknown@test.com",
+            to_jid="account11@jcl.test.com"))
         presence_sent = self.comp.stream.sent
         self.assertEqual(len(presence_sent), 0)
 
     def test_handle_presence_subscribe_to_unknown_account(self):
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
-        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
+        model.db_connect()
         account11 = Account(user_jid = "user1@test.com", \
                             name = "account11", \
                             jid = "account11@jcl.test.com")
@@ -2188,7 +2217,7 @@ class JCLComponent_TestCase(unittest.TestCase):
         account2 = Account(user_jid = "user2@test.com", \
                            name = "account2", \
                            jid = "account2@jcl.test.com")
-        del account.hub.threadConnection
+        model.db_disconnect()
         self.comp.handle_presence_subscribe(Presence(\
             stanza_type = "subscribe", \
             from_jid = "user1@test.com",\
@@ -2199,8 +2228,8 @@ class JCLComponent_TestCase(unittest.TestCase):
     def test_handle_presence_subscribe_to_registered_handlers(self):
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
-        self.comp.subscribe_handlers += [DefaultSubscribeHandler()]
-        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
+        self.comp.presence_subscribe_handlers += [(DefaultSubscribeHandler(self.comp),)]
+        model.db_connect()
         account11 = Account(user_jid = "user1@test.com", \
                             name = "account11", \
                             jid = "account11@jcl.test.com")
@@ -2210,7 +2239,7 @@ class JCLComponent_TestCase(unittest.TestCase):
         account2 = Account(user_jid = "user2@test.com", \
                            name = "account2", \
                            jid = "account2@jcl.test.com")
-        del account.hub.threadConnection
+        model.db_disconnect()
         result = self.comp.handle_presence_subscribe(Presence(\
             stanza_type = "subscribe", \
             from_jid = "user1@test.com",\
@@ -2231,7 +2260,7 @@ class JCLComponent_TestCase(unittest.TestCase):
     def test_handle_presence_unsubscribe_to_account(self):
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
-        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
+        model.db_connect()
         account11 = Account(user_jid = "user1@test.com", \
                             name = "account11", \
                             jid = "account11@jcl.test.com")
@@ -2241,7 +2270,7 @@ class JCLComponent_TestCase(unittest.TestCase):
         account2 = Account(user_jid = "user2@test.com", \
                            name = "account2", \
                            jid = "account2@jcl.test.com")
-        del account.hub.threadConnection
+        model.db_disconnect()
         self.comp.handle_presence_unsubscribe(Presence(\
             stanza_type = "unsubscribe", \
             from_jid = "user1@test.com",\
@@ -2258,7 +2287,7 @@ class JCLComponent_TestCase(unittest.TestCase):
         self.assertEqual(presence.get_to(), "user1@test.com")
         self.assertEqual(presence.xpath_eval("@type")[0].get_content(), \
                          "unsubscribed")
-        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
+        model.db_connect()
         self.assertEquals(Account.select(\
             Account.q.user_jid == "user1@test.com" \
             and Account.q.name == "account11").count(), \
@@ -2268,13 +2297,13 @@ class JCLComponent_TestCase(unittest.TestCase):
                           1)
         self.assertEquals(Account.select().count(), \
                           2)
-        del account.hub.threadConnection
+        model.db_disconnect()
 
     def test_handle_presence_unsubscribe_to_registered_handlers(self):
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
-        self.comp.unsubscribe_handlers += [DefaultUnsubscribeHandler()]
-        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
+        self.comp.presence_unsubscribe_handlers += [(DefaultUnsubscribeHandler(self.comp),)]
+        model.db_connect()
         account11 = Account(user_jid = "user1@test.com", \
                             name = "account11", \
                             jid = "account11@jcl.test.com")
@@ -2284,7 +2313,7 @@ class JCLComponent_TestCase(unittest.TestCase):
         account2 = Account(user_jid = "user2@test.com", \
                            name = "account2", \
                            jid = "account2@jcl.test.com")
-        del account.hub.threadConnection
+        model.db_disconnect()
         self.comp.handle_presence_unsubscribe(Presence(\
             stanza_type = "unsubscribe", \
             from_jid = "user1@test.com",\
@@ -2305,7 +2334,7 @@ class JCLComponent_TestCase(unittest.TestCase):
     def test_handle_presence_unsubscribe_to_account_unknown_user(self):
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
-        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
+        model.db_connect()
         account11 = Account(user_jid = "user1@test.com", \
                             name = "account11", \
                             jid = "account11@jcl.test.com")
@@ -2315,22 +2344,22 @@ class JCLComponent_TestCase(unittest.TestCase):
         account2 = Account(user_jid = "user2@test.com", \
                            name = "account2", \
                            jid = "account2@jcl.test.com")
-        del account.hub.threadConnection
+        model.db_disconnect()
         self.comp.handle_presence_unsubscribe(Presence(\
             stanza_type = "unsubscribe", \
             from_jid = "unknown@test.com",\
             to_jid = "account11@jcl.test.com"))
         presence_sent = self.comp.stream.sent
         self.assertEqual(len(presence_sent), 0)
-        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
+        model.db_connect()
         self.assertEquals(Account.select().count(), \
                           3)
-        del account.hub.threadConnection
+        model.db_disconnect()
 
     def test_handle_presence_unsubscribe_to_unknown_account(self):
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
-        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
+        model.db_connect()
         account11 = Account(user_jid = "user1@test.com", \
                             name = "account11", \
                             jid = "account11@jcl.test.com")
@@ -2340,17 +2369,17 @@ class JCLComponent_TestCase(unittest.TestCase):
         account2 = Account(user_jid = "user2@test.com", \
                            name = "account2", \
                            jid = "account2@jcl.test.com")
-        del account.hub.threadConnection
+        model.db_disconnect()
         self.comp.handle_presence_unsubscribe(Presence(\
             stanza_type = "unsubscribe", \
             from_jid = "user1@test.com",\
             to_jid = "unknown@jcl.test.com"))
         presence_sent = self.comp.stream.sent
         self.assertEqual(len(presence_sent), 0)
-        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
+        model.db_connect()
         self.assertEquals(Account.select().count(), \
                           3)
-        del account.hub.threadConnection
+        model.db_disconnect()
 
     def test_handle_presence_unsubscribed(self):
         self.comp.stream = MockStream()
@@ -2386,7 +2415,7 @@ class JCLComponent_TestCase(unittest.TestCase):
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
         self.comp.authenticated()
-        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
+        model.db_connect()
         account11 = Account(user_jid = "user1@test.com", \
                             name = "account11", \
                             jid = "account11@jcl.test.com")
@@ -2397,7 +2426,7 @@ class JCLComponent_TestCase(unittest.TestCase):
         account2 = Account(user_jid = "user2@test.com", \
                            name = "account2", \
                            jid = "account2@jcl.test.com")
-        del account.hub.threadConnection
+        model.db_disconnect()
         self.comp.handle_message(Message(\
             from_jid = "user1@test.com", \
             to_jid = "account11@jcl.test.com", \
@@ -2410,7 +2439,7 @@ class JCLComponent_TestCase(unittest.TestCase):
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
         self.comp.authenticated()
-        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
+        model.db_connect()
         account11 = ExampleAccount(user_jid = "user1@test.com", \
                                    name = "account11", \
                                    jid = "account11@jcl.test.com")
@@ -2421,7 +2450,7 @@ class JCLComponent_TestCase(unittest.TestCase):
         account2 = ExampleAccount(user_jid = "user2@test.com", \
                                   name = "account2", \
                                   jid = "account2@jcl.test.com")
-        del account.hub.threadConnection
+        model.db_disconnect()
         self.comp.handle_message(Message(\
             from_jid = "user1@test.com", \
             to_jid = "account11@jcl.test.com", \
@@ -2444,12 +2473,12 @@ class JCLComponent_TestCase(unittest.TestCase):
     def test_send_error_first(self):
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
-        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
+        model.db_connect()
         _account = Account(user_jid = "user1@test.com", \
                            name = "account11", \
                            jid = "account11@jcl.test.com")
         exception = Exception("test exception")
-        self.comp.send_error_to_account(_account, exception)
+        self.comp.send_error(_account, exception)
         self.assertEqual(len(self.comp.stream.sent), 1)
         error_sent = self.comp.stream.sent[0]
         self.assertEqual(error_sent.get_to(), _account.user_jid)
@@ -2458,18 +2487,18 @@ class JCLComponent_TestCase(unittest.TestCase):
         self.assertEqual(error_sent.get_subject(), _account.default_lang_class.error_subject)
         self.assertEqual(error_sent.get_body(), _account.default_lang_class.error_body \
                          % (exception))
-        del account.hub.threadConnection
+        model.db_disconnect()
 
     def test_send_error_second(self):
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
-        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
+        model.db_connect()
         _account = Account(user_jid = "user1@test.com", \
                            name = "account11", \
                            jid = "account11@jcl.test.com")
         _account.in_error = True
         exception = Exception("test exception")
-        self.comp.send_error_to_account(_account, exception)
+        self.comp.send_error(_account, exception)
         self.assertEqual(len(self.comp.stream.sent), 0)
 
     def test_send_stanzas(self):
@@ -2495,7 +2524,7 @@ class JCLComponent_TestCase(unittest.TestCase):
     def test_handle_command_execute_list(self):
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
-        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
+        model.db_connect()
         account11 = ExampleAccount(user_jid="user1@test.com",
                                    name="account11",
                                    jid="account11@jcl.test.com")
@@ -2505,7 +2534,7 @@ class JCLComponent_TestCase(unittest.TestCase):
         account2 = ExampleAccount(user_jid="user2@test.com",
                                   name="account2",
                                   jid="account2@jcl.test.com")
-        del account.hub.threadConnection
+        model.db_disconnect()
         info_query = Iq(stanza_type="set",
                         from_jid="user1@test.com",
                         to_jid="jcl.test.com")
@@ -3159,24 +3188,25 @@ class JCLComponent_TestCase(unittest.TestCase):
 
 class Handler_TestCase(unittest.TestCase):
     def setUp(self):
-        self.handler = Handler()
+        self.handler = Handler(None)
         if os.path.exists(DB_PATH):
             os.unlink(DB_PATH)
-        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
+        model.db_connection_str = 'sqlite://' + DB_URL
+        model.db_connect()
         Account.createTable(ifNotExists = True)
-        del account.hub.threadConnection
+        model.db_disconnect()
 
     def tearDown(self):
-        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
+        model.db_connect()
         Account.dropTable(ifExists = True)
         del TheURIOpener.cachedURIs['sqlite://' + DB_URL]
-        account.hub.threadConnection.close()
-        del account.hub.threadConnection
+        model.hub.threadConnection.close()
+        model.db_disconnect()
         if os.path.exists(DB_PATH):
             os.unlink(DB_PATH)
 
     def test_filter(self):
-        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
+        model.db_connect()
         account11 = Account(user_jid = "user1@test.com", \
                                name = "account11", \
                                jid = "account11@jcl.test.com")
@@ -3185,184 +3215,16 @@ class Handler_TestCase(unittest.TestCase):
                                jid = "account12@jcl.test.com")
         accounts = self.handler.filter(None, None)
         self.assertEquals(accounts.count(), 2)
-        del account.hub.threadConnection
+        model.db_disconnect()
 
     def test_handle(self):
         self.assertEquals(self.handler.handle(None, None, None), [])
 
-class DefaultSubscribeHandler_TestCase(unittest.TestCase):
-    def setUp(self):
-        self.handler = DefaultSubscribeHandler()
-
-    def test_handle(self):
-        presence = Presence(from_jid="user1@test.com",
-                            to_jid="user1%test.com@jcl.test.com",
-                            stanza_type="subscribe")
-        result = self.handler.handle(presence, None, [])
-        self.assertEquals(len(result), 2)
-        self.assertEquals(result[0].get_to(), "user1@test.com")
-        self.assertEquals(result[0].get_from(), "user1%test.com@jcl.test.com")
-        self.assertEquals(result[0].get_type(), "subscribe")
-        self.assertEquals(result[1].get_to(), "user1@test.com")
-        self.assertEquals(result[1].get_from(), "user1%test.com@jcl.test.com")
-        self.assertEquals(result[1].get_type(), "subscribed")
-
-class DefaultUnsubscribeHandler_TestCase(unittest.TestCase):
-    def setUp(self):
-        self.handler = DefaultUnsubscribeHandler()
-
-    def test_handle(self):
-        presence = Presence(from_jid = "user1@test.com", \
-                               to_jid = "user1%test.com@jcl.test.com", \
-                               stanza_type = "unsubscribe")
-        result = self.handler.handle(presence, None, [])
-        self.assertEquals(len(result), 2)
-        self.assertEquals(result[0].get_to(), "user1@test.com")
-        self.assertEquals(result[0].get_from(), "user1%test.com@jcl.test.com")
-        self.assertEquals(result[0].get_type(), "unsubscribe")
-        self.assertEquals(result[1].get_to(), "user1@test.com")
-        self.assertEquals(result[1].get_from(), "user1%test.com@jcl.test.com")
-        self.assertEquals(result[1].get_type(), "unsubscribed")
-
-class DefaultPresenceHandler_TestCase(unittest.TestCase):
-    def setUp(self):
-        self.handler = DefaultPresenceHandler()
-
-    def test_handle_away(self):
-        presence = Presence(from_jid = "user1@test.com", \
-                               to_jid = "user1%test.com@jcl.test.com", \
-                               stanza_type = "available", \
-                               show = "away")
-        result = self.handler.handle(presence, None, [])
-        self.assertEquals(len(result), 1)
-        self.assertEquals(result[0].get_to(), "user1@test.com")
-        self.assertEquals(result[0].get_from(), "user1%test.com@jcl.test.com")
-        self.assertEquals(result[0].get_type(), None)
-        self.assertEquals(result[0].get_show(), "away")
-
-    def test_handle_offline(self):
-        presence = Presence(from_jid = "user1@test.com", \
-                               to_jid = "user1%test.com@jcl.test.com", \
-                               stanza_type = "unavailable")
-        result = self.handler.handle(presence, None, [])
-        self.assertEquals(len(result), 1)
-        self.assertEquals(result[0].get_to(), "user1@test.com")
-        self.assertEquals(result[0].get_from(), "user1%test.com@jcl.test.com")
-        self.assertEquals(result[0].get_type(), "unavailable")
-
-class PasswordMessageHandler_TestCase(unittest.TestCase):
-    def setUp(self):
-        self.handler = PasswordMessageHandler()
-        if os.path.exists(DB_PATH):
-            os.unlink(DB_PATH)
-        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
-        Account.createTable(ifNotExists = True)
-        ExampleAccount.createTable(ifNotExists = True)
-        del account.hub.threadConnection
-
-    def tearDown(self):
-        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
-        ExampleAccount.dropTable(ifExists = True)
-        Account.dropTable(ifExists = True)
-        del TheURIOpener.cachedURIs['sqlite://' + DB_URL]
-        account.hub.threadConnection.close()
-        del account.hub.threadConnection
-        if os.path.exists(DB_PATH):
-            os.unlink(DB_PATH)
-
-    def test_filter_waiting_password(self):
-        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
-        account11 = ExampleAccount(user_jid = "user1@test.com", \
-                                      name = "account11", \
-                                      jid = "account11@jcl.test.com")
-        account11.waiting_password_reply = True
-        account12 = ExampleAccount(user_jid = "user1@test.com", \
-                                      name = "account12", \
-                                      jid = "account12@jcl.test.com")
-        message = Message(from_jid = "user1@test.com", \
-                             to_jid = "account11@jcl.test.com", \
-                             subject = "[PASSWORD]", \
-                             body = "secret")
-        accounts = self.handler.filter(message, None)
-        self.assertEquals(accounts.count(), 1)
-        self.assertEquals(accounts[0].name, "account11")
-        del account.hub.threadConnection
-
-    def test_filter_not_waiting_password(self):
-        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
-        account11 = ExampleAccount(user_jid = "user1@test.com", \
-                                      name = "account11", \
-                                      jid = "account11@jcl.test.com")
-        account11.waiting_password_reply = False
-        account12 = ExampleAccount(user_jid = "user1@test.com", \
-                                      name = "account12", \
-                                      jid = "account12@jcl.test.com")
-        message = Message(from_jid = "user1@test.com", \
-                             to_jid = "account11@jcl.test.com", \
-                             subject = "[PASSWORD]", \
-                             body = "secret")
-        accounts = self.handler.filter(message, None)
-        self.assertEquals(accounts, None)
-        del account.hub.threadConnection
-
-    def test_filter_not_good_message(self):
-        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
-        account11 = ExampleAccount(user_jid = "user1@test.com", \
-                                      name = "account11", \
-                                      jid = "account11@jcl.test.com")
-        account11.waiting_password_reply = True
-        account12 = ExampleAccount(user_jid = "user1@test.com", \
-                                      name = "account12", \
-                                      jid = "account12@jcl.test.com")
-        message = Message(from_jid = "user1@test.com", \
-                             to_jid = "account11@jcl.test.com", \
-                             subject = "[NOT GOOD MESSAGE]", \
-                             body = "secret")
-        accounts = self.handler.filter(message, None)
-        self.assertEquals(accounts, None)
-        del account.hub.threadConnection
-
-    def test_filter_not_password_account(self):
-        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
-        account11 = Account(user_jid="user1@test.com",
-                            name="account11",
-                            jid="account11@jcl.test.com")
-        account12 = Account(user_jid="user1@test.com",
-                            name="account12",
-                            jid="account12@jcl.test.com")
-        message = Message(from_jid="user1@test.com",
-                          to_jid="account11@jcl.test.com",
-                          subject="[PASSWORD]",
-                          body="secret")
-        accounts = self.handler.filter(message, None)
-        self.assertEquals(accounts, None)
-        del account.hub.threadConnection
-
-    def test_handle(self):
-        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
-        account11 = ExampleAccount(user_jid="user1@test.com",
-                                   name="account11",
-                                   jid="account11@jcl.test.com")
-        account12 = ExampleAccount(user_jid="user1@test.com",
-                                   name="account12",
-                                   jid="account12@jcl.test.com")
-        message = Message(from_jid="user1@test.com",
-                          to_jid="account11@jcl.test.com",
-                          subject="[PASSWORD]",
-                          body="secret")
-        messages = self.handler.handle(message, Lang.en, [account11])
-        self.assertEquals(len(messages), 1)
-        self.assertEquals(account11.password, "secret")
-        del account.hub.threadConnection
 
 def suite():
     suite = unittest.TestSuite()
     suite.addTest(unittest.makeSuite(JCLComponent_TestCase, 'test'))
     suite.addTest(unittest.makeSuite(Handler_TestCase, 'test'))
-    suite.addTest(unittest.makeSuite(DefaultSubscribeHandler_TestCase, 'test'))
-    suite.addTest(unittest.makeSuite(DefaultUnsubscribeHandler_TestCase, 'test'))
-    suite.addTest(unittest.makeSuite(DefaultPresenceHandler_TestCase, 'test'))
-    suite.addTest(unittest.makeSuite(PasswordMessageHandler_TestCase, 'test'))
     return suite
 
 if __name__ == '__main__':

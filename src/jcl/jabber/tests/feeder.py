@@ -36,6 +36,7 @@ from jcl.jabber.component import JCLComponent
 from jcl.jabber.feeder import FeederComponent, Feeder, Sender, MessageSender, \
     HeadlineSender, FeederHandler
 from jcl.model.account import Account, LegacyJID
+import jcl.model as model
 from jcl.model import account
 
 from jcl.model.tests.account import ExampleAccount, Example2Account
@@ -65,24 +66,24 @@ class FeederComponent_TestCase(JCLComponent_TestCase):
         self.comp = FeederComponent("jcl.test.com",
                                     "password",
                                     "localhost",
-                                    "5347",
-                                    'sqlite://' + DB_URL)
-        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
+                                    "5347")
+        model.db_connection_str = 'sqlite://' + DB_URL
+        model.db_connect()
         Account.createTable(ifNotExists = True)
         LegacyJID.createTable(ifNotExists=True)
         ExampleAccount.createTable(ifNotExists = True)
         Example2Account.createTable(ifNotExists = True)
-        del account.hub.threadConnection
+        model.db_disconnect()
 
     def tearDown(self):
-        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
+        model.db_connect()
         Account.dropTable(ifExists = True)
         LegacyJID.dropTable(ifExists=True)
         ExampleAccount.dropTable(ifExists = True)
         Example2Account.dropTable(ifExists = True)
         del TheURIOpener.cachedURIs['sqlite://' + DB_URL]
-        account.hub.threadConnection.close()
-        del account.hub.threadConnection
+        model.hub.threadConnection.close()
+        model.db_disconnect()
         if os.path.exists(DB_PATH):
             os.unlink(DB_PATH)
 
@@ -90,8 +91,8 @@ class FeederComponent_TestCase(JCLComponent_TestCase):
         self.comp.time_unit = 1
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
-        run_thread = threading.Thread(target = self.comp.run, \
-                                      name = "run_thread")
+        run_thread = threading.Thread(target=self.comp.run,
+                                      name="run_thread")
         run_thread.start()
         time.sleep(1)
         self.comp.running = False
@@ -118,7 +119,7 @@ class FeederComponent_TestCase(JCLComponent_TestCase):
 
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
-        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
+        model.db_connect()
         account11 = Account(user_jid = "user1@test.com", \
                             name = "account11", \
                             jid = "account11@jcl.test.com")
@@ -190,30 +191,30 @@ class MessageSender_TestCase(unittest.TestCase):
         self.comp = FeederComponent("jcl.test.com",
                                     "password",
                                     "localhost",
-                                    "5347",
-                                    'sqlite://' + DB_URL)
-        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
+                                    "5347")
+        model.db_connection_str = 'sqlite://' + DB_URL
+        model.db_connect()
         Account.createTable(ifNotExists = True)
-        del account.hub.threadConnection
+        model.db_disconnect()
         self.sender = MessageSender(self.comp)
         self.message_type = None
 
     def tearDown(self):
-        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
+        model.db_connect()
         Account.dropTable(ifExists = True)
         del TheURIOpener.cachedURIs['sqlite://' + DB_URL]
-        account.hub.threadConnection.close()
-        del account.hub.threadConnection
+        model.hub.threadConnection.close()
+        model.db_disconnect()
         if os.path.exists(DB_PATH):
             os.unlink(DB_PATH)
 
     def test_send(self):
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
-        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
-        account11 = Account(user_jid = "user1@test.com", \
-                            name = "account11", \
-                            jid = "account11@jcl.test.com")
+        model.db_connect()
+        account11 = Account(user_jid="user1@test.com",
+                            name="account11",
+                            jid="account11@jcl.test.com")
         self.sender.send(account11, ("subject", "Body message"))
         self.assertEquals(len(self.comp.stream.sent), 1)
         message = self.comp.stream.sent[0]
@@ -222,7 +223,7 @@ class MessageSender_TestCase(unittest.TestCase):
         self.assertEquals(message.get_subject(), "subject")
         self.assertEquals(message.get_body(), "Body message")
         self.assertEquals(message.get_type(), self.message_type)
-        del account.hub.threadConnection
+        model.db_disconnect()
 
 class HeadlineSender_TestCase(MessageSender_TestCase):
     def setUp(self):
@@ -235,24 +236,25 @@ class FeederHandler_TestCase(unittest.TestCase):
         self.handler = FeederHandler(FeederMock(), SenderMock())
         if os.path.exists(DB_PATH):
             os.unlink(DB_PATH)
-        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
+        model.db_connection_str = 'sqlite://' + DB_URL
+        model.db_connect()
         Account.createTable(ifNotExists = True)
         ExampleAccount.createTable(ifNotExists = True)
-        del account.hub.threadConnection
+        model.db_disconnect()
 
     def tearDown(self):
         self.handler = None
-        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
+        model.db_connect()
         ExampleAccount.dropTable(ifExists = True)
         Account.dropTable(ifExists = True)
         del TheURIOpener.cachedURIs['sqlite://' + DB_URL]
-        account.hub.threadConnection.close()
-        del account.hub.threadConnection
+        model.hub.threadConnection.close()
+        model.db_disconnect()
         if os.path.exists(DB_PATH):
             os.unlink(DB_PATH)
 
     def test_filter(self):
-        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
+        model.db_connect()
         account12 = ExampleAccount(user_jid="user2@test.com",
                                    name="account12",
                                    jid="account12@jcl.test.com")
@@ -264,10 +266,10 @@ class FeederHandler_TestCase(unittest.TestCase):
         # accounts must be ordered by user_jid
         self.assertEquals(accounts[0].name, "account11")
         self.assertEquals(accounts[1].name, "account12")
-        del account.hub.threadConnection
+        model.db_disconnect()
 
     def test_handle(self):
-        account.hub.threadConnection = connectionForURI('sqlite://' + DB_URL)
+        model.db_connect()
         account11 = ExampleAccount(user_jid="user1@test.com",
                                    name="account11",
                                    jid="account11@jcl.test.com")
@@ -279,7 +281,7 @@ class FeederHandler_TestCase(unittest.TestCase):
         self.assertEquals(len(sent), 2)
         self.assertEquals(sent[0], (account11, ("subject", "body")))
         self.assertEquals(sent[1], (account12, ("subject", "body")))
-        del account.hub.threadConnection
+        model.db_disconnect()
 
 def suite():
     suite = unittest.TestSuite()

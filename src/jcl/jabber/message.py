@@ -22,16 +22,19 @@
 
 import re
 
+from sqlobject.sqlbuilder import AND
 from pyxmpp.message import Message
 
 from jcl.jabber import Handler
+import jcl.model.account as account
 from jcl.model.account import Account
 
 class PasswordMessageHandler(Handler):
     """Handle password message"""
 
-    def __init__(self):
+    def __init__(self, component):
         """handler constructor"""
+        Handler.__init__(self, component)
         self.password_regexp = re.compile("\[PASSWORD\]")
 
     def filter(self, stanza, lang_class):
@@ -39,23 +42,14 @@ class PasswordMessageHandler(Handler):
         Return the uniq account associated with a name and user JID.
         DB connection might already be opened.
         """
-        name = stanza.get_to().node
-        bare_from_jid = unicode(stanza.get_from().bare())
-        accounts = Account.select(\
-            AND(Account.q.name == name,
-                Account.q.user_jid == bare_from_jid))
-        if accounts.count() > 1:
-            print >>sys.stderr, "Account " + name + " for user " + \
-                bare_from_jid + " must be uniq"
-        elif accounts.count() == 0:
-            return None
-        _account = accounts[0]
+        _account = account.get_account(stanza.get_to().node,
+                                       stanza.get_from().bare())
         if hasattr(_account, 'password') \
-                and hasattr(_account, 'waiting_password_reply') \
-                and (getattr(_account, 'waiting_password_reply') == True) \
-                and self.password_regexp.search(stanza.get_subject()) \
-                is not None:
-            return accounts
+               and hasattr(_account, 'waiting_password_reply') \
+               and (getattr(_account, 'waiting_password_reply') == True) \
+               and self.password_regexp.search(stanza.get_subject()) \
+               is not None:
+            return _account
         else:
             return None
 
@@ -63,10 +57,6 @@ class PasswordMessageHandler(Handler):
         """
         Receive password in stanza (must be a Message) for given account.
         """
-        _account = data[0]
-        _account.password = stanza.get_body()
-        _account.waiting_password_reply = False
-        return [Message(from_jid=_account.jid,
-                        to_jid=stanza.get_from(),
-                        subject=lang_class.password_saved_for_session,
-                        body=lang_class.password_saved_for_session)]
+        return self.component.account_manager.set_password(data, stanza.get_from(),
+                                                           stanza.get_body(),
+                                                           lang_class)

@@ -28,15 +28,15 @@ __revision__ = "$Id: account.py,v 1.3 2005/09/18 20:24:07 dax Exp $"
 
 from sqlobject.inheritance import InheritableSQLObject
 from sqlobject.col import StringCol, EnumCol, IntCol, BoolCol, ForeignKey
-from sqlobject.dbconnection import ConnectionHub
 from sqlobject.joins import MultipleJoin
+from sqlobject.sqlbuilder import AND
 
 from jcl.lang import Lang
 from jcl.error import FieldError
+import jcl.model as model
 
 OFFLINE = "offline"
 ONLINE = "online"
-
 
 def default_post_func(field_value, default_func, bare_from_jid):
     """Default post process function: do nothing"""
@@ -57,13 +57,32 @@ def mandatory_field(field_value):
         raise FieldError # TODO : add translated message
     return field_value
 
-# create a hub to attach a per thread connection
-hub = ConnectionHub()
+def get_account(name, bare_user_jid):
+    result = None
+    model.db_connect()
+    accounts = Account.select(\
+        AND(Account.q.name == name,
+            Account.q.user_jid == unicode(bare_user_jid)))
+    if accounts.count() > 0:            
+        result = accounts[0]
+    model.db_disconnect()
+    return result
+
+def get_accounts(bare_user_jid):
+    model.db_connect()
+    accounts = Account.select(\
+        Account.q.user_jid == unicode(bare_user_jid))
+    if accounts.count() == 0:
+        model.db_disconnect()
+        return
+    for _account in accounts:
+        yield _account
+    model.db_disconnect()
 
 class Account(InheritableSQLObject):
     """Base Account class"""
     _cacheValue = False
-    _connection = hub
+    _connection = model.hub
     user_jid = StringCol()
     name = StringCol()
     jid = StringCol()
@@ -268,8 +287,17 @@ class PresenceAccount(Account):
 
     action = property(get_action)
 
+def get_legacy_jids(bare_to_jid):
+    model.db_connect()
+    legacy_jids = LegacyJID.select(\
+            AND(LegacyJID.q.accountID == Account.q.id,
+                Account.q.user_jid == bare_to_jid))
+    for legacy_jid in legacy_jids:
+        yield legacy_jid
+    model.db_disconnect()
+
 class LegacyJID(InheritableSQLObject):
-    _connection = hub
+    _connection = model.hub
     
     legacy_address = StringCol()
     jid = StringCol()

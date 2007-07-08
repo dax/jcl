@@ -28,6 +28,7 @@ from sqlobject import *
 from sqlobject.dbconnection import TheURIOpener
 
 from jcl.error import FieldError
+import jcl.model as model
 from jcl.model import account
 from jcl.model.account import Account, PresenceAccount
 
@@ -165,13 +166,15 @@ class AccountModule_TestCase(unittest.TestCase):
 class InheritableAccount_TestCase(unittest.TestCase):
     def setUp(self):
         self.db_url = DB_URL
+        model.db_connection_str = 'sqlite://' + self.db_url
        
     def test_get_register_fields(self):
-        """Check if post functions and default functions execute correctly.
+        """
+        Check if post functions and default functions execute correctly.
         To be validated this test only need to be executed without any
         exception.
         """
-        account.hub.threadConnection = connectionForURI('sqlite://' + self.db_url)
+        model.db_connect()
         for (field_name,
              field_type,
              field_options,
@@ -184,41 +187,42 @@ class InheritableAccount_TestCase(unittest.TestCase):
                 except FieldError, error:
                     # this type of error is OK
                     pass
-        del account.hub.threadConnection
+        model.db_disconnect()
 
 class Account_TestCase(InheritableAccount_TestCase):
     def setUp(self):
         if os.path.exists(DB_PATH):
             os.unlink(DB_PATH)
         self.db_url = DB_URL
-        account.hub.threadConnection = connectionForURI('sqlite://' + self.db_url)
+        model.db_connection_str = 'sqlite://' + self.db_url
+        model.db_connect()
         Account.createTable(ifNotExists = True)
         ExampleAccount.createTable(ifNotExists = True)
-        del account.hub.threadConnection
+        model.db_disconnect()
         self.account_class = Account
 
     def tearDown(self):
-        account.hub.threadConnection = connectionForURI('sqlite://' + self.db_url)
+        model.db_connect()
         ExampleAccount.dropTable(ifExists = True)
         Account.dropTable(ifExists = True)
         del TheURIOpener.cachedURIs['sqlite://' + self.db_url]
-        account.hub.threadConnection.close()
-        del account.hub.threadConnection
+        model.hub.threadConnection.close()
+        model.db_disconnect()
         if os.path.exists(DB_PATH):
             os.unlink(DB_PATH)
 
     def test_set_status(self):
-        account.hub.threadConnection = connectionForURI('sqlite://' + self.db_url)
+        model.db_connect()
         account11 = Account(user_jid="test1@test.com",
                             name="account11",
                             jid="account11@jcl.test.com")
         account11.status = account.OFFLINE
         self.assertEquals(account11.status, account.OFFLINE)
         # TODO : test first_check attribute
-        del account.hub.threadConnection
+        model.db_disconnect()
 
     def test_set_status_live_password(self):
-        account.hub.threadConnection = connectionForURI('sqlite://' + self.db_url)
+        model.db_connect()
         account11 = ExampleAccount(user_jid="test1@test.com",
                                    name="account11",
                                    jid="account11@jcl.test.com",
@@ -232,32 +236,33 @@ class Account_TestCase(InheritableAccount_TestCase):
         self.assertEquals(account11.status, account.OFFLINE)
         self.assertEquals(account11.waiting_password_reply, False)
         self.assertEquals(account11.password, None)
-        del account.hub.threadConnection
+        model.db_disconnect()
 
 class PresenceAccount_TestCase(InheritableAccount_TestCase):
     def setUp(self):
         if os.path.exists(DB_PATH):
             os.unlink(DB_PATH)
         self.db_url = DB_URL
-        account.hub.threadConnection = connectionForURI('sqlite://' + self.db_url)
+        model.db_connection_str = 'sqlite://' + self.db_url
+        model.db_connect()
         Account.createTable(ifNotExists = True)
         PresenceAccount.createTable(ifNotExists = True)
         PresenceAccountExample.createTable(ifNotExists = True)
         self.account = PresenceAccountExample(\
-            user_jid = "test1@test.com", \
-            name = "account11", \
-            jid = "account11@jcl.test.com")
-        del account.hub.threadConnection
+            user_jid="test1@test.com",
+            name="account11",
+            jid="account11@jcl.test.com")
+        model.db_disconnect()
         self.account_class = PresenceAccount
 
     def tearDown(self):
-        account.hub.threadConnection = connectionForURI('sqlite://' + self.db_url)
+        model.db_connect()
         PresenceAccountExample.dropTable(ifExists = True)
         PresenceAccount.dropTable(ifExists = True)
         Account.dropTable(ifExists = True)
         del TheURIOpener.cachedURIs['sqlite://' + self.db_url]
-        account.hub.threadConnection.close()
-        del account.hub.threadConnection
+        model.hub.threadConnection.close()
+        model.db_disconnect()
         if os.path.exists(DB_PATH):
             os.unlink(DB_PATH)
 

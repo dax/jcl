@@ -29,6 +29,7 @@ from sqlobject import *
 import jcl
 from jcl.runner import JCLRunner
 
+import jcl.model as model
 from jcl.model import account
 from jcl.model.account import Account, PresenceAccount
 
@@ -125,11 +126,11 @@ class JCLRunner_TestCase(unittest.TestCase):
         def do_nothing():
             pass
         self.runner._run(do_nothing)
-        account.hub.threadConnection = connectionForURI(self.runner.db_url)
+        model.db_connect()
         # dropTable should succeed because tables should exist
         Account.dropTable()
         PresenceAccount.dropTable()
-        del account.hub.threadConnection
+        model.db_disconnect()
         os.unlink(DB_PATH)
         self.assertFalse(os.access("/tmp/jcl.pid", os.F_OK))
         
