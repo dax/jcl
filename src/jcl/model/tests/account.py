@@ -277,10 +277,10 @@ class PresenceAccount_TestCase(InheritableAccount_TestCase):
                           self.account_class.possibles_actions)
 
     def test_possibles_actions(self):
-        for (field_name, \
-             field_type, \
-             possibles_actions, \
-             post_func, \
+        for (field_name,
+             field_type,
+             possibles_actions,
+             post_func,
              default_func) in self.account_class.get_register_fields()[1:]:
             if possibles_actions is not None:
                 for possible_action in possibles_actions:

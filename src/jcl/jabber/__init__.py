@@ -64,3 +64,12 @@ def get_accounts_root_filter(self, stanza, lang_class, node=None):
         return account.get_accounts(stanza.get_from().bare())
     else:
         return None
+
+def replace_handlers(handlers, old_handler_type, new_handler):
+    """
+    Replace handlers of type `old_handler_type` in `handlers` by `new_handler`
+    """
+    for handler_group in handlers:
+        for i in xrange(len(handler_group)):
+            if isinstance(handler_group[i], old_handler_type):
+                handler_group[i] = new_handler

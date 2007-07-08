@@ -17,16 +17,16 @@ def db_connect():
     Create a new connection to the DataBase (SQLObject use connection
     pool) associated to the current thread.
     """
-    if not jcl.model.db_connected:
-        jcl.model.hub.threadConnection = \
-                connectionForURI(db_connection_str)
-        #        account.hub.threadConnection.debug = True
-        jcl.model.db_connected = True
+    #if not jcl.model.db_connected:
+    jcl.model.hub.threadConnection = \
+        connectionForURI(db_connection_str)
+    #        account.hub.threadConnection.debug = True
+    #jcl.model.db_connected = True
 
 def db_disconnect():
     """
     Delete connection associated to the current thread.
     """
-    if jcl.model.db_connected:
-        del jcl.model.hub.threadConnection
-        jcl.model.db_connected = False
+    #if jcl.model.db_connected:
+    #del jcl.model.hub.threadConnection
+    #jcl.model.db_connected = False
