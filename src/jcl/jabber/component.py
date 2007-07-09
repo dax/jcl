@@ -322,7 +322,7 @@ class JCLComponent(Component, object):
                                        to_jid=stanza.get_from(),
                                        stanza_type="error",
                                        subject=lang_class.error_subject,
-                                       body=lang_class.error_body % (e.message))]
+                                       body=lang_class.error_body % (e))]
         if send_result:
             self.send_stanzas(result)
         return result
