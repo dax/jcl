@@ -28,10 +28,16 @@ from pyxmpp.jabber.dataforms import Form, Field
 import jcl
 from jcl.lang import Lang
 from jcl.jabber.disco import DiscoHandler, RootDiscoGetInfoHandler
-import jcl.model as model
+from jcl.model import account
 from jcl.model.account import Account
 
 COMMAND_NS = "http://jabber.org/protocol/commands"
+
+class FieldNoType(Field):
+    def complete_xml_element(self, xmlnode, doc):
+        result = Field.complete_xml_element(self, xmlnode, doc)
+        result.unsetProp("type")
+        return result
 
 class CommandManager(object):
     """Handle Ad-Hoc commands"""
@@ -64,11 +70,12 @@ class CommandManager(object):
     def list_commands(self, disco_items, lang_class):
         """Return DiscoItem for each supported commands"""
         for command_name in self.commands:
+            command_desc = self.get_command_desc(command_name,
+                                                 lang_class)
             DiscoItem(disco_items,
                       self.component.jid,
                       command_name,
-                      self.get_command_desc(command_name,
-                                            lang_class))
+                      command_desc)
         return disco_items
 
     def get_command_info(self, disco_info, command_name, lang_class):
@@ -120,7 +127,7 @@ class JCLCommandManager(CommandManager):
                               "http://jabber.org/protocol/admin#get-active-users-num",
                               "http://jabber.org/protocol/admin#get-idle-users-num",
                               "http://jabber.org/protocol/admin#get-registered-users-list",
-                              "http://jabber.org/protocol/admin#get-disabled-users-list"
+                              "http://jabber.org/protocol/admin#get-disabled-users-list",
                               "http://jabber.org/protocol/admin#get-online-users",
                               "http://jabber.org/protocol/admin#get-active-users",
                               "http://jabber.org/protocol/admin#get-idle-users",
@@ -143,18 +150,14 @@ class JCLCommandManager(CommandManager):
         #command_node.setProp("sessionid", "????") # TODO
         result_form = Form(xmlnode_or_type="result",
                            title="Registered account") # TODO : add to Lang
-        result_form.reported_fields.append(Field(name="name",
-                                                 field_type="fixed",
-                                                 label="Account name")) # TODO: add to Lang
+        result_form.reported_fields.append(FieldNoType(name="name",
+                                                       label="Account name")) # TODO: add to Lang
         bare_from_jid = unicode(info_query.get_from().bare())
-        model.db_connect()
-        accounts = Account.select(Account.q.user_jid == bare_from_jid)
-        for _account in accounts:
-            fields = [Field(name="name",
-                            field_type="fixed",
-                            value=_account.name)]
+        for _account in account.get_accounts(bare_from_jid):
+            print "Adding account : " + str(_account)
+            fields = [FieldNoType(name="name",
+                                  value=_account.name)]
             result_form.add_item(fields)
-        model.db_disconnect()
         result_form.as_xml(command_node)
         return [response]
 
