@@ -54,6 +54,8 @@ class RootDiscoGetInfoHandler(DiscoHandler):
         self.__logger.debug("root_disco_get_info")
         disco_info = DiscoInfo()
         disco_info.add_feature("jabber:iq:version")
+        disco_info.add_feature("http://jabber.org/protocol/disco#info")
+        disco_info.add_feature("http://jabber.org/protocol/disco#items")
         if not self.component.account_manager.has_multiple_account_type:
             disco_info.add_feature("jabber:iq:register")
         DiscoIdentity(disco_info, self.component.name,

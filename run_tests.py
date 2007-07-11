@@ -22,6 +22,9 @@
 ##
 
 import coverage
+coverage.erase()
+coverage.start()
+
 import logging
 import unittest
 
@@ -32,6 +35,7 @@ sys.setdefaultencoding('utf8')
 del sys.setdefaultencoding
 
 import jcl.tests
+import jcl.jabber.tests
 
 def suite():
     return jcl.tests.suite()
@@ -41,19 +45,27 @@ if __name__ == '__main__':
     logger.addHandler(logging.StreamHandler())
     logger.setLevel(logging.CRITICAL)
     
-    coverage.erase()
-    coverage.start()
-
     unittest.main(defaultTest='suite')
 
-    coverage.stop()
-    coverage.analysis(jcl.jabber.component)
-    coverage.analysis(jcl.jabber.feeder)
-    coverage.analysis(jcl.lang)
-    coverage.analysis(jcl.model.account)
+coverage.stop()
+coverage.analysis(jcl.jabber)
+coverage.analysis(jcl.jabber.component)
+coverage.analysis(jcl.jabber.feeder)
+coverage.analysis(jcl.jabber.message)
+coverage.analysis(jcl.jabber.presence)
+coverage.analysis(jcl.jabber.disco)
+coverage.analysis(jcl.lang)
+coverage.analysis(jcl.runner)
+coverage.analysis(jcl.model)
+coverage.analysis(jcl.model.account)
 
-    coverage.report([jcl.jabber.component,
-                     jcl.jabber.feeder,
-                     jcl.lang,
-                     jcl.model.account])
-
+coverage.report([jcl.jabber,
+                 jcl.jabber.component,
+                 jcl.jabber.feeder,
+                 jcl.jabber.message,
+                 jcl.jabber.presence,
+                 jcl.jabber.disco,
+                 jcl.lang,
+                 jcl.runner,
+                 jcl.model,
+                 jcl.model.account])

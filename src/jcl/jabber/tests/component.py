@@ -29,6 +29,7 @@ import time
 import sys
 import os
 import re
+import logging
 
 from sqlobject import *
 from sqlobject.dbconnection import TheURIOpener
