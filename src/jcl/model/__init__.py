@@ -27,6 +27,7 @@ def db_disconnect():
     """
     Delete connection associated to the current thread.
     """
+    pass
     #if jcl.model.db_connected:
     #del jcl.model.hub.threadConnection
     #jcl.model.db_connected = False

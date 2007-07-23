@@ -23,40 +23,35 @@
 
 import unittest
 
-import thread
 import threading
 import time
 import sys
 import os
 import re
-import logging
 
-from sqlobject import *
 from sqlobject.dbconnection import TheURIOpener
 
-import pyxmpp.error as error
 from pyxmpp.jid import JID
 from pyxmpp.iq import Iq
-from pyxmpp.stanza import Stanza
 from pyxmpp.presence import Presence
 from pyxmpp.message import Message
-from pyxmpp.jabber.dataforms import Form, Field, Option
+from pyxmpp.jabber.dataforms import Form
 
-from jcl.jabber.component import JCLComponent, Handler
-from jcl.jabber.message import PasswordMessageHandler
+from jcl.jabber import Handler
+from jcl.jabber.component import JCLComponent
 from jcl.jabber.presence import DefaultSubscribeHandler, \
     DefaultUnsubscribeHandler, DefaultPresenceHandler
 import jcl.model as model
-from jcl.model import account
+import jcl.model.account as account
 from jcl.model.account import Account, LegacyJID
 from jcl.lang import Lang
 
 from jcl.model.tests.account import ExampleAccount, Example2Account
 
 if sys.platform == "win32":
-   DB_PATH = "/c|/temp/jcl_test.db"
+    DB_PATH = "/c|/temp/jcl_test.db"
 else:
-   DB_PATH = "/tmp/jcl_test.db"
+    DB_PATH = "/tmp/jcl_test.db"
 DB_URL = DB_PATH# + "?debug=1&debugThreading=1"
 
 class MockStream(object):
@@ -177,20 +172,20 @@ class JCLComponent_TestCase(unittest.TestCase):
                                  "5347")
         model.db_connection_str = 'sqlite://' + DB_URL
         model.db_connect()
-        Account.createTable(ifNotExists = True)
+        Account.createTable(ifNotExists=True)
         LegacyJID.createTable(ifNotExists=True)
-        ExampleAccount.createTable(ifNotExists = True)
-        Example2Account.createTable(ifNotExists = True)
+        ExampleAccount.createTable(ifNotExists=True)
+        Example2Account.createTable(ifNotExists=True)
         model.db_disconnect()
         self.max_tick_count = 1
         self.saved_time_handler = None
 
     def tearDown(self):
         model.db_connect()
-        Example2Account.dropTable(ifExists = True)
-        ExampleAccount.dropTable(ifExists = True)
+        Example2Account.dropTable(ifExists=True)
+        ExampleAccount.dropTable(ifExists=True)
         LegacyJID.dropTable(ifExists=True)
-        Account.dropTable(ifExists = True)
+        Account.dropTable(ifExists=True)
         del TheURIOpener.cachedURIs['sqlite://' + DB_URL]
         model.hub.threadConnection.close()
         model.db_disconnect()
@@ -767,7 +762,7 @@ class JCLComponent_TestCase(unittest.TestCase):
                         to_jid="jcl.test.com")
         disco_items = self.comp.disco_get_items("http://jabber.org/protocol/commands",
                                                 info_query)
-        self.assertEquals(len(disco_items.get_items()), 35)
+        self.assertEquals(len(disco_items.get_items()), 36)
         item = disco_items.get_items()[0]
         self.assertEquals(item.get_node(), "list")
         self.assertEquals(item.get_name(), Lang.en.command_list)
@@ -1097,22 +1092,19 @@ class JCLComponent_TestCase(unittest.TestCase):
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
         x_data = Form("submit")
-        x_data.add_field(name = "name", \
-                         value = "account1", \
-                         field_type = "text-single")
-        iq_set = Iq(stanza_type = "set", \
-                    from_jid = "user1@test.com", \
-                    to_jid = "jcl.test.com")
+        x_data.add_field(name="name",
+                         value="account1",
+                         field_type="text-single")
+        iq_set = Iq(stanza_type="set",
+                    from_jid="user1@test.com",
+                    to_jid="jcl.test.com")
         query = iq_set.new_query("jabber:iq:register")
         x_data.as_xml(query, None)
         self.comp.handle_set_register(iq_set)
 
         model.db_connect()
-        accounts = Account.select(\
-            Account.q.user_jid == "user1@test.com" \
-            and Account.q.name == "account1")
-        self.assertEquals(accounts.count(), 1)
-        _account = accounts[0]
+        _account = account.get_account("user1@test.com", "account1")
+        self.assertNotEquals(_account, None)
         self.assertEquals(_account.user_jid, "user1@test.com")
         self.assertEquals(_account.name, "account1")
         self.assertEquals(_account.jid, "account1@jcl.test.com")
@@ -1130,23 +1122,23 @@ class JCLComponent_TestCase(unittest.TestCase):
         self.assertTrue(isinstance(presence_component, Presence))
         self.assertEquals(presence_component.get_from(), "jcl.test.com")
         self.assertEquals(presence_component.get_to(), "user1@test.com")
-        self.assertEquals(presence_component.get_node().prop("type"), \
+        self.assertEquals(presence_component.get_node().prop("type"),
                           "subscribe")
 
         message = stanza_sent[2]
         self.assertTrue(isinstance(message, Message))
         self.assertEquals(message.get_from(), "jcl.test.com")
         self.assertEquals(message.get_to(), "user1@test.com")
-        self.assertEquals(message.get_subject(), \
+        self.assertEquals(message.get_subject(),
                           _account.get_new_message_subject(Lang.en))
-        self.assertEquals(message.get_body(), \
+        self.assertEquals(message.get_body(),
                           _account.get_new_message_body(Lang.en))
 
         presence_account = stanza_sent[3]
         self.assertTrue(isinstance(presence_account, Presence))
         self.assertEquals(presence_account.get_from(), "account1@jcl.test.com")
         self.assertEquals(presence_account.get_to(), "user1@test.com")
-        self.assertEquals(presence_account.get_node().prop("type"), \
+        self.assertEquals(presence_account.get_node().prop("type"),
                           "subscribe")
 
     def test_handle_set_register_new_multiple_types(self):
@@ -1154,22 +1146,19 @@ class JCLComponent_TestCase(unittest.TestCase):
         self.comp.stream_class = MockStream
         self.comp.account_manager.account_classes = (ExampleAccount, Example2Account)
         x_data = Form("submit")
-        x_data.add_field(name = "name", \
-                         value = "account1", \
-                         field_type = "text-single")
-        iq_set = Iq(stanza_type = "set", \
-                    from_jid = "user1@test.com", \
-                    to_jid = "jcl.test.com/Example2")
+        x_data.add_field(name="name",
+                         value="account1",
+                         field_type="text-single")
+        iq_set = Iq(stanza_type="set",
+                    from_jid="user1@test.com",
+                    to_jid="jcl.test.com/Example2")
         query = iq_set.new_query("jabber:iq:register")
         x_data.as_xml(query, None)
         self.comp.handle_set_register(iq_set)
 
         model.db_connect()
-        accounts = Account.select(\
-            Account.q.user_jid == "user1@test.com" \
-            and Account.q.name == "account1")
-        self.assertEquals(accounts.count(), 1)
-        _account = accounts[0]
+        _account = account.get_account("user1@test.com", "account1")
+        self.assertNotEquals(_account, None)
         self.assertEquals(_account.user_jid, "user1@test.com")
         self.assertEquals(_account.name, "account1")
         self.assertEquals(_account.jid, "account1@jcl.test.com")
@@ -1187,23 +1176,23 @@ class JCLComponent_TestCase(unittest.TestCase):
         self.assertTrue(isinstance(presence_component, Presence))
         self.assertEquals(presence_component.get_from(), "jcl.test.com")
         self.assertEquals(presence_component.get_to(), "user1@test.com")
-        self.assertEquals(presence_component.get_node().prop("type"), \
+        self.assertEquals(presence_component.get_node().prop("type"),
                           "subscribe")
 
         message = stanza_sent[2]
         self.assertTrue(isinstance(message, Message))
         self.assertEquals(message.get_from(), "jcl.test.com")
         self.assertEquals(message.get_to(), "user1@test.com")
-        self.assertEquals(message.get_subject(), \
+        self.assertEquals(message.get_subject(),
                           _account.get_new_message_subject(Lang.en))
-        self.assertEquals(message.get_body(), \
+        self.assertEquals(message.get_body(),
                           _account.get_new_message_body(Lang.en))
 
         presence_account = stanza_sent[3]
         self.assertTrue(isinstance(presence_account, Presence))
         self.assertEquals(presence_account.get_from(), "account1@jcl.test.com")
         self.assertEquals(presence_account.get_to(), "user1@test.com")
-        self.assertEquals(presence_account.get_node().prop("type"), \
+        self.assertEquals(presence_account.get_node().prop("type"),
                           "subscribe")
 
     def test_handle_set_register_new_complex(self):
@@ -1237,11 +1226,8 @@ class JCLComponent_TestCase(unittest.TestCase):
         self.comp.handle_set_register(iq_set)
 
         model.db_connect()
-        accounts = Account.select(\
-            Account.q.user_jid == "user1@test.com" \
-            and Account.q.name == "account1")
-        self.assertEquals(accounts.count(), 1)
-        _account = accounts[0]
+        _account = account.get_account("user1@test.com", "account1")
+        self.assertNotEquals(_account, None)
         self.assertEquals(_account.user_jid, "user1@test.com")
         self.assertEquals(_account.name, "account1")
         self.assertEquals(_account.jid, "account1@jcl.test.com")
@@ -1302,11 +1288,8 @@ class JCLComponent_TestCase(unittest.TestCase):
         self.comp.handle_set_register(iq_set)
 
         model.db_connect()
-        accounts = Account.select(\
-            Account.q.user_jid == "user1@test.com" \
-            and Account.q.name == "account1")
-        self.assertEquals(accounts.count(), 1)
-        _account = accounts[0]
+        _account = account.get_account("user1@test.com", "account1")
+        self.assertNotEquals(_account, None)
         self.assertEquals(_account.user_jid, "user1@test.com")
         self.assertEquals(_account.name, "account1")
         self.assertEquals(_account.jid, "account1@jcl.test.com")
@@ -1329,10 +1312,8 @@ class JCLComponent_TestCase(unittest.TestCase):
         self.comp.handle_set_register(iq_set)
 
         model.db_connect()
-        accounts = Account.select(\
-            Account.q.user_jid == "user1@test.com" \
-            and Account.q.name == "account1")
-        self.assertEquals(accounts.count(), 0)
+        _account = account.get_account("user1@test.com", "account1")
+        self.assertEquals(_account, None)
         model.db_disconnect()
 
         stanza_sent = self.comp.stream.sent
@@ -1350,21 +1331,19 @@ class JCLComponent_TestCase(unittest.TestCase):
         self.comp.stream_class = MockStream
         self.comp.account_manager.account_classes = (ExampleAccount,)
         x_data = Form("submit")
-        x_data.add_field(name = "name", \
-                         value = "account1", \
-                         field_type = "text-single")
-        iq_set = Iq(stanza_type = "set", \
-                    from_jid = "user1@test.com", \
-                    to_jid = "jcl.test.com")
+        x_data.add_field(name="name",
+                         value="account1",
+                         field_type="text-single")
+        iq_set = Iq(stanza_type="set",
+                    from_jid="user1@test.com",
+                    to_jid="jcl.test.com")
         query = iq_set.new_query("jabber:iq:register")
         x_data.as_xml(query)
         self.comp.handle_set_register(iq_set)
 
         model.db_connect()
-        accounts = Account.select(\
-            Account.q.user_jid == "user1@test.com" \
-            and Account.q.name == "account1")
-        self.assertEquals(accounts.count(), 0)
+        _account = account.get_account("user1@test.com", "account1")
+        self.assertEquals(_account, None)
         model.db_disconnect()
 
         stanza_sent = self.comp.stream.sent
@@ -1372,9 +1351,9 @@ class JCLComponent_TestCase(unittest.TestCase):
         self.assertTrue(isinstance(stanza_sent[0], Iq))
         self.assertEquals(stanza_sent[0].get_node().prop("type"), "error")
         stanza_error = stanza_sent[0].get_error()
-        self.assertEquals(stanza_error.get_condition().name, \
+        self.assertEquals(stanza_error.get_condition().name,
                           "not-acceptable")
-        self.assertEquals(stanza_error.get_text(), \
+        self.assertEquals(stanza_error.get_text(),
                           Lang.en.mandatory_field % ("login"))
 
     def test_handle_set_register_update_complex(self):
@@ -1426,11 +1405,8 @@ class JCLComponent_TestCase(unittest.TestCase):
         self.comp.handle_set_register(iq_set)
 
         model.db_connect()
-        accounts = Account.select(\
-            Account.q.user_jid == "user1@test.com" \
-            and Account.q.name == "account1")
-        self.assertEquals(accounts.count(), 1)
-        _account = accounts[0]
+        _account = account.get_account("user1@test.com", "account1")
+        self.assertNotEquals(_account, None)
         self.assertEquals(_account.__class__.__name__, "ExampleAccount")
         self.assertEquals(_account.user_jid, "user1@test.com")
         self.assertEquals(_account.name, "account1")
@@ -1463,31 +1439,31 @@ class JCLComponent_TestCase(unittest.TestCase):
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
         model.db_connect()
-        account11 = Account(user_jid = "user1@test.com", \
-                            name = "account1", \
-                            jid = "account1@jcl.test.com")
-        account12 = Account(user_jid = "user1@test.com", \
-                            name = "account2", \
-                            jid = "account2@jcl.test.com")
-        account21 = Account(user_jid = "user2@test.com", \
-                            name = "account1", \
-                            jid = "account1@jcl.test.com")
+        account11 = Account(user_jid="user1@test.com",
+                            name="account1",
+                            jid="account1@jcl.test.com")
+        account12 = Account(user_jid="user1@test.com",
+                            name="account2",
+                            jid="account2@jcl.test.com")
+        account21 = Account(user_jid="user2@test.com",
+                            name="account1",
+                            jid="account1@jcl.test.com")
         model.db_disconnect()
-        iq_set = Iq(stanza_type = "set", \
-                    from_jid = "user1@test.com", \
-                    to_jid = "jcl.test.com")
+        iq_set = Iq(stanza_type="set",
+                    from_jid="user1@test.com",
+                    to_jid="jcl.test.com")
         query = iq_set.new_query("jabber:iq:register")
         query.newChild(None, "remove", None)
         self.comp.handle_set_register(iq_set)
 
         model.db_connect()
-        accounts = Account.select(\
-            Account.q.user_jid == "user1@test.com")
-        self.assertEquals(accounts.count(), 0)
-        accounts = Account.select(\
-            Account.q.user_jid == "user2@test.com")
-        self.assertEquals(accounts.count(), 1)
-        _account = accounts[0]
+        self.assertEquals(account.get_accounts_count("user1@test.com"),
+                          0)
+        accounts = account.get_accounts("user2@test.com")
+        i = 0
+        for _account in accounts:
+            i = i + 1
+        self.assertEquals(i, 1)
         self.assertEquals(_account.user_jid, "user2@test.com")
         self.assertEquals(_account.name, "account1")
         self.assertEquals(_account.jid, "account1@jcl.test.com")
@@ -2257,41 +2233,38 @@ class JCLComponent_TestCase(unittest.TestCase):
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
         model.db_connect()
-        account11 = Account(user_jid = "user1@test.com", \
-                            name = "account11", \
-                            jid = "account11@jcl.test.com")
-        account12 = Account(user_jid = "user1@test.com", \
-                            name = "account12", \
-                            jid = "account12@jcl.test.com")
-        account2 = Account(user_jid = "user2@test.com", \
-                           name = "account2", \
-                           jid = "account2@jcl.test.com")
+        account11 = Account(user_jid="user1@test.com",
+                            name="account11",
+                            jid="account11@jcl.test.com")
+        account12 = Account(user_jid="user1@test.com",
+                            name="account12",
+                            jid="account12@jcl.test.com")
+        account2 = Account(user_jid="user2@test.com",
+                           name="account2",
+                           jid="account2@jcl.test.com")
         model.db_disconnect()
         self.comp.handle_presence_unsubscribe(Presence(\
-            stanza_type = "unsubscribe", \
-            from_jid = "user1@test.com",\
-            to_jid = "account11@jcl.test.com"))
+            stanza_type="unsubscribe",
+            from_jid="user1@test.com",
+            to_jid="account11@jcl.test.com"))
         presence_sent = self.comp.stream.sent
         self.assertEqual(len(presence_sent), 2)
         presence = presence_sent[0]
         self.assertEqual(presence.get_from(), "account11@jcl.test.com")
         self.assertEqual(presence.get_to(), "user1@test.com")
-        self.assertEqual(presence.xpath_eval("@type")[0].get_content(), \
+        self.assertEqual(presence.xpath_eval("@type")[0].get_content(),
                          "unsubscribe")
         presence = presence_sent[1]
         self.assertEqual(presence.get_from(), "account11@jcl.test.com")
         self.assertEqual(presence.get_to(), "user1@test.com")
-        self.assertEqual(presence.xpath_eval("@type")[0].get_content(), \
+        self.assertEqual(presence.xpath_eval("@type")[0].get_content(),
                          "unsubscribed")
         model.db_connect()
-        self.assertEquals(Account.select(\
-            Account.q.user_jid == "user1@test.com" \
-            and Account.q.name == "account11").count(), \
-                          0)
-        self.assertEquals(Account.select(\
-            Account.q.user_jid == "user1@test.com").count(), \
+        self.assertEquals(account.get_account("user1@test.com", "account11"),
+                          None)
+        self.assertEquals(account.get_accounts_count("user1@test.com"),
                           1)
-        self.assertEquals(Account.select().count(), \
+        self.assertEquals(account.get_all_accounts_count(),
                           2)
         model.db_disconnect()
 
@@ -2300,55 +2273,55 @@ class JCLComponent_TestCase(unittest.TestCase):
         self.comp.stream_class = MockStream
         self.comp.presence_unsubscribe_handlers += [(DefaultUnsubscribeHandler(self.comp),)]
         model.db_connect()
-        account11 = Account(user_jid = "user1@test.com", \
-                            name = "account11", \
-                            jid = "account11@jcl.test.com")
-        account12 = Account(user_jid = "user1@test.com", \
-                            name = "account12", \
-                            jid = "account12@jcl.test.com")
-        account2 = Account(user_jid = "user2@test.com", \
-                           name = "account2", \
-                           jid = "account2@jcl.test.com")
+        account11 = Account(user_jid="user1@test.com",
+                            name="account11",
+                            jid="account11@jcl.test.com")
+        account12 = Account(user_jid="user1@test.com",
+                            name="account12",
+                            jid="account12@jcl.test.com")
+        account2 = Account(user_jid="user2@test.com",
+                           name="account2",
+                           jid="account2@jcl.test.com")
         model.db_disconnect()
         self.comp.handle_presence_unsubscribe(Presence(\
-            stanza_type = "unsubscribe", \
-            from_jid = "user1@test.com",\
-            to_jid = "user1%test.com@jcl.test.com"))
+            stanza_type="unsubscribe",
+            from_jid="user1@test.com",
+            to_jid="user1%test.com@jcl.test.com"))
         presence_sent = self.comp.stream.sent
         self.assertEqual(len(presence_sent), 2)
         presence = presence_sent[0]
         self.assertEqual(presence.get_from(), "user1%test.com@jcl.test.com")
         self.assertEqual(presence.get_to(), "user1@test.com")
-        self.assertEqual(presence.xpath_eval("@type")[0].get_content(), \
+        self.assertEqual(presence.xpath_eval("@type")[0].get_content(),
                          "unsubscribe")
         presence = presence_sent[1]
         self.assertEqual(presence.get_from(), "user1%test.com@jcl.test.com")
         self.assertEqual(presence.get_to(), "user1@test.com")
-        self.assertEqual(presence.xpath_eval("@type")[0].get_content(), \
+        self.assertEqual(presence.xpath_eval("@type")[0].get_content(),
                          "unsubscribed")
 
     def test_handle_presence_unsubscribe_to_account_unknown_user(self):
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
         model.db_connect()
-        account11 = Account(user_jid = "user1@test.com", \
-                            name = "account11", \
-                            jid = "account11@jcl.test.com")
-        account12 = Account(user_jid = "user1@test.com", \
-                            name = "account12", \
-                            jid = "account12@jcl.test.com")
-        account2 = Account(user_jid = "user2@test.com", \
-                           name = "account2", \
-                           jid = "account2@jcl.test.com")
+        account11 = Account(user_jid="user1@test.com",
+                            name="account11",
+                            jid="account11@jcl.test.com")
+        account12 = Account(user_jid="user1@test.com",
+                            name="account12",
+                            jid="account12@jcl.test.com")
+        account2 = Account(user_jid="user2@test.com",
+                           name="account2",
+                           jid="account2@jcl.test.com")
         model.db_disconnect()
         self.comp.handle_presence_unsubscribe(Presence(\
-            stanza_type = "unsubscribe", \
-            from_jid = "unknown@test.com",\
-            to_jid = "account11@jcl.test.com"))
+            stanza_type="unsubscribe",
+            from_jid="unknown@test.com",
+            to_jid="account11@jcl.test.com"))
         presence_sent = self.comp.stream.sent
         self.assertEqual(len(presence_sent), 0)
         model.db_connect()
-        self.assertEquals(Account.select().count(), \
+        self.assertEquals(account.get_all_accounts_count(),
                           3)
         model.db_disconnect()
 
@@ -2356,24 +2329,24 @@ class JCLComponent_TestCase(unittest.TestCase):
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
         model.db_connect()
-        account11 = Account(user_jid = "user1@test.com", \
-                            name = "account11", \
-                            jid = "account11@jcl.test.com")
-        account12 = Account(user_jid = "user1@test.com", \
-                            name = "account12", \
-                            jid = "account12@jcl.test.com")
-        account2 = Account(user_jid = "user2@test.com", \
-                           name = "account2", \
-                           jid = "account2@jcl.test.com")
+        account11 = Account(user_jid="user1@test.com",
+                            name="account11",
+                            jid="account11@jcl.test.com")
+        account12 = Account(user_jid="user1@test.com",
+                            name="account12",
+                            jid="account12@jcl.test.com")
+        account2 = Account(user_jid ="user2@test.com",
+                           name="account2",
+                           jid="account2@jcl.test.com")
         model.db_disconnect()
         self.comp.handle_presence_unsubscribe(Presence(\
-            stanza_type = "unsubscribe", \
-            from_jid = "user1@test.com",\
-            to_jid = "unknown@jcl.test.com"))
+            stanza_type="unsubscribe",
+            from_jid="user1@test.com",
+            to_jid="unknown@jcl.test.com"))
         presence_sent = self.comp.stream.sent
         self.assertEqual(len(presence_sent), 0)
         model.db_connect()
-        self.assertEquals(Account.select().count(), \
+        self.assertEquals(account.get_all_accounts_count(),
                           3)
         model.db_disconnect()
 
@@ -2552,635 +2525,6 @@ class JCLComponent_TestCase(unittest.TestCase):
                                       "data": "jabber:x:data"})
         self.assertEquals(len(items), 2)
 
-    def test_handle_command_execute_add_user(self):
-        #TODO : implement command
-        self.comp.stream = MockStream()
-        self.comp.stream_class = MockStream
-        info_query = Iq(stanza_type="set",
-                        from_jid="user1@test.com",
-                        to_jid="jcl.test.com")
-        command_node = info_query.set_new_content("http://jabber.org/protocol/commands",
-                                                  "command")
-        command_node.setProp("node", "http://jabber.org/protocol/admin#add-user")
-        command_node.setProp("action", "execute")
-        self.comp.handle_command(info_query)
-        result = self.comp.stream.sent
-        self.assertNotEquals(result, None)
-        self.assertEquals(len(result), 1)
-        error = result[0].get_error()
-        self.assertNotEquals(error, None)
-
-    def test_handle_command_execute_delete_user(self):
-        #TODO : implement command
-        self.comp.stream = MockStream()
-        self.comp.stream_class = MockStream
-        info_query = Iq(stanza_type="set",
-                        from_jid="user1@test.com",
-                        to_jid="jcl.test.com")
-        command_node = info_query.set_new_content("http://jabber.org/protocol/commands",
-                                                  "command")
-        command_node.setProp("node", "http://jabber.org/protocol/admin#delete-user")
-        command_node.setProp("action", "execute")
-        self.comp.handle_command(info_query)
-        result = self.comp.stream.sent
-        self.assertNotEquals(result, None)
-        self.assertEquals(len(result), 1)
-        error = result[0].get_error()
-        self.assertNotEquals(error, None)
-
-    def test_handle_command_execute_disable_user(self):
-        #TODO : implement command
-        self.comp.stream = MockStream()
-        self.comp.stream_class = MockStream
-        info_query = Iq(stanza_type="set",
-                        from_jid="user1@test.com",
-                        to_jid="jcl.test.com")
-        command_node = info_query.set_new_content("http://jabber.org/protocol/commands",
-                                                  "command")
-        command_node.setProp("node", "http://jabber.org/protocol/admin#disable-user")
-        command_node.setProp("action", "execute")
-        self.comp.handle_command(info_query)
-        result = self.comp.stream.sent
-        self.assertNotEquals(result, None)
-        self.assertEquals(len(result), 1)
-        error = result[0].get_error()
-        self.assertNotEquals(error, None)
-
-    def test_handle_command_execute_reenable_user(self):
-        #TODO : implement command
-        self.comp.stream = MockStream()
-        self.comp.stream_class = MockStream
-        info_query = Iq(stanza_type="set",
-                        from_jid="user1@test.com",
-                        to_jid="jcl.test.com")
-        command_node = info_query.set_new_content("http://jabber.org/protocol/commands",
-                                                  "command")
-        command_node.setProp("node", "http://jabber.org/protocol/admin#reenable-user")
-        command_node.setProp("action", "execute")
-        self.comp.handle_command(info_query)
-        result = self.comp.stream.sent
-        self.assertNotEquals(result, None)
-        self.assertEquals(len(result), 1)
-        error = result[0].get_error()
-        self.assertNotEquals(error, None)
-
-    def test_handle_command_execute_end_user_session(self):
-        #TODO : implement command
-        self.comp.stream = MockStream()
-        self.comp.stream_class = MockStream
-        info_query = Iq(stanza_type="set",
-                        from_jid="user1@test.com",
-                        to_jid="jcl.test.com")
-        command_node = info_query.set_new_content("http://jabber.org/protocol/commands",
-                                                  "command")
-        command_node.setProp("node", "http://jabber.org/protocol/admin#end-user-session")
-        command_node.setProp("action", "execute")
-        self.comp.handle_command(info_query)
-        result = self.comp.stream.sent
-        self.assertNotEquals(result, None)
-        self.assertEquals(len(result), 1)
-        error = result[0].get_error()
-        self.assertNotEquals(error, None)
-
-    def test_handle_command_execute_get_user_password(self):
-        #TODO : implement command
-        self.comp.stream = MockStream()
-        self.comp.stream_class = MockStream
-        info_query = Iq(stanza_type="set",
-                        from_jid="user1@test.com",
-                        to_jid="jcl.test.com")
-        command_node = info_query.set_new_content("http://jabber.org/protocol/commands",
-                                                  "command")
-        command_node.setProp("node", "http://jabber.org/protocol/admin#get-user-password")
-        command_node.setProp("action", "execute")
-        self.comp.handle_command(info_query)
-        result = self.comp.stream.sent
-        self.assertNotEquals(result, None)
-        self.assertEquals(len(result), 1)
-        error = result[0].get_error()
-        self.assertNotEquals(error, None)
-
-    def test_handle_command_execute_change_user_password(self):
-        #TODO : implement command
-        self.comp.stream = MockStream()
-        self.comp.stream_class = MockStream
-        info_query = Iq(stanza_type="set",
-                        from_jid="user1@test.com",
-                        to_jid="jcl.test.com")
-        command_node = info_query.set_new_content("http://jabber.org/protocol/commands",
-                                                  "command")
-        command_node.setProp("node", "http://jabber.org/protocol/admin#get_user_password")
-        command_node.setProp("action", "execute")
-        self.comp.handle_command(info_query)
-        result = self.comp.stream.sent
-        self.assertNotEquals(result, None)
-        self.assertEquals(len(result), 1)
-        error = result[0].get_error()
-        self.assertNotEquals(error, None)
-
-    def test_handle_command_execute_get_user_roster(self):
-        #TODO : implement command
-        self.comp.stream = MockStream()
-        self.comp.stream_class = MockStream
-        info_query = Iq(stanza_type="set",
-                        from_jid="user1@test.com",
-                        to_jid="jcl.test.com")
-        command_node = info_query.set_new_content("http://jabber.org/protocol/commands",
-                                                  "command")
-        command_node.setProp("node", "http://jabber.org/protocol/admin#get-user-roster")
-        command_node.setProp("action", "execute")
-        self.comp.handle_command(info_query)
-        result = self.comp.stream.sent
-        self.assertNotEquals(result, None)
-        self.assertEquals(len(result), 1)
-        error = result[0].get_error()
-        self.assertNotEquals(error, None)
-
-    def test_handle_command_execute_get_user_last_login(self):
-        #TODO : implement command
-        self.comp.stream = MockStream()
-        self.comp.stream_class = MockStream
-        info_query = Iq(stanza_type="set",
-                        from_jid="user1@test.com",
-                        to_jid="jcl.test.com")
-        command_node = info_query.set_new_content("http://jabber.org/protocol/commands",
-                                                  "command")
-        command_node.setProp("node", "http://jabber.org/protocol/admin#get-user-last-login")
-        command_node.setProp("action", "execute")
-        self.comp.handle_command(info_query)
-        result = self.comp.stream.sent
-        self.assertNotEquals(result, None)
-        self.assertEquals(len(result), 1)
-        error = result[0].get_error()
-        self.assertNotEquals(error, None)
-
-    def test_handle_command_execute_user_stats(self):
-        #TODO : implement command
-        self.comp.stream = MockStream()
-        self.comp.stream_class = MockStream
-        info_query = Iq(stanza_type="set",
-                        from_jid="user1@test.com",
-                        to_jid="jcl.test.com")
-        command_node = info_query.set_new_content("http://jabber.org/protocol/commands",
-                                                  "command")
-        command_node.setProp("node", "http://jabber.org/protocol/admin#user-stats")
-        command_node.setProp("action", "execute")
-        self.comp.handle_command(info_query)
-        result = self.comp.stream.sent
-        self.assertNotEquals(result, None)
-        self.assertEquals(len(result), 1)
-        error = result[0].get_error()
-        self.assertNotEquals(error, None)
-
-    def test_handle_command_execute_edit_blacklist(self):
-        #TODO : implement command
-        self.comp.stream = MockStream()
-        self.comp.stream_class = MockStream
-        info_query = Iq(stanza_type="set",
-                        from_jid="user1@test.com",
-                        to_jid="jcl.test.com")
-        command_node = info_query.set_new_content("http://jabber.org/protocol/commands",
-                                                  "command")
-        command_node.setProp("node", "http://jabber.org/protocol/admin#edit-blacklist")
-        command_node.setProp("action", "execute")
-        self.comp.handle_command(info_query)
-        result = self.comp.stream.sent
-        self.assertNotEquals(result, None)
-        self.assertEquals(len(result), 1)
-        error = result[0].get_error()
-        self.assertNotEquals(error, None)
-
-    def test_handle_command_execute_add_to_blacklist_in(self):
-        #TODO : implement command
-        self.comp.stream = MockStream()
-        self.comp.stream_class = MockStream
-        info_query = Iq(stanza_type="set",
-                        from_jid="user1@test.com",
-                        to_jid="jcl.test.com")
-        command_node = info_query.set_new_content("http://jabber.org/protocol/commands",
-                                                  "command")
-        command_node.setProp("node", "http://jabber.org/protocol/admin#add-to-blacklist-in")
-        command_node.setProp("action", "execute")
-        self.comp.handle_command(info_query)
-        result = self.comp.stream.sent
-        self.assertNotEquals(result, None)
-        self.assertEquals(len(result), 1)
-        error = result[0].get_error()
-        self.assertNotEquals(error, None)
-
-    def test_handle_command_execute_add_to_blacklist_out(self):
-        #TODO : implement command
-        self.comp.stream = MockStream()
-        self.comp.stream_class = MockStream
-        info_query = Iq(stanza_type="set",
-                        from_jid="user1@test.com",
-                        to_jid="jcl.test.com")
-        command_node = info_query.set_new_content("http://jabber.org/protocol/commands",
-                                                  "command")
-        command_node.setProp("node", "http://jabber.org/protocol/admin#add-to-blacklist-out")
-        command_node.setProp("action", "execute")
-        self.comp.handle_command(info_query)
-        result = self.comp.stream.sent
-        self.assertNotEquals(result, None)
-        self.assertEquals(len(result), 1)
-        error = result[0].get_error()
-        self.assertNotEquals(error, None)
-
-    def test_handle_command_execute_edit_whitelist(self):
-        #TODO : implement command
-        self.comp.stream = MockStream()
-        self.comp.stream_class = MockStream
-        info_query = Iq(stanza_type="set",
-                        from_jid="user1@test.com",
-                        to_jid="jcl.test.com")
-        command_node = info_query.set_new_content("http://jabber.org/protocol/commands",
-                                                  "command")
-        command_node.setProp("node", "http://jabber.org/protocol/admin#edit-whitelist")
-        command_node.setProp("action", "execute")
-        self.comp.handle_command(info_query)
-        result = self.comp.stream.sent
-        self.assertNotEquals(result, None)
-        self.assertEquals(len(result), 1)
-        error = result[0].get_error()
-        self.assertNotEquals(error, None)
-
-    def test_handle_command_execute_add_to_whitelist_in(self):
-        #TODO : implement command
-        self.comp.stream = MockStream()
-        self.comp.stream_class = MockStream
-        info_query = Iq(stanza_type="set",
-                        from_jid="user1@test.com",
-                        to_jid="jcl.test.com")
-        command_node = info_query.set_new_content("http://jabber.org/protocol/commands",
-                                                  "command")
-        command_node.setProp("node", "http://jabber.org/protocol/admin#add-to-whitelist-in")
-        command_node.setProp("action", "execute")
-        self.comp.handle_command(info_query)
-        result = self.comp.stream.sent
-        self.assertNotEquals(result, None)
-        self.assertEquals(len(result), 1)
-        error = result[0].get_error()
-        self.assertNotEquals(error, None)
-
-    def test_handle_command_execute_add_to_whitelist_out(self):
-        #TODO : implement command
-        self.comp.stream = MockStream()
-        self.comp.stream_class = MockStream
-        info_query = Iq(stanza_type="set",
-                        from_jid="user1@test.com",
-                        to_jid="jcl.test.com")
-        command_node = info_query.set_new_content("http://jabber.org/protocol/commands",
-                                                  "command")
-        command_node.setProp("node", "http://jabber.org/protocol/admin#add-to-whitelist-out")
-        command_node.setProp("action", "execute")
-        self.comp.handle_command(info_query)
-        result = self.comp.stream.sent
-        self.assertNotEquals(result, None)
-        self.assertEquals(len(result), 1)
-        error = result[0].get_error()
-        self.assertNotEquals(error, None)
-
-    def test_handle_command_execute_get_registered_users_num(self):
-        #TODO : implement command
-        self.comp.stream = MockStream()
-        self.comp.stream_class = MockStream
-        info_query = Iq(stanza_type="set",
-                        from_jid="user1@test.com",
-                        to_jid="jcl.test.com")
-        command_node = info_query.set_new_content("http://jabber.org/protocol/commands",
-                                                  "command")
-        command_node.setProp("node", "http://jabber.org/protocol/admin#get-registered-users-num")
-        command_node.setProp("action", "execute")
-        self.comp.handle_command(info_query)
-        result = self.comp.stream.sent
-        self.assertNotEquals(result, None)
-        self.assertEquals(len(result), 1)
-        error = result[0].get_error()
-        self.assertNotEquals(error, None)
-
-    def test_handle_command_execute_get_disabled_users_num(self):
-        #TODO : implement command
-        self.comp.stream = MockStream()
-        self.comp.stream_class = MockStream
-        info_query = Iq(stanza_type="set",
-                        from_jid="user1@test.com",
-                        to_jid="jcl.test.com")
-        command_node = info_query.set_new_content("http://jabber.org/protocol/commands",
-                                                  "command")
-        command_node.setProp("node", "http://jabber.org/protocol/admin#get-disabled-users-num")
-        command_node.setProp("action", "execute")
-        self.comp.handle_command(info_query)
-        result = self.comp.stream.sent
-        self.assertNotEquals(result, None)
-        self.assertEquals(len(result), 1)
-        error = result[0].get_error()
-        self.assertNotEquals(error, None)
-
-    def test_handle_command_execute_get_online_users_num(self):
-        #TODO : implement command
-        self.comp.stream = MockStream()
-        self.comp.stream_class = MockStream
-        info_query = Iq(stanza_type="set",
-                        from_jid="user1@test.com",
-                        to_jid="jcl.test.com")
-        command_node = info_query.set_new_content("http://jabber.org/protocol/commands",
-                                                  "command")
-        command_node.setProp("node", "http://jabber.org/protocol/admin#get-online-users-num")
-        command_node.setProp("action", "execute")
-        self.comp.handle_command(info_query)
-        result = self.comp.stream.sent
-        self.assertNotEquals(result, None)
-        self.assertEquals(len(result), 1)
-        error = result[0].get_error()
-        self.assertNotEquals(error, None)
-
-    def test_handle_command_execute_get_active_users_num(self):
-        #TODO : implement command
-        self.comp.stream = MockStream()
-        self.comp.stream_class = MockStream
-        info_query = Iq(stanza_type="set",
-                        from_jid="user1@test.com",
-                        to_jid="jcl.test.com")
-        command_node = info_query.set_new_content("http://jabber.org/protocol/commands",
-                                                  "command")
-        command_node.setProp("node", "http://jabber.org/protocol/admin#get-active-users-num")
-        command_node.setProp("action", "execute")
-        self.comp.handle_command(info_query)
-        result = self.comp.stream.sent
-        self.assertNotEquals(result, None)
-        self.assertEquals(len(result), 1)
-        error = result[0].get_error()
-        self.assertNotEquals(error, None)
-
-    def test_handle_command_execute_get_idle_users_num(self):
-        #TODO : implement command
-        self.comp.stream = MockStream()
-        self.comp.stream_class = MockStream
-        info_query = Iq(stanza_type="set",
-                        from_jid="user1@test.com",
-                        to_jid="jcl.test.com")
-        command_node = info_query.set_new_content("http://jabber.org/protocol/commands",
-                                                  "command")
-        command_node.setProp("node", "http://jabber.org/protocol/admin#get-idle-users-num")
-        command_node.setProp("action", "execute")
-        self.comp.handle_command(info_query)
-        result = self.comp.stream.sent
-        self.assertNotEquals(result, None)
-        self.assertEquals(len(result), 1)
-        error = result[0].get_error()
-        self.assertNotEquals(error, None)
-
-    def test_handle_command_execute_get_registered_users_list(self):
-        #TODO : implement command
-        self.comp.stream = MockStream()
-        self.comp.stream_class = MockStream
-        info_query = Iq(stanza_type="set",
-                        from_jid="user1@test.com",
-                        to_jid="jcl.test.com")
-        command_node = info_query.set_new_content("http://jabber.org/protocol/commands",
-                                                  "command")
-        command_node.setProp("node", "http://jabber.org/protocol/admin#get-registered-users-list")
-        command_node.setProp("action", "execute")
-        self.comp.handle_command(info_query)
-        result = self.comp.stream.sent
-        self.assertNotEquals(result, None)
-        self.assertEquals(len(result), 1)
-        error = result[0].get_error()
-        self.assertNotEquals(error, None)
-
-    def test_handle_command_execute_get_disabled_users_list(self):
-        #TODO : implement command
-        self.comp.stream = MockStream()
-        self.comp.stream_class = MockStream
-        info_query = Iq(stanza_type="set",
-                        from_jid="user1@test.com",
-                        to_jid="jcl.test.com")
-        command_node = info_query.set_new_content("http://jabber.org/protocol/commands",
-                                                  "command")
-        command_node.setProp("node", "http://jabber.org/protocol/admin#get-disabled-users-list")
-        command_node.setProp("action", "execute")
-        self.comp.handle_command(info_query)
-        result = self.comp.stream.sent
-        self.assertNotEquals(result, None)
-        self.assertEquals(len(result), 1)
-        error = result[0].get_error()
-        self.assertNotEquals(error, None)
-
-    def test_handle_command_execute_get_online_users(self):
-        #TODO : implement command
-        self.comp.stream = MockStream()
-        self.comp.stream_class = MockStream
-        info_query = Iq(stanza_type="set",
-                        from_jid="user1@test.com",
-                        to_jid="jcl.test.com")
-        command_node = info_query.set_new_content("http://jabber.org/protocol/commands",
-                                                  "command")
-        command_node.setProp("node", "http://jabber.org/protocol/admin#get-online-users")
-        command_node.setProp("action", "execute")
-        self.comp.handle_command(info_query)
-        result = self.comp.stream.sent
-        self.assertNotEquals(result, None)
-        self.assertEquals(len(result), 1)
-        error = result[0].get_error()
-        self.assertNotEquals(error, None)
-
-    def test_handle_command_execute_get_active_users(self):
-        #TODO : implement command
-        self.comp.stream = MockStream()
-        self.comp.stream_class = MockStream
-        info_query = Iq(stanza_type="set",
-                        from_jid="user1@test.com",
-                        to_jid="jcl.test.com")
-        command_node = info_query.set_new_content("http://jabber.org/protocol/commands",
-                                                  "command")
-        command_node.setProp("node", "http://jabber.org/protocol/admin#get-active-users")
-        command_node.setProp("action", "execute")
-        self.comp.handle_command(info_query)
-        result = self.comp.stream.sent
-        self.assertNotEquals(result, None)
-        self.assertEquals(len(result), 1)
-        error = result[0].get_error()
-        self.assertNotEquals(error, None)
-
-    def test_handle_command_execute_get_idle_users(self):
-        #TODO : implement command
-        self.comp.stream = MockStream()
-        self.comp.stream_class = MockStream
-        info_query = Iq(stanza_type="set",
-                        from_jid="user1@test.com",
-                        to_jid="jcl.test.com")
-        command_node = info_query.set_new_content("http://jabber.org/protocol/commands",
-                                                  "command")
-        command_node.setProp("node", "http://jabber.org/protocol/admin#get-idle-users")
-        command_node.setProp("action", "execute")
-        self.comp.handle_command(info_query)
-        result = self.comp.stream.sent
-        self.assertNotEquals(result, None)
-        self.assertEquals(len(result), 1)
-        error = result[0].get_error()
-        self.assertNotEquals(error, None)
-
-    def test_handle_command_execute_announce(self):
-        #TODO : implement command
-        self.comp.stream = MockStream()
-        self.comp.stream_class = MockStream
-        info_query = Iq(stanza_type="set",
-                        from_jid="user1@test.com",
-                        to_jid="jcl.test.com")
-        command_node = info_query.set_new_content("http://jabber.org/protocol/commands",
-                                                  "command")
-        command_node.setProp("node", "http://jabber.org/protocol/admin#announce")
-        command_node.setProp("action", "execute")
-        self.comp.handle_command(info_query)
-        result = self.comp.stream.sent
-        self.assertNotEquals(result, None)
-        self.assertEquals(len(result), 1)
-        error = result[0].get_error()
-        self.assertNotEquals(error, None)
-
-    def test_handle_command_execute_set_motd(self):
-        #TODO : implement command
-        self.comp.stream = MockStream()
-        self.comp.stream_class = MockStream
-        info_query = Iq(stanza_type="set",
-                        from_jid="user1@test.com",
-                        to_jid="jcl.test.com")
-        command_node = info_query.set_new_content("http://jabber.org/protocol/commands",
-                                                  "command")
-        command_node.setProp("node", "http://jabber.org/protocol/admin#set-motd")
-        command_node.setProp("action", "execute")
-        self.comp.handle_command(info_query)
-        result = self.comp.stream.sent
-        self.assertNotEquals(result, None)
-        self.assertEquals(len(result), 1)
-        error = result[0].get_error()
-        self.assertNotEquals(error, None)
-
-    def test_handle_command_execute_edit_motd(self):
-        #TODO : implement command
-        self.comp.stream = MockStream()
-        self.comp.stream_class = MockStream
-        info_query = Iq(stanza_type="set",
-                        from_jid="user1@test.com",
-                        to_jid="jcl.test.com")
-        command_node = info_query.set_new_content("http://jabber.org/protocol/commands",
-                                                  "command")
-        command_node.setProp("node", "http://jabber.org/protocol/admin#edit-motd")
-        command_node.setProp("action", "execute")
-        self.comp.handle_command(info_query)
-        result = self.comp.stream.sent
-        self.assertNotEquals(result, None)
-        self.assertEquals(len(result), 1)
-        error = result[0].get_error()
-        self.assertNotEquals(error, None)
-
-    def test_handle_command_execute_delete_motd(self):
-        #TODO : implement command
-        self.comp.stream = MockStream()
-        self.comp.stream_class = MockStream
-        info_query = Iq(stanza_type="set",
-                        from_jid="user1@test.com",
-                        to_jid="jcl.test.com")
-        command_node = info_query.set_new_content("http://jabber.org/protocol/commands",
-                                                  "command")
-        command_node.setProp("node", "http://jabber.org/protocol/admin#delete-motd")
-        command_node.setProp("action", "execute")
-        self.comp.handle_command(info_query)
-        result = self.comp.stream.sent
-        self.assertNotEquals(result, None)
-        self.assertEquals(len(result), 1)
-        error = result[0].get_error()
-        self.assertNotEquals(error, None)
-
-    def test_handle_command_execute_set_welcome(self):
-        #TODO : implement command
-        self.comp.stream = MockStream()
-        self.comp.stream_class = MockStream
-        info_query = Iq(stanza_type="set",
-                        from_jid="user1@test.com",
-                        to_jid="jcl.test.com")
-        command_node = info_query.set_new_content("http://jabber.org/protocol/commands",
-                                                  "command")
-        command_node.setProp("node", "http://jabber.org/protocol/admin#set-welcome")
-        command_node.setProp("action", "execute")
-        self.comp.handle_command(info_query)
-        result = self.comp.stream.sent
-        self.assertNotEquals(result, None)
-        self.assertEquals(len(result), 1)
-        error = result[0].get_error()
-        self.assertNotEquals(error, None)
-
-    def test_handle_command_execute_delete_welcome(self):
-        #TODO : implement command
-        self.comp.stream = MockStream()
-        self.comp.stream_class = MockStream
-        info_query = Iq(stanza_type="set",
-                        from_jid="user1@test.com",
-                        to_jid="jcl.test.com")
-        command_node = info_query.set_new_content("http://jabber.org/protocol/commands",
-                                                  "command")
-        command_node.setProp("node", "http://jabber.org/protocol/admin#delete-welcome")
-        command_node.setProp("action", "execute")
-        self.comp.handle_command(info_query)
-        result = self.comp.stream.sent
-        self.assertNotEquals(result, None)
-        self.assertEquals(len(result), 1)
-        error = result[0].get_error()
-        self.assertNotEquals(error, None)
-
-    def test_handle_command_execute_edit_admin(self):
-        #TODO : implement command
-        self.comp.stream = MockStream()
-        self.comp.stream_class = MockStream
-        info_query = Iq(stanza_type="set",
-                        from_jid="user1@test.com",
-                        to_jid="jcl.test.com")
-        command_node = info_query.set_new_content("http://jabber.org/protocol/commands",
-                                                  "command")
-        command_node.setProp("node", "http://jabber.org/protocol/admin#edit-admin")
-        command_node.setProp("action", "execute")
-        self.comp.handle_command(info_query)
-        result = self.comp.stream.sent
-        self.assertNotEquals(result, None)
-        self.assertEquals(len(result), 1)
-        error = result[0].get_error()
-        self.assertNotEquals(error, None)
-
-    def test_handle_command_execute_restart(self):
-        #TODO : implement command
-        self.comp.stream = MockStream()
-        self.comp.stream_class = MockStream
-        info_query = Iq(stanza_type="set",
-                        from_jid="user1@test.com",
-                        to_jid="jcl.test.com")
-        command_node = info_query.set_new_content("http://jabber.org/protocol/commands",
-                                                  "command")
-        command_node.setProp("node", "http://jabber.org/protocol/admin#restart")
-        command_node.setProp("action", "execute")
-        self.comp.handle_command(info_query)
-        result = self.comp.stream.sent
-        self.assertNotEquals(result, None)
-        self.assertEquals(len(result), 1)
-        error = result[0].get_error()
-        self.assertNotEquals(error, None)
-
-    def test_handle_command_execute_shutdown(self):
-        #TODO : implement command
-        self.comp.stream = MockStream()
-        self.comp.stream_class = MockStream
-        info_query = Iq(stanza_type="set",
-                        from_jid="user1@test.com",
-                        to_jid="jcl.test.com")
-        command_node = info_query.set_new_content("http://jabber.org/protocol/commands",
-                                                  "command")
-        command_node.setProp("node", "http://jabber.org/protocol/admin#shutdown")
-        command_node.setProp("action", "execute")
-        self.comp.handle_command(info_query)
-        result = self.comp.stream.sent
-        self.assertNotEquals(result, None)
-        self.assertEquals(len(result), 1)
-        error = result[0].get_error()
-        self.assertNotEquals(error, None)
 
 class Handler_TestCase(unittest.TestCase):
     def setUp(self):
@@ -3203,14 +2547,17 @@ class Handler_TestCase(unittest.TestCase):
 
     def test_filter(self):
         model.db_connect()
-        account11 = Account(user_jid = "user1@test.com", \
-                               name = "account11", \
-                               jid = "account11@jcl.test.com")
-        account12 = Account(user_jid = "user1@test.com", \
-                               name = "account12", \
-                               jid = "account12@jcl.test.com")
+        account11 = Account(user_jid="user1@test.com",
+                            name="account11",
+                            jid="account11@jcl.test.com")
+        account12 = Account(user_jid="user1@test.com",
+                            name="account12",
+                            jid="account12@jcl.test.com")
         accounts = self.handler.filter(None, None)
-        self.assertEquals(accounts.count(), 2)
+        accounts_count = 0
+        for account in accounts:
+            accounts_count += 1
+        self.assertEquals(accounts_count, 2)
         model.db_disconnect()
 
     def test_handle(self):

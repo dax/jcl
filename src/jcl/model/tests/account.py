@@ -58,7 +58,7 @@ class ExampleAccount(Account):
         return Account.get_register_fields(real_class) + \
             [("login", "text-single", None,
               lambda field_value, default_func, bare_from_jid: \
-                 account.mandatory_field(field_value),
+                 account.mandatory_field("login", field_value),
               lambda bare_from_jid: ""),
              ("password", "text-private", None,
               lambda field_value, default_func, bare_from_jid: \
@@ -152,22 +152,22 @@ class AccountModule_TestCase(unittest.TestCase):
     def test_mandatory_field_empty(self):
         self.assertRaises(FieldError,
                           account.mandatory_field,
-                          "")
+                          "test", "")
 
     def test_mandatory_field_none(self):
         self.assertRaises(FieldError,
                           account.mandatory_field,
-                          None)
+                          "test", None)
 
     def test_mandatory_field_empty(self):
-        self.assertEquals(account.mandatory_field("value"),
+        self.assertEquals(account.mandatory_field("test", "value"),
                           "value")
 
 class InheritableAccount_TestCase(unittest.TestCase):
     def setUp(self):
         self.db_url = DB_URL
         model.db_connection_str = 'sqlite://' + self.db_url
-       
+
     def test_get_register_fields(self):
         """
         Check if post functions and default functions execute correctly.
@@ -182,7 +182,7 @@ class InheritableAccount_TestCase(unittest.TestCase):
              field_default_func) in self.account_class.get_register_fields():
             if field_name is not None:
                 try:
-                    field_post_func(field_default_func("user1@jcl.test.com"), 
+                    field_post_func(field_default_func("user1@jcl.test.com"),
                                     field_default_func, "user1@jcl.test.com")
                 except FieldError, error:
                     # this type of error is OK

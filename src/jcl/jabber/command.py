@@ -21,17 +21,26 @@
 ##
 
 import re
+import datetime
+import logging
 
+from pyxmpp.jid import JID
 from pyxmpp.jabber.disco import DiscoInfo, DiscoItems, DiscoItem, DiscoIdentity
 from pyxmpp.jabber.dataforms import Form, Field
 
-import jcl
-from jcl.lang import Lang
 from jcl.jabber.disco import DiscoHandler, RootDiscoGetInfoHandler
 from jcl.model import account
-from jcl.model.account import Account
 
 COMMAND_NS = "http://jabber.org/protocol/commands"
+
+ACTION_COMPLETE = "complete"
+ACTION_NEXT = "next"
+ACTION_PREVIOUS = "prev"
+ACTION_CANCEL = "cancel"
+
+STATUS_COMPLETED = "completed"
+STATUS_EXECUTING = "executing"
+STATUS_CANCELLED = "cancel"
 
 class FieldNoType(Field):
     def complete_xml_element(self, xmlnode, doc):
@@ -44,10 +53,12 @@ class CommandManager(object):
 
     def __init__(self, component=None, account_manager=None):
         """CommandManager constructor"""
+        self.__logger = logging.getLogger("jcl.jabber.command.CommandManager")
         self.component = component
         self.account_manager = account_manager
         self.commands = []
         self.command_re = re.compile("([^#]*#)?(.*)")
+        self.sessions = {}
 
     def get_short_command_name(self, command_name):
         """
@@ -55,7 +66,7 @@ class CommandManager(object):
         'http://jabber.org/protocol/admin#add-user' -> 'add-user'
         """
         match = self.command_re.match(command_name)
-        return match.group(2)
+        return match.group(2).replace('-', '_')
 
     def get_command_desc(self, command_name, lang_class):
         """Return localized command description"""
@@ -96,6 +107,86 @@ class CommandManager(object):
         else:
             return [info_query.make_error_response("feature-not-implemented")]
 
+    def generate_session_id(self, node):
+        return self.get_short_command_name(node) + ":" + \
+               datetime.datetime.now().isoformat()
+
+    def _create_response(self, info_query, completed=True):
+        xml_command = info_query.xpath_eval("c:command",
+                                            {"c": "http://jabber.org/protocol/commands"})[0]
+        node = xml_command.prop("node")
+        if xml_command.hasProp("sessionid"):
+            session_id = xml_command.prop("sessionid")
+        else:
+            session_id = self.generate_session_id(node)
+        self.__logger.debug("Creating command execution with session ID " + str(session_id))
+        response = info_query.make_result_response()
+        command_node = response.set_new_content(COMMAND_NS, "command")
+        command_node.setProp("node", node)
+        if completed:
+            command_node.setProp("status", STATUS_COMPLETED)
+        else:
+            command_node.setProp("status", STATUS_EXECUTING)
+        command_node.setProp("sessionid",
+                             session_id)
+        return (response, command_node, session_id)
+
+    def parse_form(self, info_query, session_id):
+        fields = info_query.xpath_eval(\
+            "c:command/data:x/data:field",
+            {"c": "http://jabber.org/protocol/commands",
+             "data": "jabber:x:data"})
+        for field in fields:
+            field_name = field.prop("var")
+            value = info_query.xpath_eval(\
+                        "c:command/data:x/data:field[@var='"
+                        + field_name + "']/data:value",
+                        {"c": "http://jabber.org/protocol/commands",
+                         "data": "jabber:x:data"})
+            if len(value) > 0:
+                self.__logger.debug("Adding to session '" + session_id
+                                    + "': " + field_name + "="
+                                    + value[0].content)
+                self.sessions[session_id][1][field_name] = value[0].content
+
+    def execute_multi_step_command(self, info_query, short_node, update_step_func):
+        (response,
+         command_node,
+         session_id) = self._create_response(info_query,
+                                             False)
+        lang_class = self.component.lang.get_lang_class_from_node(info_query.get_node())
+        if not self.sessions.has_key(session_id):
+            self.sessions[session_id] = (1, {})
+        else:
+            self.sessions[session_id] = update_step_func(session_id)
+        step = self.sessions[session_id][0]
+        step_method = "execute_" + short_node + "_" + str(step)
+        self.parse_form(info_query, session_id)
+        return [response] + getattr(self, step_method)(info_query,
+                                                       self.sessions[session_id][1],
+                                                       command_node,
+                                                       lang_class)
+
+    def add_actions(self, command_node, actions, default_action_idx=0):
+        actions_node = command_node.newTextChild(None, "actions", None)
+        actions_node.setProp("execute", actions[default_action_idx])
+        for action in actions:
+            actions_node.newTextChild(None, action, None)
+        return actions_node
+
+    def cancel_command(self, info_query):
+        xml_command = info_query.xpath_eval("c:command",
+                                            {"c": "http://jabber.org/protocol/commands"})[0]
+        if xml_command.hasProp("sessionid"):
+            session_id = xml_command.prop("sessionid")
+            response = info_query.make_result_response()
+            command_node = response.set_new_content(COMMAND_NS, "command")
+            command_node.setProp("node", xml_command.prop("node"))
+            command_node.setProp("status", STATUS_CANCELLED)
+            command_node.setProp("sessionid",
+                                 session_id)
+            del self.sessions[session_id]
+
 command_manager = CommandManager()
 
 class JCLCommandManager(CommandManager):
@@ -104,6 +195,7 @@ class JCLCommandManager(CommandManager):
     def __init__(self, component=None, account_manager=None):
         """JCLCommandManager constructor"""
         CommandManager.__init__(self, component, account_manager)
+        self.__logger = logging.getLogger("jcl.jabber.command.JCLCommandManager")
         self.commands.extend(["list",
                               "http://jabber.org/protocol/admin#add-user",
                               "http://jabber.org/protocol/admin#delete-user",
@@ -143,23 +235,191 @@ class JCLCommandManager(CommandManager):
 
     def execute_list(self, info_query):
         """Execute command 'list'. List accounts"""
-        response = info_query.make_result_response()
-        command_node = response.set_new_content(COMMAND_NS, "command")
-        command_node.setProp("node", "list")
-        command_node.setProp("status", "completed")
-        #command_node.setProp("sessionid", "????") # TODO
+        self.__logger.debug("Executing 'list' command")
+        (response, command_node, session_id) = self._create_response(info_query,
+                                                                     "list")
         result_form = Form(xmlnode_or_type="result",
                            title="Registered account") # TODO : add to Lang
         result_form.reported_fields.append(FieldNoType(name="name",
                                                        label="Account name")) # TODO: add to Lang
         bare_from_jid = unicode(info_query.get_from().bare())
         for _account in account.get_accounts(bare_from_jid):
-            print "Adding account : " + str(_account)
             fields = [FieldNoType(name="name",
                                   value=_account.name)]
             result_form.add_item(fields)
         result_form.as_xml(command_node)
         return [response]
+
+    def execute_add_user(self, info_query):
+        """Execute command 'add-user'. Create new account"""
+        self.__logger.debug("Executing 'add-user' command")
+        return self.execute_multi_step_command(\
+            info_query,
+            "add_user",
+            lambda session_id: (self.sessions[session_id][0] + 1,
+                                self.sessions[session_id][1]))
+
+    def prev_add_user(self, info_query):
+        """Execute previous step of command 'add-user'."""
+        self.__logger.debug("Executing 'add-user' command previous step")
+        return self.execute_multi_step_command(\
+            info_query,
+            "add_user",
+            lambda session_id: (self.sessions[session_id][0] - 1,
+                                self.sessions[session_id][1]))
+
+    def cancel_add_user(self, info_query):
+        """Cancel current 'add-user' session"""
+        self.__logger.debug("Cancelling 'add-user' command")
+        return self.cancel_command(info_query)
+
+    def execute_add_user_1(self, info_query, session_context, command_node, lang_class):
+        self.__logger.debug("Executing command 'add-user' step 1")
+        self.add_actions(command_node, [ACTION_NEXT])
+        result_form = Form(xmlnode_or_type="result",
+                           title=lang_class.select_account_type)
+        field = result_form.add_field(name="account_type",
+                                      field_type="list-single",
+                                      label="Account type")
+        for (account_type, type_label) in \
+                self.component.account_manager.list_account_types(lang_class):
+            field.add_option(label=type_label,
+                             values=[account_type])
+        result_form.add_field(name="user_jid",
+                              field_type="text-single",
+                              label=lang_class.field_user_jid)
+        result_form.as_xml(command_node)
+        return []
+
+    def execute_add_user_2(self, info_query, session_context, command_node, lang_class):
+        self.__logger.debug("Executing command 'add-user' step 2")
+        self.add_actions(command_node, [ACTION_PREVIOUS, ACTION_COMPLETE], 1)
+        user_jid = session_context["user_jid"]
+        account_type = session_context["account_type"]
+        account_class = self.account_manager.get_account_class(account_type)
+        result_form = self.account_manager.generate_registration_form(lang_class,
+                                                                      account_class,
+                                                                      user_jid)
+        result_form.as_xml(command_node)
+        return []
+
+    def execute_add_user_3(self, info_query, session_context,
+                           command_node, lang_class):
+        self.__logger.debug("Executing command 'add-user' step 3")
+        x_node = info_query.xpath_eval("c:command/jxd:x",
+                                       {"c": "http://jabber.org/protocol/commands",
+                                        "jxd" : "jabber:x:data"})[0]
+        x_data = Form(x_node)
+        to_send = self.component.account_manager.create_account_from_type(\
+            account_name=session_context["name"],
+            from_jid=JID(session_context["user_jid"]),
+            account_type=session_context["account_type"],
+            lang_class=lang_class,
+            x_data=x_data)
+        command_node.setProp("status", STATUS_COMPLETED)
+        return to_send
+
+    def execute_delete_user(self, info_query):
+        return []
+
+    def execute_disable_user(self, info_query):
+        return []
+
+    def execute_reenable_user(self, info_query):
+        return []
+
+    def execute_end_user_session(self, info_query):
+        return []
+
+    def execute_get_user_password(self, info_query):
+        return []
+
+    def execute_change_user_password(self, info_query):
+        return []
+
+    def execute_get_user_roster(self, info_query):
+        return []
+
+    def execute_get_user_lastlogin(self, info_query):
+        return []
+
+    def execute_user_stats(self, info_query):
+        return []
+
+    def execute_edit_blacklist(self, info_query):
+        return []
+
+    def execute_add_to_blacklist_in(self, info_query):
+        return []
+
+    def execute_add_to_blacklist_out(self, info_query):
+        return []
+
+    def execute_edit_whitelist(self, info_query):
+        return []
+
+    def execute_add_to_whitelist_in(self, info_query):
+        return []
+
+    def execute_add_to_whitelist_out(self, info_query):
+        return []
+
+    def execute_get_registered_users_num(self, info_query):
+        return []
+
+    def execute_get_disabled_users_num(self, info_query):
+        return []
+
+    def execute_get_online_users_num(self, info_query):
+        return []
+
+    def execute_get_active_users_num(self, info_query):
+        return []
+
+    def execute_get_idle_users_num(self, info_query):
+        return []
+
+    def execute_get_registered_users_list(self, info_query):
+        return []
+
+    def execute_get_disabled_users_list(self, info_query):
+        return []
+
+    def execute_get_online_users(self, info_query):
+        return []
+
+    def execute_get_active_users(self, info_query):
+        return []
+
+    def execute_get_idle_users(self, info_query):
+        return []
+
+    def execute_announce(self, info_query):
+        return []
+
+    def execute_set_motd(self, info_query):
+        return []
+
+    def execute_edit_motd(self, info_query):
+        return []
+
+    def execute_delete_motd(self, info_query):
+        return []
+
+    def execute_set_welcome(self, info_query):
+        return []
+
+    def execute_delete_welcome(self, info_query):
+        return []
+
+    def execute_edit_admin(self, info_query):
+        return []
+
+    def execute_restart(self, info_query):
+        return []
+
+    def execute_shutdown(self, info_query):
+        return []
 
 class CommandRootDiscoGetInfoHandler(RootDiscoGetInfoHandler):
 

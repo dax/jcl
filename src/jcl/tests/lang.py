@@ -3,18 +3,18 @@
 ## Login : David Rousselie <dax@happycoders.org>
 ## Started on  Wed Nov 22 19:19:25 2006 David Rousselie
 ## $Id$
-## 
+##
 ## Copyright (C) 2006 David Rousselie
 ## This program is free software; you can redistribute it and/or modify
 ## it under the terms of the GNU General Public License as published by
 ## the Free Software Foundation; either version 2 of the License, or
 ## (at your option) any later version.
-## 
+##
 ## This program is distributed in the hope that it will be useful,
 ## but WITHOUT ANY WARRANTY; without even the implied warranty of
 ## MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ## GNU General Public License for more details.
-## 
+##
 ## You should have received a copy of the GNU General Public License
 ## along with this program; if not, write to the Free Software
 ## Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
@@ -31,7 +31,7 @@ class Lang_TestCase(unittest.TestCase):
 
     def tearDown(self):
         self.lang = None
-        
+
     def test_get_lang_class_exist(self):
         lang_class = self.lang.get_lang_class("fr")
         self.assertEquals(lang_class, Lang.fr)
@@ -39,11 +39,11 @@ class Lang_TestCase(unittest.TestCase):
     def test_get_lang_class_not_exist(self):
         lang_class = self.lang.get_lang_class("not_exist")
         self.assertEquals(lang_class, Lang.en)
-        
+
     def test_get_lang_class_long_code(self):
         lang_class = self.lang.get_lang_class("fr_FR")
         self.assertEquals(lang_class, Lang.fr)
-        
+
     def test_get_lang_from_node(self):
         iq = Iq(from_jid = "test@test.com", \
                 to_jid = "test2@test.com", \
@@ -108,6 +108,8 @@ class Language_TestCase(unittest.TestCase):
         self.assertNotEquals(self.lang_class.field_dnd_action_0, None)
         self.assertNotEquals(self.lang_class.field_offline_action_0, None)
 
+        self.assertNotEquals(self.lang_class.field_user_jid, None)
+
         self.assertNotEquals(self.lang_class.error_subject, None)
         self.assertNotEquals(self.lang_class.error_body % (""), None)
 
@@ -115,6 +117,7 @@ class Language_TestCase(unittest.TestCase):
         self.assertNotEquals(self.lang_class.get_gateway_prompt, None)
 
         self.assertNotEquals(self.lang_class.command_list, None)
+        self.assertNotEquals(self.lang_class.select_account_type, None)
 
 class Language_fr_TestCase(Language_TestCase):
     def setUp(self):

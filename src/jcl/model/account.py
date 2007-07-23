@@ -27,7 +27,7 @@
 __revision__ = "$Id: account.py,v 1.3 2005/09/18 20:24:07 dax Exp $"
 
 from sqlobject.inheritance import InheritableSQLObject
-from sqlobject.col import StringCol, EnumCol, IntCol, BoolCol, ForeignKey
+from sqlobject.col import StringCol, IntCol, BoolCol, ForeignKey
 from sqlobject.joins import MultipleJoin
 from sqlobject.sqlbuilder import AND
 
@@ -50,34 +50,12 @@ def int_post_func(field_value, default_func, bare_from_jid):
         return int(default_func(bare_from_jid))
     return int(field_value)
 
-def mandatory_field(field_value):
+def mandatory_field(field_name, field_value):
     """Used as default function for field that must be specified
     and cannot have an empty value"""
     if field_value is None or str(field_value) == "":
-        raise FieldError # TODO : add translated message
+        raise FieldError(field_name, "Field required") # TODO : add translated message
     return field_value
-
-def get_account(name, bare_user_jid):
-    result = None
-    model.db_connect()
-    accounts = Account.select(\
-        AND(Account.q.name == name,
-            Account.q.user_jid == unicode(bare_user_jid)))
-    if accounts.count() > 0:            
-        result = accounts[0]
-    model.db_disconnect()
-    return result
-
-def get_accounts(bare_user_jid):
-    model.db_connect()
-    accounts = Account.select(\
-        Account.q.user_jid == unicode(bare_user_jid))
-    if accounts.count() == 0:
-        model.db_disconnect()
-        return
-    for _account in accounts:
-        yield _account
-    model.db_disconnect()
 
 class Account(InheritableSQLObject):
     """Base Account class"""
@@ -90,7 +68,7 @@ class Account(InheritableSQLObject):
     __status = StringCol(default=OFFLINE, dbName="status")
     in_error = BoolCol(default=False)
     legacy_jids = MultipleJoin('LegacyJID')
-    
+
 ## Use these attributs to support volatile password
 ##    login = StringCol(default = "")
 ##    password = StringCol(default = None)
@@ -162,6 +140,51 @@ class Account(InheritableSQLObject):
         """Return localized message body for existing account"""
         return lang_class.update_account_message_body
 
+def get_account(bare_user_jid, name, account_class=Account):
+    result = None
+    model.db_connect()
+    accounts = account_class.select(\
+        AND(account_class.q.name == name,
+            account_class.q.user_jid == unicode(bare_user_jid)))
+    if accounts.count() > 0:
+        result = accounts[0]
+    model.db_disconnect()
+    return result
+
+def get_accounts(bare_user_jid, account_class=Account):
+    model.db_connect()
+    accounts = account_class.select(\
+        account_class.q.user_jid == unicode(bare_user_jid))
+    if accounts.count() == 0:
+        model.db_disconnect()
+        return
+    for _account in accounts:
+        yield _account
+    model.db_disconnect()
+
+def get_all_accounts(account_class=Account):
+    model.db_connect()
+    accounts = account_class.select()
+    if accounts.count() == 0:
+        model.db_disconnect()
+        return
+    for _account in accounts:
+        yield _account
+    model.db_disconnect()
+
+def get_accounts_count(bare_user_jid, account_class=Account):
+    model.db_connect()
+    accounts_count = account_class.select(\
+        account_class.q.user_jid == unicode(bare_user_jid)).count()
+    model.db_disconnect()
+    return accounts_count
+
+def get_all_accounts_count(account_class=Account):
+    model.db_connect()
+    accounts_count = account_class.select().count()
+    model.db_disconnect()
+    return accounts_count
+
 class PresenceAccount(Account):
     DO_NOTHING = 0
     DO_SOMETHING = 1
@@ -207,7 +230,7 @@ class PresenceAccount(Account):
         def get_possibles_actions(presence_action_field):
             return real_class.get_presence_actions_fields()[presence_action_field][0]
 
-        def is_action_possible(presence_action_field, action, default_func, 
+        def is_action_possible(presence_action_field, action, default_func,
                                bare_from_jid):
             if int(action) in get_possibles_actions(presence_action_field):
                 return int(action)
@@ -298,7 +321,7 @@ def get_legacy_jids(bare_to_jid):
 
 class LegacyJID(InheritableSQLObject):
     _connection = model.hub
-    
+
     legacy_address = StringCol()
     jid = StringCol()
     account = ForeignKey('Account')

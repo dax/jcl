@@ -16,7 +16,7 @@ class Handler(object):
         Filter account to be processed by the handler
         return all accounts. DB connection might already be opened.
         """
-        accounts = Account.select()
+        accounts = account.get_all_accounts()
         return accounts
 
     def handle(self, stanza, lang_class, data):
@@ -52,8 +52,8 @@ def get_account_filter(self, stanza, lang_class, node=None):
     """Filter stanzas sent to account jid, only if account exists"""
     name = stanza.get_to().node
     if name is not None:
-        return account.get_account(name,
-                                   stanza.get_from().bare())
+        return account.get_account(stanza.get_from().bare(),
+                                   name)
     else:
         return None
 

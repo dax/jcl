@@ -22,9 +22,6 @@
 
 import re
 
-from sqlobject.sqlbuilder import AND
-from pyxmpp.message import Message
-
 from jcl.jabber import Handler
 import jcl.model.account as account
 from jcl.model.account import Account
@@ -42,8 +39,8 @@ class PasswordMessageHandler(Handler):
         Return the uniq account associated with a name and user JID.
         DB connection might already be opened.
         """
-        _account = account.get_account(stanza.get_to().node,
-                                       stanza.get_from().bare())
+        _account = account.get_account(stanza.get_from().bare(),
+                                       stanza.get_to().node)
         if hasattr(_account, 'password') \
                and hasattr(_account, 'waiting_password_reply') \
                and (getattr(_account, 'waiting_password_reply') == True) \

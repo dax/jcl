@@ -26,5 +26,11 @@ __revision__ = "$Id: error.py,v 1.1 2006/11/05 20:13:48 dax Exp $"
 
 class FieldError(Exception):
     """Error raised when error exists on Jabber Data Form fields"""
-    pass
 
+    def __init__(self, field, error_msg):
+        Exception.__init__(self)
+        self.field = field
+        self.error_msg = error_msg
+
+    def __str__(self):
+        return "Error with " + str(self.field) + " field: " + str(self.error_msg)

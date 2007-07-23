@@ -133,7 +133,7 @@ class AccountTypeDiscoGetItemsHandler(DiscoHandler):
         account_type = data
         from_jid = stanza.get_from()
         self.__logger.debug("Listing account for " + account_type)
-        account_class = self.component.account_manager.get_account_class(account_type + "Account")
+        account_class = self.component.account_manager.get_account_class(account_type)
         if account_class is not None:
             disco_items = DiscoItems()
             for (_account, resource, account_type) in \
@@ -146,6 +146,6 @@ class AccountTypeDiscoGetItemsHandler(DiscoHandler):
                           _account.long_name)
             return [disco_items]
         else:
-            self.__logger.error("Error: " + account_class.__name__
+            self.__logger.error("Error: " + str(account_class)
                                 + " class not in account_classes")
             return []
