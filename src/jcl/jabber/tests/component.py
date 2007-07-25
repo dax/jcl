@@ -313,15 +313,15 @@ class JCLComponent_TestCase(unittest.TestCase):
         self.max_tick_count = 1
         self.comp.handle_tick = self.__handle_tick_test_time_handler
         model.db_connect()
-        account11 = Account(user_jid = "test1@test.com", \
-                            name = "account11", \
-                            jid = "account11@jcl.test.com")
-        account12 = Account(user_jid = "test1@test.com", \
-                            name = "account12", \
-                            jid = "account12@jcl.test.com")
-        account2 = Account(user_jid = "test2@test.com", \
-                           name = "account2", \
-                           jid = "account2@jcl.test.com")
+        account11 = Account(user_jid="test1@test.com",
+                            name="account11",
+                            jid="account11@jcl.test.com")
+        account12 = Account(user_jid="test1@test.com",
+                            name="account12",
+                            jid="account12@jcl.test.com")
+        account2 = Account(user_jid="test2@test.com",
+                           name="account2",
+                           jid="account2@jcl.test.com")
         model.db_disconnect()
         self.comp.run()
         self.assertTrue(self.comp.stream.connection_started)
@@ -2519,12 +2519,10 @@ class JCLComponent_TestCase(unittest.TestCase):
                                               {"c": "http://jabber.org/protocol/commands"})
         self.assertEquals(len(command_result), 1)
         self.assertEquals(command_result[0].prop("status"), "completed")
-        # TODO : test sessionid prop, usage (cf XEP) ?
         items = result[0].xpath_eval("c:command/data:x/data:item",
                                      {"c": "http://jabber.org/protocol/commands",
                                       "data": "jabber:x:data"})
         self.assertEquals(len(items), 2)
-
 
 class Handler_TestCase(unittest.TestCase):
     def setUp(self):

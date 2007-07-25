@@ -37,8 +37,6 @@ import traceback
 
 from Queue import Queue
 
-from sqlobject.sqlbuilder import AND
-
 import pyxmpp.error as error
 from pyxmpp.jid import JID
 from pyxmpp.jabberd.component import Component
@@ -538,6 +536,10 @@ class JCLComponent(Component, object):
                                 " with " + str(info_query) + "\n%s"
                                 % ("".join(traceback.format_exception
                                            (type, value, stack, 5))))
+            print("Error in command " + str(command_node) +
+                                " with " + str(info_query) + "\n%s"
+                                % ("".join(traceback.format_exception
+                                           (type, value, stack, 5))))
         return 1
         
     ###########################################################################
@@ -663,6 +665,27 @@ class AccountManager(object):
         result.append(Presence(from_jid=self.component.jid,
                                to_jid=user_jid,
                                stanza_type="unsubscribed"))
+        model.db_disconnect()
+        return result
+
+    def remove_account_from_name(self, user_jid, name):
+        _account = account.get_account(user_jid, name)
+        if _account is not None:
+            return self.remove_account(_account, user_jid)
+        else:
+            return []
+
+    def remove_account(self, _account, user_jid):
+        self.__logger.debug("Deleting account: " + str(_account))
+        result = []
+        model.db_connect()
+        result.append(Presence(from_jid=_account.jid,
+                               to_jid=user_jid,
+                               stanza_type="unsubscribe"))
+        result.append(Presence(from_jid=_account.jid,
+                               to_jid=user_jid,
+                               stanza_type="unsubscribed"))
+        _account.destroySelf()
         model.db_disconnect()
         return result
 

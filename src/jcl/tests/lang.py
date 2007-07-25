@@ -117,6 +117,7 @@ class Language_TestCase(unittest.TestCase):
         self.assertNotEquals(self.lang_class.get_gateway_prompt, None)
 
         self.assertNotEquals(self.lang_class.command_list, None)
+        self.assertNotEquals(self.lang_class.command_add_user, None)
         self.assertNotEquals(self.lang_class.select_account_type, None)
 
 class Language_fr_TestCase(Language_TestCase):

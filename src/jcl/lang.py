@@ -113,6 +113,7 @@ class Lang:
         get_gateway_prompt = u"Email address"
 
         command_list = u"List accounts"
+        command_add_user = u"Create new account"
         select_account_type = u"Select account type"
 
     class fr:
@@ -159,6 +160,7 @@ class Lang:
         get_gateway_prompt = u"Adresse email"
 
         command_list = u"Liste les comptes"
+        command_add_user = u"Créer un compte"
         select_account_type = u"Selectionner le type de comptes"
 
     class nl:

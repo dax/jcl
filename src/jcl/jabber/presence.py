@@ -144,16 +144,6 @@ class AccountPresenceUnsubscribeHandler(Handler):
 
     def handle(self, stanza, lang_class, data):
         """Handle \"unsubscribe\" iq sent to account JID"""
-        result = []
         from_jid = stanza.get_from()
         _account = data
-        model.db_connect()
-        result.append(Presence(from_jid=_account.jid,
-                               to_jid=from_jid,
-                               stanza_type="unsubscribe"))
-        result.append(Presence(from_jid=_account.jid,
-                               to_jid=from_jid,
-                               stanza_type="unsubscribed"))
-        _account.destroySelf()
-        model.db_disconnect()
-        return result
+        return self.component.account_manager.remove_account(_account, from_jid)

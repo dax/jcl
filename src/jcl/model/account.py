@@ -64,7 +64,6 @@ class Account(InheritableSQLObject):
     user_jid = StringCol()
     name = StringCol()
     jid = StringCol()
-## Not yet used    first_check = BoolCol(default = True)
     __status = StringCol(default=OFFLINE, dbName="status")
     in_error = BoolCol(default=False)
     legacy_jids = MultipleJoin('LegacyJID')
@@ -110,7 +109,7 @@ class Account(InheritableSQLObject):
 
     status = property(get_status, set_status)
 
-    def _get_register_fields(cls, real_class = None):
+    def _get_register_fields(cls, real_class=None):
         """Return a list of tuples for X Data Form composition
         A tuple is composed of:
         - field_name: might be the name of one of the class attribut
