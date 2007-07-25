@@ -871,14 +871,117 @@ class JCLCommandManager_TestCase(unittest.TestCase):
             else:
                 self.assertFalse(_account.enabled)
 
-#     def test_execute_end_user_session(self):
-#         #TODO : implement command
-#         info_query = Iq(stanza_type="set",
-#                         from_jid="user1@test.com",
-#                         to_jid="jcl.test.com")
-#         result = self.command_manager.execute_add_user(info_query)
-#         self.assertNotEquals(result, None)
-#         self.assertEquals(len(result), 1)
+    def test_execute_end_user_session(self):
+        self.comp.account_manager.account_classes = (ExampleAccount,
+                                                     Example2Account)
+        model.db_connect()
+        account11 = ExampleAccount(user_jid="test1@test.com",
+                                   name="account11",
+                                   jid="account11@jcl.test.com")
+        account12 = Example2Account(user_jid="test1@test.com",
+                                    name="account12",
+                                    jid="account12@jcl.test.com")
+        account21 = ExampleAccount(user_jid="test2@test.com",
+                                   name="account21",
+                                   jid="account21@jcl.test.com")
+        account22 = ExampleAccount(user_jid="test2@test.com",
+                                   name="account11",
+                                   jid="account11@jcl.test.com")
+        account31 = ExampleAccount(user_jid="test3@test.com",
+                                   name="account31",
+                                   jid="account31@jcl.test.com")
+        account32 = Example2Account(user_jid="test3@test.com",
+                                    name="account32",
+                                    jid="account32@jcl.test.com")
+        model.db_disconnect()
+        info_query = Iq(stanza_type="set",
+                        from_jid="user1@test.com",
+                        to_jid="jcl.test.com")
+        command_node = info_query.set_new_content(command.COMMAND_NS, "command")
+        command_node.setProp("node", "http://jabber.org/protocol/admin#end-user-session")
+        result = self.command_manager.apply_command_action(info_query,
+                                                           "http://jabber.org/protocol/admin#end-user-session",
+                                                           "execute")
+        self.assertNotEquals(result, None)
+        self.assertEquals(len(result), 1)
+        xml_command = result[0].xpath_eval("c:command",
+                                           {"c": "http://jabber.org/protocol/commands"})[0]
+        self.assertEquals(xml_command.prop("status"), "executing")
+        self.assertNotEquals(xml_command.prop("sessionid"), None)
+        self.__check_actions(result[0], ["next"])
+
+        # Second step
+        info_query = Iq(stanza_type="set",
+                        from_jid="user1@test.com",
+                        to_jid="jcl.test.com")
+        command_node = info_query.set_new_content(command.COMMAND_NS, "command")
+        command_node.setProp("node", "http://jabber.org/protocol/admin#end-user-session")
+        session_id = xml_command.prop("sessionid")
+        command_node.setProp("sessionid", session_id)
+        command_node.setProp("action", "next")
+        submit_form = Form(xmlnode_or_type="submit")
+        submit_form.add_field(field_type="jid-multi",
+                              name="user_jids",
+                              values=["test1@test.com", "test2@test.com"])
+        submit_form.as_xml(command_node)
+        result = self.command_manager.apply_command_action(info_query,
+                                                           "http://jabber.org/protocol/admin#end-user-session",
+                                                           "execute")
+        self.assertNotEquals(result, None)
+        self.assertEquals(len(result), 1)
+        xml_command = result[0].xpath_eval("c:command",
+                                           {"c": "http://jabber.org/protocol/commands"})[0]
+        self.assertEquals(xml_command.prop("status"), "executing")
+        self.assertEquals(xml_command.prop("sessionid"), session_id)
+        self.__check_actions(result[0], ["prev", "complete"], 1)
+        context_session = self.command_manager.sessions[session_id][1]
+        self.assertEquals(context_session["user_jids"],
+                          ["test1@test.com", "test2@test.com"])
+
+        # Third step
+        info_query = Iq(stanza_type="set",
+                        from_jid="user1@test.com",
+                        to_jid="jcl.test.com")
+        command_node = info_query.set_new_content(command.COMMAND_NS, "command")
+        command_node.setProp("node", "http://jabber.org/protocol/admin#end-user-session")
+        command_node.setProp("sessionid", session_id)
+        command_node.setProp("action", "complete")
+        submit_form = Form(xmlnode_or_type="submit")
+        submit_form.add_field(field_type="list-multi",
+                              name="account_names",
+                              values=["account11/test1@test.com",
+                                      "account11/test2@test.com"])
+        submit_form.as_xml(command_node)
+        result = self.command_manager.apply_command_action(info_query,
+                                                           "http://jabber.org/protocol/admin#end-user-session",
+                                                           "execute")
+        xml_command = result[0].xpath_eval("c:command",
+                                           {"c": "http://jabber.org/protocol/commands"})[0]
+        self.assertEquals(xml_command.prop("status"), "completed")
+        self.assertEquals(xml_command.prop("sessionid"), session_id)
+        self.__check_actions(result[0])
+        self.assertEquals(context_session["account_names"],
+                          ["account11/test1@test.com",
+                           "account11/test2@test.com"])
+        stanza_sent = result
+        self.assertEquals(len(stanza_sent), 3)
+        iq_result = stanza_sent[0]
+        self.assertTrue(isinstance(iq_result, Iq))
+        self.assertEquals(iq_result.get_node().prop("type"), "result")
+        self.assertEquals(iq_result.get_from(), "jcl.test.com")
+        self.assertEquals(iq_result.get_to(), "user1@test.com")
+        presence_component = stanza_sent[1]
+        self.assertTrue(isinstance(presence_component, Presence))
+        self.assertEquals(presence_component.get_from(), "account11@jcl.test.com")
+        self.assertEquals(presence_component.get_to(), "test1@test.com")
+        self.assertEquals(presence_component.get_node().prop("type"),
+                          "unavailable")
+        presence_component = stanza_sent[2]
+        self.assertTrue(isinstance(presence_component, Presence))
+        self.assertEquals(presence_component.get_from(), "account11@jcl.test.com")
+        self.assertEquals(presence_component.get_to(), "test2@test.com")
+        self.assertEquals(presence_component.get_node().prop("type"),
+                          "unavailable")
 
 #     def test_execute_get_user_password(self):
 #         #TODO : implement command

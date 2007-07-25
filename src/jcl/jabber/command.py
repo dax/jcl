@@ -333,7 +333,8 @@ class JCLCommandManager(CommandManager):
         result_form.as_xml(command_node)
         return []
 
-    def execute_add_user_2(self, info_query, session_context, command_node, lang_class):
+    def execute_add_user_2(self, info_query, session_context,
+                           command_node, lang_class):
         self.__logger.debug("Executing command 'add-user' step 2")
         self.add_actions(command_node, [ACTION_PREVIOUS, ACTION_COMPLETE], 1)
         user_jid = session_context["user_jid"]
@@ -361,17 +362,21 @@ class JCLCommandManager(CommandManager):
         command_node.setProp("status", STATUS_COMPLETED)
         return to_send
 
-    def execute_delete_user_1(self, info_query, session_context,
-                              command_node, lang_class):
-        self.__logger.debug("Executing command 'delete-user' step 1")
+    def select_user_jids_step_1(self, info_query, session_context,
+                                command_node, lang_class):
+        self.__logger.debug("Executing select_user_jids step 1")
         self.add_actions(command_node, [ACTION_NEXT])
         return self.add_form_select_user_jids(command_node, lang_class)
 
-    def execute_delete_user_2(self, info_query, session_context,
-                              command_node, lang_class):
-        self.__logger.debug("Executing command 'delete-user' step 2")
+    def select_accounts_step_2(self, info_query, session_context,
+                               command_node, lang_class):
+        self.__logger.debug("Executing select_accounts step 2")
         self.add_actions(command_node, [ACTION_PREVIOUS, ACTION_COMPLETE], 1)
-        return self.add_form_select_accounts(session_context, command_node, lang_class)
+        return self.add_form_select_accounts(session_context, command_node,
+                                             lang_class)
+
+    execute_delete_user_1 = select_user_jids_step_1
+    execute_delete_user_2 = select_accounts_step_2
 
     def execute_delete_user_3(self, info_query, session_context,
                               command_node, lang_class):
@@ -384,17 +389,8 @@ class JCLCommandManager(CommandManager):
         command_node.setProp("status", STATUS_COMPLETED)
         return result
 
-    def execute_disable_user_1(self, info_query, session_context,
-                               command_node, lang_class):
-        self.__logger.debug("Executing command 'disable-user' step 1")
-        self.add_actions(command_node, [ACTION_NEXT])
-        return self.add_form_select_user_jids(command_node, lang_class)
-
-    def execute_disable_user_2(self, info_query, session_context,
-                               command_node, lang_class):
-        self.__logger.debug("Executing command 'disable-user' step 2")
-        self.add_actions(command_node, [ACTION_PREVIOUS, ACTION_COMPLETE], 1)
-        return self.add_form_select_accounts(session_context, command_node, lang_class)
+    execute_disable_user_1 = select_user_jids_step_1
+    execute_disable_user_2 = select_accounts_step_2
 
     def execute_disable_user_3(self, info_query, session_context,
                                command_node, lang_class):
@@ -407,17 +403,8 @@ class JCLCommandManager(CommandManager):
         command_node.setProp("status", STATUS_COMPLETED)
         return result
 
-    def execute_reenable_user_1(self, info_query, session_context,
-                                command_node, lang_class):
-        self.__logger.debug("Executing command 'reenable-user' step 1")
-        self.add_actions(command_node, [ACTION_NEXT])
-        return self.add_form_select_user_jids(command_node, lang_class)
-
-    def execute_reenable_user_2(self, info_query, session_context,
-                                command_node, lang_class):
-        self.__logger.debug("Executing command 'reenable-user' step 2")
-        self.add_actions(command_node, [ACTION_PREVIOUS, ACTION_COMPLETE], 1)
-        return self.add_form_select_accounts(session_context, command_node, lang_class)
+    execute_reenable_user_1 = select_user_jids_step_1
+    execute_reenable_user_2 = select_accounts_step_2
 
     def execute_reenable_user_3(self, info_query, session_context,
                                 command_node, lang_class):
@@ -430,8 +417,20 @@ class JCLCommandManager(CommandManager):
         command_node.setProp("status", STATUS_COMPLETED)
         return result
 
-    def execute_end_user_session(self, info_query):
-        return []
+    execute_end_user_session_1 = select_user_jids_step_1
+    execute_end_user_session_2 = select_accounts_step_2
+
+    def execute_end_user_session_3(self, info_query, session_context,
+                                   command_node, lang_class):
+        self.__logger.debug("Executing command 'end-user-session' step 3")
+        result = []
+        for account_name in session_context["account_names"]:
+            name, user_jid = account_name.split("/", 1)[:2]
+            _account = account.get_account(user_jid, name)
+            result += self.component.account_manager.send_presence_unavailable(
+                _account)
+        command_node.setProp("status", STATUS_COMPLETED)
+        return result
 
     def execute_get_user_password(self, info_query):
         return []
