@@ -274,28 +274,83 @@ class JCLCommandManager(CommandManager):
         result_form.as_xml(command_node)
         return []
 
+    def add_form_select_user_jid(self, command_node, lang_class):
+        result_form = Form(xmlnode_or_type="result",
+                           title="TODO")
+        result_form.add_field(name="user_jid",
+                              field_type="jid-single",
+                              label=lang_class.field_user_jid)
+        result_form.as_xml(command_node)
+        return []
+
+    def __add_accounts_to_field(self, user_jids, field, lang_class):
+        for (account_type, type_label) in \
+                self.account_manager.list_account_types(lang_class):
+            account_class = self.account_manager.get_account_class(\
+                account_type=account_type)
+            for user_jid in user_jids:
+                for _account in account.get_accounts(user_jid, account_class):
+                    field.add_option(label=_account.name + " (" + account_type
+                                     + ") (" + user_jid + ")",
+                                     values=[_account.name + "/" + user_jid])
+
     def add_form_select_accounts(self, session_context,
                                  command_node, lang_class):
         """
-        Add a form to select account for user JIDs contained in
+        Add a form to select accounts for user JIDs contained in
         session_context[\"user_jids\"]
         """
         result_form = Form(xmlnode_or_type="result",
                            title="TODO")
         field = result_form.add_field(name="account_names",
                                       field_type="list-multi",
-                                      label="Account")
-        for (account_type, type_label) in \
-                self.account_manager.list_account_types(lang_class):
-            account_class = self.account_manager.get_account_class(\
-                account_type=account_type)
-            for user_jid in session_context["user_jids"]:
-                for _account in account.get_accounts(user_jid, account_class):
-                    field.add_option(label=_account.name + " (" + account_type
-                                     + ") (" + user_jid + ")",
-                                     values=[_account.name + "/" + user_jid])
+                                      label="Account") # TODO
+        self.__add_accounts_to_field(session_context["user_jids"],
+                                     field, lang_class)
         result_form.as_xml(command_node)
         return []
+
+    def add_form_select_account(self, session_context,
+                                command_node, lang_class):
+        """
+        Add a form to select account for user JIDs contained in
+        session_context[\"user_jids\"]
+        """
+        result_form = Form(xmlnode_or_type="result",
+                           title="TODO")
+        field = result_form.add_field(name="account_name",
+                                      field_type="list-single",
+                                      label="Account") # TODO
+        self.__add_accounts_to_field([session_context["user_jid"]],
+                                     field, lang_class)
+        result_form.as_xml(command_node)
+        return []
+
+    def select_user_jids_step_1(self, info_query, session_context,
+                                command_node, lang_class):
+        self.__logger.debug("Executing select_user_jids step 1")
+        self.add_actions(command_node, [ACTION_NEXT])
+        return self.add_form_select_user_jids(command_node, lang_class)
+
+    def select_user_jid_step_1(self, info_query, session_context,
+                               command_node, lang_class):
+        self.__logger.debug("Executing select_user_jid step 1")
+        self.add_actions(command_node, [ACTION_NEXT])
+        return self.add_form_select_user_jid(command_node, lang_class)
+
+    def select_accounts_step_2(self, info_query, session_context,
+                               command_node, lang_class):
+        self.__logger.debug("Executing select_accounts step 2")
+        self.add_actions(command_node, [ACTION_PREVIOUS, ACTION_COMPLETE], 1)
+        return self.add_form_select_accounts(session_context, command_node,
+                                             lang_class)
+
+    def select_account_step_2(self, info_query, session_context,
+                              command_node, lang_class):
+        self.__logger.debug("Executing select_account step 2")
+        self.add_actions(command_node, [ACTION_PREVIOUS, ACTION_COMPLETE], 1)
+        return self.add_form_select_account(session_context, command_node,
+                                            lang_class)
 
     def execute_list_1(self, info_query, session_context,
                        command_node, lang_class):
@@ -362,19 +417,6 @@ class JCLCommandManager(CommandManager):
         command_node.setProp("status", STATUS_COMPLETED)
         return to_send
 
-    def select_user_jids_step_1(self, info_query, session_context,
-                                command_node, lang_class):
-        self.__logger.debug("Executing select_user_jids step 1")
-        self.add_actions(command_node, [ACTION_NEXT])
-        return self.add_form_select_user_jids(command_node, lang_class)
-
-    def select_accounts_step_2(self, info_query, session_context,
-                               command_node, lang_class):
-        self.__logger.debug("Executing select_accounts step 2")
-        self.add_actions(command_node, [ACTION_PREVIOUS, ACTION_COMPLETE], 1)
-        return self.add_form_select_accounts(session_context, command_node,
-                                             lang_class)
-
     execute_delete_user_1 = select_user_jids_step_1
     execute_delete_user_2 = select_accounts_step_2
 
@@ -432,7 +474,24 @@ class JCLCommandManager(CommandManager):
         command_node.setProp("status", STATUS_COMPLETED)
         return result
 
-    def execute_get_user_password(self, info_query):
+    execute_get_user_password_1 = select_user_jid_step_1
+    execute_get_user_password_2 = select_account_step_2
+
+    def execute_get_user_password_3(self, info_query, session_context,
+                                    command_node, lang_class):
+        self.__logger.debug("Executing command 'get-user-password' step 3")
+        result_form = Form(xmlnode_or_type="result")
+        result_form.add_field(field_type="hidden",
+                              name="FORM_TYPE",
+                              value="http://jabber.org/protocol/admin")
+        name, user_jid = session_context["account_name"].split("/", 1)[:2]
+        _account = account.get_account(user_jid, name)
+        result_form.fields.append(FieldNoType(name="accountjids",
+                                              value=user_jid))
+        result_form.fields.append(FieldNoType(name="password",
+                                              value=_account.password))
+        result_form.as_xml(command_node)
+        command_node.setProp("status", STATUS_COMPLETED)
         return []
 
     def execute_change_user_password(self, info_query):
