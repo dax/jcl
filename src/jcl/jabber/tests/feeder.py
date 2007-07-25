@@ -283,6 +283,21 @@ class FeederHandler_TestCase(unittest.TestCase):
         self.assertEquals(sent[1], (account12, ("subject", "body")))
         model.db_disconnect()
 
+    def test_handle_disabled_account(self):
+        model.db_connect()
+        account11 = ExampleAccount(user_jid="user1@test.com",
+                                   name="account11",
+                                   jid="account11@jcl.test.com")
+        account11.enabled = False
+        account12 = ExampleAccount(user_jid="user2@test.com",
+                                   name="account12",
+                                   jid="account12@jcl.test.com")
+        accounts = self.handler.handle(None, None, [account11, account12])
+        sent = self.handler.sender.sent
+        self.assertEquals(len(sent), 1)
+        self.assertEquals(sent[0], (account12, ("subject", "body")))
+        model.db_disconnect()
+
 def suite():
     suite = unittest.TestSuite()
     suite.addTest(unittest.makeSuite(FeederComponent_TestCase, 'test'))

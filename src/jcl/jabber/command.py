@@ -296,7 +296,7 @@ class JCLCommandManager(CommandManager):
                                      values=[_account.name + "/" + user_jid])
         result_form.as_xml(command_node)
         return []
-        
+
     def execute_list_1(self, info_query, session_context,
                        command_node, lang_class):
         """Execute command 'list'. List accounts"""
@@ -374,7 +374,7 @@ class JCLCommandManager(CommandManager):
         return self.add_form_select_accounts(session_context, command_node, lang_class)
 
     def execute_delete_user_3(self, info_query, session_context,
-                           command_node, lang_class):
+                              command_node, lang_class):
         self.__logger.debug("Executing command 'delete-user' step 3")
         result = []
         for account_name in session_context["account_names"]:
@@ -384,8 +384,28 @@ class JCLCommandManager(CommandManager):
         command_node.setProp("status", STATUS_COMPLETED)
         return result
 
-    def execute_disable_user(self, info_query):
-        return []
+    def execute_disable_user_1(self, info_query, session_context,
+                               command_node, lang_class):
+        self.__logger.debug("Executing command 'disable-user' step 1")
+        self.add_actions(command_node, [ACTION_NEXT])
+        return self.add_form_select_user_jids(command_node, lang_class)
+
+    def execute_disable_user_2(self, info_query, session_context,
+                               command_node, lang_class):
+        self.__logger.debug("Executing command 'disable-user' step 2")
+        self.add_actions(command_node, [ACTION_PREVIOUS, ACTION_COMPLETE], 1)
+        return self.add_form_select_accounts(session_context, command_node, lang_class)
+
+    def execute_disable_user_3(self, info_query, session_context,
+                               command_node, lang_class):
+        self.__logger.debug("Executing command 'disable-user' step 3")
+        result = []
+        for account_name in session_context["account_names"]:
+            name, user_jid = account_name.split("/", 1)[:2]
+            _account = account.get_account(user_jid, name)
+            _account.enabled = False
+        command_node.setProp("status", STATUS_COMPLETED)
+        return result
 
     def execute_reenable_user(self, info_query):
         return []

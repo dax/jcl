@@ -149,6 +149,7 @@ class FeederHandler(Handler):
         """
         for _account in data:
             for data in self.feeder.feed(_account):
-                self.sender.send(_account, data)
+                if _account.enabled:
+                    self.sender.send(_account, data)
         return []
 

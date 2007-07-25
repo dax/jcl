@@ -90,6 +90,21 @@ class JCLCommandManager_TestCase(unittest.TestCase):
         if os.path.exists(DB_PATH):
             os.unlink(DB_PATH)
 
+    def __check_actions(self, info_query, expected_actions=None, action_index=0):
+        actions = info_query.xpath_eval("c:command/c:actions",
+                                        {"c": "http://jabber.org/protocol/commands"})
+        if expected_actions is None:
+            self.assertEquals(len(actions), 0)
+        else:
+            self.assertEquals(len(actions), 1)
+            self.assertEquals(actions[0].prop("execute"),
+                              expected_actions[action_index])
+            children = actions[0].children
+            for action in expected_actions:
+                self.assertNotEquals(children, None)
+                self.assertEquals(children.name, action)
+                children = children.next
+
     def test_execute_add_user(self):
         self.comp.account_manager.account_classes = (ExampleAccount,
                                                      Example2Account)
@@ -107,11 +122,7 @@ class JCLCommandManager_TestCase(unittest.TestCase):
                                            {"c": "http://jabber.org/protocol/commands"})[0]
         self.assertEquals(xml_command.prop("status"), "executing")
         self.assertNotEquals(xml_command.prop("sessionid"), None)
-        actions = result[0].xpath_eval("c:command/c:actions",
-                                       {"c": "http://jabber.org/protocol/commands"})
-        self.assertEquals(len(actions), 1)
-        self.assertEquals(actions[0].prop("execute"), "next")
-        self.assertEquals(actions[0].children.name, "next")
+        self.__check_actions(result[0], ["next"])
         options = result[0].xpath_eval("c:command/data:x/data:field[1]/data:option",
                                        {"c": "http://jabber.org/protocol/commands",
                                         "data": "jabber:x:data"})
@@ -157,12 +168,7 @@ class JCLCommandManager_TestCase(unittest.TestCase):
                                            {"c": "http://jabber.org/protocol/commands"})[0]
         self.assertEquals(xml_command.prop("status"), "executing")
         self.assertEquals(xml_command.prop("sessionid"), session_id)
-        actions = result[0].xpath_eval("c:command/c:actions",
-                                       {"c": "http://jabber.org/protocol/commands"})
-        self.assertEquals(len(actions), 1)
-        self.assertEquals(actions[0].prop("execute"), "complete")
-        self.assertEquals(actions[0].children.name, "prev")
-        self.assertEquals(actions[0].children.next.name, "complete")
+        self.__check_actions(result[0], ["prev", "complete"], 1)
         fields = result[0].xpath_eval("c:command/data:x/data:field",
                                       {"c": "http://jabber.org/protocol/commands",
                                        "data": "jabber:x:data"})
@@ -207,9 +213,7 @@ class JCLCommandManager_TestCase(unittest.TestCase):
                                            {"c": "http://jabber.org/protocol/commands"})[0]
         self.assertEquals(xml_command.prop("status"), "completed")
         self.assertEquals(xml_command.prop("sessionid"), session_id)
-        actions = result[0].xpath_eval("c:command/c:actions",
-                                       {"c": "http://jabber.org/protocol/commands"})
-        self.assertEquals(len(actions), 0)
+        self.__check_actions(result[0])
 
         self.assertEquals(context_session["name"], "account1")
         self.assertEquals(context_session["login"], "login1")
@@ -275,11 +279,7 @@ class JCLCommandManager_TestCase(unittest.TestCase):
                                            {"c": "http://jabber.org/protocol/commands"})[0]
         self.assertEquals(xml_command.prop("status"), "executing")
         self.assertNotEquals(xml_command.prop("sessionid"), None)
-        actions = result[0].xpath_eval("c:command/c:actions",
-                                       {"c": "http://jabber.org/protocol/commands"})
-        self.assertEquals(len(actions), 1)
-        self.assertEquals(actions[0].prop("execute"), "next")
-        self.assertEquals(actions[0].children.name, "next")
+        self.__check_actions(result[0], ["next"])
         options = result[0].xpath_eval("c:command/data:x/data:field[1]/data:option",
                                        {"c": "http://jabber.org/protocol/commands",
                                         "data": "jabber:x:data"})
@@ -325,12 +325,7 @@ class JCLCommandManager_TestCase(unittest.TestCase):
                                            {"c": "http://jabber.org/protocol/commands"})[0]
         self.assertEquals(xml_command.prop("status"), "executing")
         self.assertEquals(xml_command.prop("sessionid"), session_id)
-        actions = result[0].xpath_eval("c:command/c:actions",
-                                       {"c": "http://jabber.org/protocol/commands"})
-        self.assertEquals(len(actions), 1)
-        self.assertEquals(actions[0].prop("execute"), "complete")
-        self.assertEquals(actions[0].children.name, "prev")
-        self.assertEquals(actions[0].children.next.name, "complete")
+        self.__check_actions(result[0], ["prev", "complete"], 1)
         fields = result[0].xpath_eval("c:command/data:x/data:field",
                                       {"c": "http://jabber.org/protocol/commands",
                                        "data": "jabber:x:data"})
@@ -377,11 +372,7 @@ class JCLCommandManager_TestCase(unittest.TestCase):
                                            {"c": "http://jabber.org/protocol/commands"})[0]
         self.assertEquals(xml_command.prop("status"), "executing")
         self.assertEquals(xml_command.prop("sessionid"), session_id)
-        actions = result[0].xpath_eval("c:command/c:actions",
-                                       {"c": "http://jabber.org/protocol/commands"})
-        self.assertEquals(len(actions), 1)
-        self.assertEquals(actions[0].prop("execute"), "next")
-        self.assertEquals(actions[0].children.name, "next")
+        self.__check_actions(result[0], ["next"])
         options = result[0].xpath_eval("c:command/data:x/data:field[1]/data:option",
                                        {"c": "http://jabber.org/protocol/commands",
                                         "data": "jabber:x:data"})
@@ -418,11 +409,7 @@ class JCLCommandManager_TestCase(unittest.TestCase):
                                            {"c": "http://jabber.org/protocol/commands"})[0]
         self.assertEquals(xml_command.prop("status"), "executing")
         self.assertNotEquals(xml_command.prop("sessionid"), None)
-        actions = result[0].xpath_eval("c:command/c:actions",
-                                       {"c": "http://jabber.org/protocol/commands"})
-        self.assertEquals(len(actions), 1)
-        self.assertEquals(actions[0].prop("execute"), "next")
-        self.assertEquals(actions[0].children.name, "next")
+        self.__check_actions(result[0], ["next"])
         options = result[0].xpath_eval("c:command/data:x/data:field[1]/data:option",
                                        {"c": "http://jabber.org/protocol/commands",
                                         "data": "jabber:x:data"})
@@ -462,6 +449,85 @@ class JCLCommandManager_TestCase(unittest.TestCase):
         self.assertEquals(xml_command.prop("sessionid"), session_id)
         self.assertEquals(xml_command.children, None)
 
+    def test_add_form_select_user_jids(self):
+        info_query = Iq(stanza_type="set",
+                        from_jid="user1@test.com",
+                        to_jid="jcl.test.com")
+        command_node = info_query.set_new_content(command.COMMAND_NS, "command")
+        self.command_manager.add_form_select_user_jids(command_node, Lang.en)
+        user_jid_field = info_query.xpath_eval("c:command/data:x/data:field[1]",
+                                               {"c": "http://jabber.org/protocol/commands",
+                                                "data": "jabber:x:data"})
+        self.assertNotEquals(user_jid_field, None)
+        self.assertEquals(len(user_jid_field), 1)
+        self.assertEquals(user_jid_field[0].prop("var"), "user_jids")
+        self.assertEquals(user_jid_field[0].prop("type"), "jid-multi")
+        self.assertEquals(user_jid_field[0].prop("label"), Lang.en.field_user_jid)
+
+    def test_add_form_select_accounts(self):
+        self.comp.account_manager.account_classes = (ExampleAccount,
+                                                     Example2Account)
+        model.db_connect()
+        account11 = ExampleAccount(user_jid="test1@test.com",
+                                   name="account11",
+                                   jid="account11@jcl.test.com")
+        account12 = Example2Account(user_jid="test1@test.com",
+                                    name="account12",
+                                    jid="account12@jcl.test.com")
+        account21 = ExampleAccount(user_jid="test2@test.com",
+                                   name="account21",
+                                   jid="account21@jcl.test.com")
+        account22 = ExampleAccount(user_jid="test2@test.com",
+                                   name="account11",
+                                   jid="account11@jcl.test.com")
+        account31 = ExampleAccount(user_jid="test3@test.com",
+                                   name="account31",
+                                   jid="account31@jcl.test.com")
+        account32 = Example2Account(user_jid="test3@test.com",
+                                    name="account32",
+                                    jid="account32@jcl.test.com")
+        model.db_disconnect()
+        info_query = Iq(stanza_type="set",
+                        from_jid="user1@test.com",
+                        to_jid="jcl.test.com")
+        command_node = info_query.set_new_content(command.COMMAND_NS, "command")
+        session_context = {}
+        session_context["user_jids"] = ["test1@test.com", "test2@test.com"]
+        self.command_manager.add_form_select_accounts(session_context,
+                                                      command_node,
+                                                      Lang.en)
+        fields = info_query.xpath_eval("c:command/data:x/data:field",
+                                       {"c": "http://jabber.org/protocol/commands",
+                                        "data": "jabber:x:data"})
+        self.assertEquals(len(fields), 1)
+        self.assertEquals(fields[0].prop("var"), "account_names")
+        self.assertEquals(fields[0].prop("type"), "list-multi")
+        self.assertEquals(fields[0].prop("label"), "Account")
+        options = info_query.xpath_eval("c:command/data:x/data:field[1]/data:option",
+                                        {"c": "http://jabber.org/protocol/commands",
+                                         "data": "jabber:x:data"})
+        self.assertEquals(len(options), 4)
+        self.assertEquals(options[0].prop("label"),
+                          "account11 (Example) (test1@test.com)")
+        self.assertEquals(options[0].children.name, "value")
+        self.assertEquals(options[0].children.content,
+                          "account11/test1@test.com")
+        self.assertEquals(options[1].prop("label"),
+                          "account21 (Example) (test2@test.com)")
+        self.assertEquals(options[1].children.name, "value")
+        self.assertEquals(options[1].children.content,
+                          "account21/test2@test.com")
+        self.assertEquals(options[2].prop("label"),
+                          "account11 (Example) (test2@test.com)")
+        self.assertEquals(options[2].children.name, "value")
+        self.assertEquals(options[2].children.content,
+                          "account11/test2@test.com")
+        self.assertEquals(options[3].prop("label"),
+                          "account12 (Example2) (test1@test.com)")
+        self.assertEquals(options[3].children.name, "value")
+        self.assertEquals(options[3].children.content,
+                          "account12/test1@test.com")
+
     def test_execute_delete_user(self):
         self.comp.account_manager.account_classes = (ExampleAccount,
                                                      Example2Account)
@@ -499,19 +565,7 @@ class JCLCommandManager_TestCase(unittest.TestCase):
                                            {"c": "http://jabber.org/protocol/commands"})[0]
         self.assertEquals(xml_command.prop("status"), "executing")
         self.assertNotEquals(xml_command.prop("sessionid"), None)
-        actions = result[0].xpath_eval("c:command/c:actions",
-                                       {"c": "http://jabber.org/protocol/commands"})
-        self.assertEquals(len(actions), 1)
-        self.assertEquals(actions[0].prop("execute"), "next")
-        self.assertEquals(actions[0].children.name, "next")
-        user_jid_field = result[0].xpath_eval("c:command/data:x/data:field[1]",
-                                              {"c": "http://jabber.org/protocol/commands",
-                                               "data": "jabber:x:data"})
-        self.assertNotEquals(user_jid_field, None)
-        self.assertEquals(len(user_jid_field), 1)
-        self.assertEquals(user_jid_field[0].prop("var"), "user_jids")
-        self.assertEquals(user_jid_field[0].prop("type"), "jid-multi")
-        self.assertEquals(user_jid_field[0].prop("label"), Lang.en.field_user_jid)
+        self.__check_actions(result[0], ["next"])
 
         # Second step
         info_query = Iq(stanza_type="set",
@@ -536,43 +590,7 @@ class JCLCommandManager_TestCase(unittest.TestCase):
                                            {"c": "http://jabber.org/protocol/commands"})[0]
         self.assertEquals(xml_command.prop("status"), "executing")
         self.assertEquals(xml_command.prop("sessionid"), session_id)
-        actions = result[0].xpath_eval("c:command/c:actions",
-                                       {"c": "http://jabber.org/protocol/commands"})
-        self.assertEquals(len(actions), 1)
-        self.assertEquals(actions[0].prop("execute"), "complete")
-        self.assertEquals(actions[0].children.name, "prev")
-        self.assertEquals(actions[0].children.next.name, "complete")
-        fields = result[0].xpath_eval("c:command/data:x/data:field",
-                                      {"c": "http://jabber.org/protocol/commands",
-                                       "data": "jabber:x:data"})
-        self.assertEquals(len(fields), 1)
-        self.assertEquals(fields[0].prop("var"), "account_names")
-        self.assertEquals(fields[0].prop("type"), "list-multi")
-        self.assertEquals(fields[0].prop("label"), "Account")
-        options = result[0].xpath_eval("c:command/data:x/data:field[1]/data:option",
-                                       {"c": "http://jabber.org/protocol/commands",
-                                        "data": "jabber:x:data"})
-        self.assertEquals(len(options), 4)
-        self.assertEquals(options[0].prop("label"),
-                          "account11 (Example) (test1@test.com)")
-        self.assertEquals(options[0].children.name, "value")
-        self.assertEquals(options[0].children.content,
-                          "account11/test1@test.com")
-        self.assertEquals(options[1].prop("label"),
-                          "account21 (Example) (test2@test.com)")
-        self.assertEquals(options[1].children.name, "value")
-        self.assertEquals(options[1].children.content,
-                          "account21/test2@test.com")
-        self.assertEquals(options[2].prop("label"),
-                          "account11 (Example) (test2@test.com)")
-        self.assertEquals(options[2].children.name, "value")
-        self.assertEquals(options[2].children.content,
-                          "account11/test2@test.com")
-        self.assertEquals(options[3].prop("label"),
-                          "account12 (Example2) (test1@test.com)")
-        self.assertEquals(options[3].children.name, "value")
-        self.assertEquals(options[3].children.content,
-                          "account12/test1@test.com")
+        self.__check_actions(result[0], ["prev", "complete"], 1)
         context_session = self.command_manager.sessions[session_id][1]
         self.assertEquals(context_session["user_jids"],
                           ["test1@test.com", "test2@test.com"])
@@ -591,7 +609,6 @@ class JCLCommandManager_TestCase(unittest.TestCase):
                               values=["account11/test1@test.com",
                                       "account11/test2@test.com"])
         submit_form.as_xml(command_node)
-
         result = self.command_manager.apply_command_action(info_query,
                                                            "http://jabber.org/protocol/admin#delete-user",
                                                            "execute")
@@ -599,10 +616,7 @@ class JCLCommandManager_TestCase(unittest.TestCase):
                                            {"c": "http://jabber.org/protocol/commands"})[0]
         self.assertEquals(xml_command.prop("status"), "completed")
         self.assertEquals(xml_command.prop("sessionid"), session_id)
-        actions = result[0].xpath_eval("c:command/c:actions",
-                                       {"c": "http://jabber.org/protocol/commands"})
-        self.assertEquals(len(actions), 0)
-
+        self.__check_actions(result[0])
         self.assertEquals(context_session["account_names"],
                           ["account11/test1@test.com",
                            "account11/test2@test.com"])
@@ -623,7 +637,6 @@ class JCLCommandManager_TestCase(unittest.TestCase):
         for test3_account in test3_accounts:
             count += 1
         self.assertEquals(count, 2)
-
         stanza_sent = result
         self.assertEquals(len(stanza_sent), 5)
         iq_result = stanza_sent[0]
@@ -631,7 +644,6 @@ class JCLCommandManager_TestCase(unittest.TestCase):
         self.assertEquals(iq_result.get_node().prop("type"), "result")
         self.assertEquals(iq_result.get_from(), "jcl.test.com")
         self.assertEquals(iq_result.get_to(), "user1@test.com")
-
         presence_component = stanza_sent[1]
         self.assertTrue(isinstance(presence_component, Presence))
         self.assertEquals(presence_component.get_from(), "account11@jcl.test.com")
@@ -644,7 +656,6 @@ class JCLCommandManager_TestCase(unittest.TestCase):
         self.assertEquals(presence_component.get_to(), "test1@test.com")
         self.assertEquals(presence_component.get_node().prop("type"),
                           "unsubscribed")
-
         presence_component = stanza_sent[3]
         self.assertTrue(isinstance(presence_component, Presence))
         self.assertEquals(presence_component.get_from(), "account11@jcl.test.com")
@@ -658,15 +669,103 @@ class JCLCommandManager_TestCase(unittest.TestCase):
         self.assertEquals(presence_component.get_node().prop("type"),
                           "unsubscribed")
 
+    def test_execute_disable_user(self):
+        self.comp.account_manager.account_classes = (ExampleAccount,
+                                                     Example2Account)
+        model.db_connect()
+        account11 = ExampleAccount(user_jid="test1@test.com",
+                                   name="account11",
+                                   jid="account11@jcl.test.com")
+        account12 = Example2Account(user_jid="test1@test.com",
+                                    name="account12",
+                                    jid="account12@jcl.test.com")
+        account21 = ExampleAccount(user_jid="test2@test.com",
+                                   name="account21",
+                                   jid="account21@jcl.test.com")
+        account22 = ExampleAccount(user_jid="test2@test.com",
+                                   name="account11",
+                                   jid="account11@jcl.test.com")
+        account31 = ExampleAccount(user_jid="test3@test.com",
+                                   name="account31",
+                                   jid="account31@jcl.test.com")
+        account32 = Example2Account(user_jid="test3@test.com",
+                                    name="account32",
+                                    jid="account32@jcl.test.com")
+        model.db_disconnect()
+        info_query = Iq(stanza_type="set",
+                        from_jid="user1@test.com",
+                        to_jid="jcl.test.com")
+        command_node = info_query.set_new_content(command.COMMAND_NS, "command")
+        command_node.setProp("node", "http://jabber.org/protocol/admin#disable-user")
+        result = self.command_manager.apply_command_action(info_query,
+                                                           "http://jabber.org/protocol/admin#disable-user",
+                                                           "execute")
+        self.assertNotEquals(result, None)
+        self.assertEquals(len(result), 1)
+        xml_command = result[0].xpath_eval("c:command",
+                                           {"c": "http://jabber.org/protocol/commands"})[0]
+        self.assertEquals(xml_command.prop("status"), "executing")
+        self.assertNotEquals(xml_command.prop("sessionid"), None)
+        self.__check_actions(result[0], ["next"])
 
-#     def test_execute_disable_user(self):
-#         #TODO : implement command
-#         info_query = Iq(stanza_type="set",
-#                         from_jid="user1@test.com",
-#                         to_jid="jcl.test.com")
-#         result = self.command_manager.execute_add_user(info_query)
-#         self.assertNotEquals(result, None)
-#         self.assertEquals(len(result), 1)
+        # Second step
+        info_query = Iq(stanza_type="set",
+                        from_jid="user1@test.com",
+                        to_jid="jcl.test.com")
+        command_node = info_query.set_new_content(command.COMMAND_NS, "command")
+        command_node.setProp("node", "http://jabber.org/protocol/admin#disable-user")
+        session_id = xml_command.prop("sessionid")
+        command_node.setProp("sessionid", session_id)
+        command_node.setProp("action", "next")
+        submit_form = Form(xmlnode_or_type="submit")
+        submit_form.add_field(field_type="jid-multi",
+                              name="user_jids",
+                              values=["test1@test.com", "test2@test.com"])
+        submit_form.as_xml(command_node)
+        result = self.command_manager.apply_command_action(info_query,
+                                                           "http://jabber.org/protocol/admin#disable-user",
+                                                           "execute")
+        self.assertNotEquals(result, None)
+        self.assertEquals(len(result), 1)
+        xml_command = result[0].xpath_eval("c:command",
+                                           {"c": "http://jabber.org/protocol/commands"})[0]
+        self.assertEquals(xml_command.prop("status"), "executing")
+        self.assertEquals(xml_command.prop("sessionid"), session_id)
+        self.__check_actions(result[0], ["prev", "complete"], 1)
+        context_session = self.command_manager.sessions[session_id][1]
+        self.assertEquals(context_session["user_jids"],
+                          ["test1@test.com", "test2@test.com"])
+
+        # Third step
+        info_query = Iq(stanza_type="set",
+                        from_jid="user1@test.com",
+                        to_jid="jcl.test.com")
+        command_node = info_query.set_new_content(command.COMMAND_NS, "command")
+        command_node.setProp("node", "http://jabber.org/protocol/admin#disable-user")
+        command_node.setProp("sessionid", session_id)
+        command_node.setProp("action", "complete")
+        submit_form = Form(xmlnode_or_type="submit")
+        submit_form.add_field(field_type="list-multi",
+                              name="account_names",
+                              values=["account11/test1@test.com",
+                                      "account11/test2@test.com"])
+        submit_form.as_xml(command_node)
+        result = self.command_manager.apply_command_action(info_query,
+                                                           "http://jabber.org/protocol/admin#disable-user",
+                                                           "execute")
+        xml_command = result[0].xpath_eval("c:command",
+                                           {"c": "http://jabber.org/protocol/commands"})[0]
+        self.assertEquals(xml_command.prop("status"), "completed")
+        self.assertEquals(xml_command.prop("sessionid"), session_id)
+        self.__check_actions(result[0])
+        self.assertEquals(context_session["account_names"],
+                          ["account11/test1@test.com",
+                           "account11/test2@test.com"])
+        for _account in account.get_all_accounts():
+            if _account.name == "account11":
+                self.assertFalse(_account.enabled)
+            else:
+                self.assertTrue(_account.enabled)
 
 #     def test_execute_reenable_user(self):
 #         #TODO : implement command

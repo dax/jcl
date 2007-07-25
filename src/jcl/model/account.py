@@ -67,6 +67,7 @@ class Account(InheritableSQLObject):
     __status = StringCol(default=OFFLINE, dbName="status")
     in_error = BoolCol(default=False)
     legacy_jids = MultipleJoin('LegacyJID')
+    enabled = BoolCol(default=True)
 
 ## Use these attributs to support volatile password
 ##    login = StringCol(default = "")
