@@ -139,7 +139,7 @@ class FeederHandler(Handler):
         return all accounts.
         """
         accounts = Account.select(clauseTables=["account"],
-                                  orderBy="user_jid")
+                                  orderBy=["user_jid", "name"])
         return accounts
 
     def handle(self, stanza, lang_class, data):

@@ -113,22 +113,22 @@ class FeederComponent_TestCase(JCLComponent_TestCase):
         class AccountFeeder(Feeder):
             def feed(self, _account):
                 return [("Simple Message for account " + _account.name,
-                            "user_jid: " + _account.user_jid), \
-                            ("Simple Message for account " + _account.name, \
-                            "jid: " + _account.jid)]
+                         "user_jid: " + _account.user_jid),
+                        ("Simple Message for account " + _account.name,
+                         "jid: " + _account.jid)]
 
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
         model.db_connect()
-        account11 = Account(user_jid = "user1@test.com", \
-                            name = "account11", \
-                            jid = "account11@jcl.test.com")
-        account12 = Account(user_jid = "user1@test.com", \
-                            name = "account12", \
-                            jid = "account12@jcl.test.com")
-        account2 = Account(user_jid = "user2@test.com", \
-                           name = "account2", \
-                           jid = "account2@jcl.test.com")
+        account11 = Account(user_jid="user1@test.com",
+                            name="account11",
+                            jid="account11@jcl.test.com")
+        account12 = Account(user_jid="user1@test.com",
+                            name="account12",
+                            jid="account12@jcl.test.com")
+        account2 = Account(user_jid="user2@test.com",
+                           name="account2",
+                           jid="account2@jcl.test.com")
         self.comp.handler.feeder = AccountFeeder(self.comp)
         self.comp.handler.sender = MessageSender(self.comp)
         self.comp.handle_tick()
@@ -137,42 +137,42 @@ class FeederComponent_TestCase(JCLComponent_TestCase):
         self.assertEquals(len(messages_sent), 6)
         self.assertEqual(messages_sent[0].get_from(), "account11@jcl.test.com")
         self.assertEqual(messages_sent[0].get_to(), "user1@test.com")
-        self.assertEqual(messages_sent[0].get_subject(), \
-            "Simple Message for account account11")
-        self.assertEqual(messages_sent[0].get_body(), \
-            "user_jid: user1@test.com")
+        self.assertEqual(messages_sent[0].get_subject(),
+                         "Simple Message for account account11")
+        self.assertEqual(messages_sent[0].get_body(),
+                         "user_jid: user1@test.com")
         self.assertEqual(messages_sent[1].get_from(), "account11@jcl.test.com")
         self.assertEqual(messages_sent[1].get_to(), "user1@test.com")
-        self.assertEqual(messages_sent[1].get_subject(), \
-            "Simple Message for account account11")
-        self.assertEqual(messages_sent[1].get_body(), \
-            "jid: account11@jcl.test.com")
+        self.assertEqual(messages_sent[1].get_subject(),
+                         "Simple Message for account account11")
+        self.assertEqual(messages_sent[1].get_body(),
+                         "jid: account11@jcl.test.com")
 
         self.assertEqual(messages_sent[2].get_from(), "account12@jcl.test.com")
         self.assertEqual(messages_sent[2].get_to(), "user1@test.com")
-        self.assertEqual(messages_sent[2].get_subject(), \
-            "Simple Message for account account12")
-        self.assertEqual(messages_sent[2].get_body(), \
-            "user_jid: user1@test.com")
+        self.assertEqual(messages_sent[2].get_subject(),
+                         "Simple Message for account account12")
+        self.assertEqual(messages_sent[2].get_body(),
+                         "user_jid: user1@test.com")
         self.assertEqual(messages_sent[3].get_from(), "account12@jcl.test.com")
         self.assertEqual(messages_sent[3].get_to(), "user1@test.com")
-        self.assertEqual(messages_sent[3].get_subject(), \
-            "Simple Message for account account12")
-        self.assertEqual(messages_sent[3].get_body(), \
-            "jid: account12@jcl.test.com")
+        self.assertEqual(messages_sent[3].get_subject(),
+                         "Simple Message for account account12")
+        self.assertEqual(messages_sent[3].get_body(),
+                         "jid: account12@jcl.test.com")
 
         self.assertEqual(messages_sent[4].get_from(), "account2@jcl.test.com")
         self.assertEqual(messages_sent[4].get_to(), "user2@test.com")
-        self.assertEqual(messages_sent[4].get_subject(), \
-            "Simple Message for account account2")
-        self.assertEqual(messages_sent[4].get_body(), \
-            "user_jid: user2@test.com")
+        self.assertEqual(messages_sent[4].get_subject(),
+                         "Simple Message for account account2")
+        self.assertEqual(messages_sent[4].get_body(),
+                         "user_jid: user2@test.com")
         self.assertEqual(messages_sent[5].get_from(), "account2@jcl.test.com")
         self.assertEqual(messages_sent[5].get_to(), "user2@test.com")
-        self.assertEqual(messages_sent[5].get_subject(), \
-            "Simple Message for account account2")
-        self.assertEqual(messages_sent[5].get_body(), \
-            "jid: account2@jcl.test.com")
+        self.assertEqual(messages_sent[5].get_subject(),
+                         "Simple Message for account account2")
+        self.assertEqual(messages_sent[5].get_body(),
+                         "jid: account2@jcl.test.com")
 
 class Feeder_TestCase(unittest.TestCase):
     def test_feed_exist(self):

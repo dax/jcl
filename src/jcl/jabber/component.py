@@ -817,7 +817,7 @@ class AccountManager(object):
         # "user_jid" column with Account subclasses
         for _account in \
                 Account.select(clauseTables=["account"],
-                               orderBy="user_jid"):
+                               orderBy=["user_jid", "name"]):
             if current_user_jid != _account.user_jid:
                 current_user_jid = _account.user_jid
                 result.extend(self.send_presence(self.component.jid,
