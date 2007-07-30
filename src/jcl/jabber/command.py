@@ -202,11 +202,12 @@ class CommandManager(object):
         step_method = "execute_" + short_node + "_" + str(step)
         self.parse_form(info_query, session_id)
         if hasattr(self, step_method):
-            return [response] + getattr(self, step_method)(\
+            (form, result) = getattr(self, step_method)(\
                 info_query,
                 self.sessions[session_id][1],
                 command_node,
                 lang_class)
+            return [response] + result
         else:
             return [info_query.make_error_response(\
                 "feature-not-implemented")]
@@ -272,7 +273,7 @@ class JCLCommandManager(CommandManager):
                               field_type="jid-multi",
                               label=lang_class.field_user_jid)
         result_form.as_xml(command_node)
-        return []
+        return result_form
 
     def add_form_select_user_jid(self, command_node, lang_class):
         result_form = Form(xmlnode_or_type="result",
@@ -281,7 +282,7 @@ class JCLCommandManager(CommandManager):
                               field_type="jid-single",
                               label=lang_class.field_user_jid)
         result_form.as_xml(command_node)
-        return []
+        return result_form
 
     def __add_accounts_to_field(self, user_jids, field, lang_class):
         for (account_type, type_label) in \
@@ -308,7 +309,7 @@ class JCLCommandManager(CommandManager):
         self.__add_accounts_to_field(session_context["user_jids"],
                                      field, lang_class)
         result_form.as_xml(command_node)
-        return []
+        return result_form
 
     def add_form_select_account(self, session_context,
                                 command_node, lang_class):
@@ -324,33 +325,35 @@ class JCLCommandManager(CommandManager):
         self.__add_accounts_to_field([session_context["user_jid"]],
                                      field, lang_class)
         result_form.as_xml(command_node)
-        return []
+        return result_form
 
     def select_user_jids_step_1(self, info_query, session_context,
                                 command_node, lang_class):
         self.__logger.debug("Executing select_user_jids step 1")
         self.add_actions(command_node, [ACTION_NEXT])
-        return self.add_form_select_user_jids(command_node, lang_class)
+        return (self.add_form_select_user_jids(command_node, lang_class), [])
 
     def select_user_jid_step_1(self, info_query, session_context,
                                command_node, lang_class):
         self.__logger.debug("Executing select_user_jid step 1")
         self.add_actions(command_node, [ACTION_NEXT])
-        return self.add_form_select_user_jid(command_node, lang_class)
+        return (self.add_form_select_user_jid(command_node, lang_class), [])
 
     def select_accounts_step_2(self, info_query, session_context,
                                command_node, lang_class):
         self.__logger.debug("Executing select_accounts step 2")
         self.add_actions(command_node, [ACTION_PREVIOUS, ACTION_COMPLETE], 1)
-        return self.add_form_select_accounts(session_context, command_node,
-                                             lang_class)
+        return (self.add_form_select_accounts(session_context, command_node,
+                                              lang_class),
+                [])
 
     def select_account_step_2(self, info_query, session_context,
                               command_node, lang_class):
         self.__logger.debug("Executing select_account step 2")
         self.add_actions(command_node, [ACTION_PREVIOUS, ACTION_COMPLETE], 1)
-        return self.add_form_select_account(session_context, command_node,
-                                            lang_class)
+        return (self.add_form_select_account(session_context, command_node,
+                                             lang_class),
+                [])
 
     def execute_list_1(self, info_query, session_context,
                        command_node, lang_class):
@@ -367,7 +370,7 @@ class JCLCommandManager(CommandManager):
             result_form.add_item(fields)
         result_form.as_xml(command_node)
         command_node.setProp("status", STATUS_COMPLETED)
-        return []
+        return (result_form, [])
 
     def execute_add_user_1(self, info_query, session_context,
                            command_node, lang_class):
@@ -386,7 +389,7 @@ class JCLCommandManager(CommandManager):
                               field_type="jid-single",
                               label=lang_class.field_user_jid)
         result_form.as_xml(command_node)
-        return []
+        return (result_form, [])
 
     def execute_add_user_2(self, info_query, session_context,
                            command_node, lang_class):
@@ -399,7 +402,7 @@ class JCLCommandManager(CommandManager):
                                                                       account_class,
                                                                       user_jid)
         result_form.as_xml(command_node)
-        return []
+        return (result_form, [])
 
     def execute_add_user_3(self, info_query, session_context,
                            command_node, lang_class):
@@ -415,7 +418,7 @@ class JCLCommandManager(CommandManager):
             lang_class=lang_class,
             x_data=x_data)
         command_node.setProp("status", STATUS_COMPLETED)
-        return to_send
+        return (None, to_send)
 
     execute_delete_user_1 = select_user_jids_step_1
     execute_delete_user_2 = select_accounts_step_2
@@ -429,7 +432,7 @@ class JCLCommandManager(CommandManager):
             result += self.account_manager.remove_account_from_name(user_jid,
                                                                     name)
         command_node.setProp("status", STATUS_COMPLETED)
-        return result
+        return (None, result)
 
     execute_disable_user_1 = select_user_jids_step_1
     execute_disable_user_2 = select_accounts_step_2
@@ -443,7 +446,7 @@ class JCLCommandManager(CommandManager):
             _account = account.get_account(user_jid, name)
             _account.enabled = False
         command_node.setProp("status", STATUS_COMPLETED)
-        return result
+        return (None, result)
 
     execute_reenable_user_1 = select_user_jids_step_1
     execute_reenable_user_2 = select_accounts_step_2
@@ -457,7 +460,7 @@ class JCLCommandManager(CommandManager):
             _account = account.get_account(user_jid, name)
             _account.enabled = True
         command_node.setProp("status", STATUS_COMPLETED)
-        return result
+        return (None, result)
 
     execute_end_user_session_1 = select_user_jids_step_1
     execute_end_user_session_2 = select_accounts_step_2
@@ -472,7 +475,7 @@ class JCLCommandManager(CommandManager):
             result += self.component.account_manager.send_presence_unavailable(
                 _account)
         command_node.setProp("status", STATUS_COMPLETED)
-        return result
+        return (None, result)
 
     execute_get_user_password_1 = select_user_jid_step_1
     execute_get_user_password_2 = select_account_step_2
@@ -492,10 +495,30 @@ class JCLCommandManager(CommandManager):
                                               value=_account.password))
         result_form.as_xml(command_node)
         command_node.setProp("status", STATUS_COMPLETED)
-        return []
+        return (result_form, [])
 
-    def execute_change_user_password(self, info_query):
-        return []
+    execute_change_user_password_1 = select_user_jid_step_1
+
+    def execute_change_user_password_2(self, info_query, session_context,
+                                       command_node, lang_class):
+        self.__logger.debug("Executing command 'change-user-password' step 2")
+        (result_form, result) = self.select_account_step_2(info_query,
+                                                           session_context,
+                                                           command_node,
+                                                           lang_class)
+        result_form.add_field(field_type="text-private",
+                              name="password",
+                              label=lang_class.field_password)
+        return (result_form, result)
+
+    def execute_change_user_password_3(self, info_query, session_context,
+                                       command_node, lang_class):
+        self.__logger.debug("Executing command 'change-user-password' step 2")
+        _account = account.get_account(session_context["user_jid"],
+                                       session_context["account_name"])
+        _account.password = session_context["password"]
+        command_node.setProp("status", STATUS_COMPLETED)
+        return (None, [])
 
     def execute_get_user_roster(self, info_query):
         return []

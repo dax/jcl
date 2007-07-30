@@ -105,6 +105,7 @@ class Lang:
         field_offline_action_0 = field_action_0
 
         field_user_jid = u"User JID"
+        field_password = u"Password"
 
         error_subject = u"Error"
         error_body = u"An error has occured:\n\t%s"
@@ -152,6 +153,7 @@ class Lang:
         field_offline_action_0 = field_action_0
 
         field_user_jid = u"JID utilisateur"
+        field_password = u"Mot de passe"
 
         error_subject = u"Erreur"
         error_body = u"Une erreur est survenue :\n\t%s"

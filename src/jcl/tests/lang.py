@@ -109,6 +109,7 @@ class Language_TestCase(unittest.TestCase):
         self.assertNotEquals(self.lang_class.field_offline_action_0, None)
 
         self.assertNotEquals(self.lang_class.field_user_jid, None)
+        self.assertNotEquals(self.lang_class.field_password, None)
 
         self.assertNotEquals(self.lang_class.error_subject, None)
         self.assertNotEquals(self.lang_class.error_body % (""), None)
