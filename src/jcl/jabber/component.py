@@ -432,7 +432,7 @@ class JCLComponent(Component, object):
         remove = info_query.xpath_eval("r:query/r:remove",
                                        {"r" : "jabber:iq:register"})
         if remove:
-            result = self.account_manager.remove_all_accounts(from_jid.bare())
+            result = self.account_manager.remove_all_accounts(unicode(from_jid.bare()))
             self.send_stanzas(result)
             return 1
 
@@ -607,7 +607,7 @@ class AccountManager(object):
         info_query = info_query.make_result_response()
         account_class = self.get_account_class(account_type)
         model.db_connect()
-        _account = account.get_account(from_jid.bare(), name, account_class)
+        _account = account.get_account(unicode(from_jid.bare()), name, account_class)
         if _account is not None:
             query = info_query.new_query("jabber:iq:register")
             model.db_disconnect()
@@ -706,7 +706,7 @@ class AccountManager(object):
                     value = None
                 setattr(_account, field,
                         field_post_func(value, field_default_func,
-                                        from_jid.bare()))
+                                        unicode(from_jid.bare())))
 
         if first_account:
             # component subscribe user presence when registering the first
@@ -740,7 +740,7 @@ class AccountManager(object):
                        x_data):
         """Update account"""
         self.__logger.debug("Updating account " + account_name)
-        bare_from_jid = from_jid.bare()
+        bare_from_jid = unicode(from_jid.bare())
         _account = account.get_account(bare_from_jid,
                                        account_name)
         if _account is not None:
@@ -761,7 +761,7 @@ class AccountManager(object):
                        lang_class,
                        x_data):
         """Create new account from account_class"""
-        bare_from_jid = from_jid.bare()
+        bare_from_jid = unicode(from_jid.bare())
         first_account = (account.get_accounts_count(bare_from_jid) == 0)
         model.db_connect()
         _account = account_class(user_jid=unicode(bare_from_jid),

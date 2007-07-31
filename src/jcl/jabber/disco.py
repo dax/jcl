@@ -113,7 +113,7 @@ class RootDiscoGetItemsHandler(DiscoHandler):
         else:
             disco_items = DiscoItems()
             for (_account, resource, account_type) in \
-                    self.component.account_manager.list_accounts(from_jid.bare()):
+                    self.component.account_manager.list_accounts(unicode(from_jid.bare())):
                 DiscoItem(disco_items,
                           JID(unicode(_account.jid) + resource),
                           account_type + _account.name,
@@ -137,7 +137,7 @@ class AccountTypeDiscoGetItemsHandler(DiscoHandler):
         if account_class is not None:
             disco_items = DiscoItems()
             for (_account, resource, account_type) in \
-                    self.component.account_manager.list_accounts(from_jid.bare(),
+                    self.component.account_manager.list_accounts(unicode(from_jid.bare()),
                                                                  account_class,
                                                                  account_type=account_type):
                 DiscoItem(disco_items,

@@ -52,7 +52,7 @@ def get_account_filter(self, stanza, lang_class, node=None):
     """Filter stanzas sent to account jid, only if account exists"""
     name = stanza.get_to().node
     if name is not None:
-        return account.get_account(stanza.get_from().bare(),
+        return account.get_account(unicode(stanza.get_from().bare()),
                                    name)
     else:
         return None
@@ -61,7 +61,7 @@ def get_accounts_root_filter(self, stanza, lang_class, node=None):
     """Filter stanza sent to root node"""
     to_jid = stanza.get_to()
     if to_jid.resource is None and to_jid.node is None and node is None:
-        return account.get_accounts(stanza.get_from().bare())
+        return account.get_accounts(unicode(stanza.get_from().bare()))
     else:
         return None
 
