@@ -44,8 +44,13 @@ if __name__ == '__main__':
     logger = logging.getLogger()
     logger.addHandler(logging.StreamHandler())
     logger.setLevel(logging.CRITICAL)
-    
-    unittest.main(defaultTest='suite')
+    try:
+        print "Trying to launch test with testoob"
+        import testoob
+        testoob.main(defaultTest='suite')
+    except ImportError:
+        print "Falling back to standard unittest"
+        unittest.main(defaultTest='suite')
 
 coverage.stop()
 coverage.analysis(jcl.jabber)

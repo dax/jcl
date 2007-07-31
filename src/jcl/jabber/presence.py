@@ -25,7 +25,6 @@ from pyxmpp.presence import Presence
 
 from jcl.jabber import Handler
 import jcl.jabber as jabber
-import jcl.model as model
 
 class DefaultPresenceHandler(Handler):
     """Handle presence"""
@@ -69,6 +68,9 @@ class DefaultUnsubscribeHandler(Handler):
 class AccountPresenceHandler(Handler):
     filter = jabber.get_account_filter
     
+    def get_account_presence(self, stanza, lang_class, _account):
+        raise NotImplemented
+
     def handle(self, stanza, lang_class, data):
         """Handle presence sent to an account JID"""
         result = []
@@ -82,8 +84,11 @@ class AccountPresenceAvailableHandler(AccountPresenceHandler):
                                                                       stanza.get_show(),
                                                                       lang_class)
 
-class RootPresenceHandler(Handler):
+class RootPresenceHandler(AccountPresenceHandler):
     filter = jabber.get_accounts_root_filter
+
+    def get_root_presence(self, stanza, lang_class, nb_accounts):
+        raise NotImplemented
 
     def handle(self, stanza, lang_class, data):
         """handle presence sent to component JID"""

@@ -25,9 +25,8 @@ import unittest
 
 import threading
 import time
-import sys
-import os
 import re
+import tempfile
 
 from sqlobject.dbconnection import TheURIOpener
 
@@ -47,12 +46,7 @@ from jcl.model.account import Account, LegacyJID
 from jcl.lang import Lang
 
 from jcl.model.tests.account import ExampleAccount, Example2Account
-
-if sys.platform == "win32":
-    DB_PATH = "/c|/temp/jcl_test.db"
-else:
-    DB_PATH = "/tmp/jcl_test.db"
-DB_URL = DB_PATH# + "?debug=1&debugThreading=1"
+from jcl.tests import JCLTestCase
 
 class MockStream(object):
     def __init__(self,
@@ -159,38 +153,19 @@ class HandlerMock(object):
         self.handled.append((stanza, lang_class, data))
         return [(stanza, lang_class, data)]
 
-class JCLComponent_TestCase(unittest.TestCase):
+class JCLComponent_TestCase(JCLTestCase):
     ###########################################################################
     # Utility methods
     ###########################################################################
     def setUp(self):
-        if os.path.exists(DB_PATH):
-            os.unlink(DB_PATH)
+        JCLTestCase.setUp(self, tables=[Account, LegacyJID, ExampleAccount,
+                                        Example2Account])
         self.comp = JCLComponent("jcl.test.com",
                                  "password",
                                  "localhost",
                                  "5347")
-        model.db_connection_str = 'sqlite://' + DB_URL
-        model.db_connect()
-        Account.createTable(ifNotExists=True)
-        LegacyJID.createTable(ifNotExists=True)
-        ExampleAccount.createTable(ifNotExists=True)
-        Example2Account.createTable(ifNotExists=True)
-        model.db_disconnect()
         self.max_tick_count = 1
         self.saved_time_handler = None
-
-    def tearDown(self):
-        model.db_connect()
-        Example2Account.dropTable(ifExists=True)
-        ExampleAccount.dropTable(ifExists=True)
-        LegacyJID.dropTable(ifExists=True)
-        Account.dropTable(ifExists=True)
-        del TheURIOpener.cachedURIs['sqlite://' + DB_URL]
-        model.hub.threadConnection.close()
-        model.db_disconnect()
-        if os.path.exists(DB_PATH):
-            os.unlink(DB_PATH)
 
     ###########################################################################
     # Constructor tests
@@ -853,7 +828,7 @@ class JCLComponent_TestCase(unittest.TestCase):
 
         self.assertEquals(fields[2].prop("type"), "text-private")
         self.assertEquals(fields[2].prop("var"), "password")
-        self.assertEquals(fields[2].prop("label"), "password")
+        self.assertEquals(fields[2].prop("label"), Lang.en.field_password)
 
         self.assertEquals(fields[3].prop("type"), "boolean")
         self.assertEquals(fields[3].prop("var"), "store_password")
@@ -1004,7 +979,7 @@ class JCLComponent_TestCase(unittest.TestCase):
         field = fields[2]
         self.assertEquals(field.prop("type"), "text-private")
         self.assertEquals(field.prop("var"), "password")
-        self.assertEquals(field.prop("label"), "password")
+        self.assertEquals(field.prop("label"), Lang.en.field_password)
         self.assertEquals(field.children.name, "value")
         self.assertEquals(field.children.content, "mypassword")
         field = fields[3]
@@ -2524,24 +2499,10 @@ class JCLComponent_TestCase(unittest.TestCase):
                                       "data": "jabber:x:data"})
         self.assertEquals(len(items), 2)
 
-class Handler_TestCase(unittest.TestCase):
+class Handler_TestCase(JCLTestCase):
     def setUp(self):
         self.handler = Handler(None)
-        if os.path.exists(DB_PATH):
-            os.unlink(DB_PATH)
-        model.db_connection_str = 'sqlite://' + DB_URL
-        model.db_connect()
-        Account.createTable(ifNotExists = True)
-        model.db_disconnect()
-
-    def tearDown(self):
-        model.db_connect()
-        Account.dropTable(ifExists = True)
-        del TheURIOpener.cachedURIs['sqlite://' + DB_URL]
-        model.hub.threadConnection.close()
-        model.db_disconnect()
-        if os.path.exists(DB_PATH):
-            os.unlink(DB_PATH)
+        JCLTestCase.setUp(self, tables=[Account])
 
     def test_filter(self):
         model.db_connect()

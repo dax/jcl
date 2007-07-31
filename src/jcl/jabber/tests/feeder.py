@@ -22,31 +22,21 @@
 ##
 
 import unittest
-import os
 import threading
 import time
-import sys
 
 from sqlobject import *
-from sqlobject.dbconnection import TheURIOpener
-
-from pyxmpp.message import Message
 
 from jcl.jabber.component import JCLComponent
 from jcl.jabber.feeder import FeederComponent, Feeder, Sender, MessageSender, \
     HeadlineSender, FeederHandler
 from jcl.model.account import Account, LegacyJID
 import jcl.model as model
-from jcl.model import account
 
 from jcl.model.tests.account import ExampleAccount, Example2Account
 from jcl.jabber.tests.component import JCLComponent_TestCase, MockStream
 
-if sys.platform == "win32":
-   DB_PATH = "/c|/temp/jcl_test.db"
-else:
-   DB_PATH = "/tmp/jcl_test.db"
-DB_URL = DB_PATH #+ "?debug=1&debugThreading=1"
+from jcl.tests import JCLTestCase
 
 class FeederMock(object):
     def feed(self, _account):
@@ -61,31 +51,12 @@ class SenderMock(object):
 
 class FeederComponent_TestCase(JCLComponent_TestCase):
     def setUp(self):
-        if os.path.exists(DB_PATH):
-            os.unlink(DB_PATH)
+        JCLTestCase.setUp(self, tables=[Account, LegacyJID, ExampleAccount,
+                                        Example2Account])
         self.comp = FeederComponent("jcl.test.com",
                                     "password",
                                     "localhost",
                                     "5347")
-        model.db_connection_str = 'sqlite://' + DB_URL
-        model.db_connect()
-        Account.createTable(ifNotExists = True)
-        LegacyJID.createTable(ifNotExists=True)
-        ExampleAccount.createTable(ifNotExists = True)
-        Example2Account.createTable(ifNotExists = True)
-        model.db_disconnect()
-
-    def tearDown(self):
-        model.db_connect()
-        Account.dropTable(ifExists = True)
-        LegacyJID.dropTable(ifExists=True)
-        ExampleAccount.dropTable(ifExists = True)
-        Example2Account.dropTable(ifExists = True)
-        del TheURIOpener.cachedURIs['sqlite://' + DB_URL]
-        model.hub.threadConnection.close()
-        model.db_disconnect()
-        if os.path.exists(DB_PATH):
-            os.unlink(DB_PATH)
 
     def test_run(self):
         self.comp.time_unit = 1
@@ -184,29 +155,15 @@ class Sender_TestCase(unittest.TestCase):
         sender = Sender()
         self.assertRaises(NotImplementedError, sender.send, None, None, None)
 
-class MessageSender_TestCase(unittest.TestCase):
+class MessageSender_TestCase(JCLTestCase):
     def setUp(self):
-        if os.path.exists(DB_PATH):
-            os.unlink(DB_PATH)
+        JCLTestCase.setUp(self, tables=[Account])
         self.comp = FeederComponent("jcl.test.com",
                                     "password",
                                     "localhost",
                                     "5347")
-        model.db_connection_str = 'sqlite://' + DB_URL
-        model.db_connect()
-        Account.createTable(ifNotExists = True)
-        model.db_disconnect()
         self.sender = MessageSender(self.comp)
         self.message_type = None
-
-    def tearDown(self):
-        model.db_connect()
-        Account.dropTable(ifExists = True)
-        del TheURIOpener.cachedURIs['sqlite://' + DB_URL]
-        model.hub.threadConnection.close()
-        model.db_disconnect()
-        if os.path.exists(DB_PATH):
-            os.unlink(DB_PATH)
 
     def test_send(self):
         self.comp.stream = MockStream()
@@ -231,27 +188,10 @@ class HeadlineSender_TestCase(MessageSender_TestCase):
         self.sender = HeadlineSender(self.comp)
         self.message_type = "headline"
 
-class FeederHandler_TestCase(unittest.TestCase):
+class FeederHandler_TestCase(JCLTestCase):
     def setUp(self):
+        JCLTestCase.setUp(self, tables=[Account, ExampleAccount])
         self.handler = FeederHandler(FeederMock(), SenderMock())
-        if os.path.exists(DB_PATH):
-            os.unlink(DB_PATH)
-        model.db_connection_str = 'sqlite://' + DB_URL
-        model.db_connect()
-        Account.createTable(ifNotExists = True)
-        ExampleAccount.createTable(ifNotExists = True)
-        model.db_disconnect()
-
-    def tearDown(self):
-        self.handler = None
-        model.db_connect()
-        ExampleAccount.dropTable(ifExists = True)
-        Account.dropTable(ifExists = True)
-        del TheURIOpener.cachedURIs['sqlite://' + DB_URL]
-        model.hub.threadConnection.close()
-        model.db_disconnect()
-        if os.path.exists(DB_PATH):
-            os.unlink(DB_PATH)
 
     def test_filter(self):
         model.db_connect()

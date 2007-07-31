@@ -21,11 +21,8 @@
 ##
 
 import unittest
-import sys
-import os
 
 from pyxmpp.message import Message
-from sqlobject.dbconnection import TheURIOpener
 
 from jcl.lang import Lang
 from jcl.jabber.component import JCLComponent
@@ -35,38 +32,17 @@ import jcl.model as model
 from jcl.model.account import Account
 
 from jcl.model.tests.account import ExampleAccount
+from jcl.tests import JCLTestCase
 
-if sys.platform == "win32":
-   DB_PATH = "/c|/temp/jcl_test.db"
-else:
-   DB_PATH = "/tmp/jcl_test.db"
-DB_URL = DB_PATH# + "?debug=1&debugThreading=1"
-
-class PasswordMessageHandler_TestCase(unittest.TestCase):
+class PasswordMessageHandler_TestCase(JCLTestCase):
     def setUp(self):
+        JCLTestCase.setUp(self, tables=[Account, ExampleAccount])
         self.comp = JCLComponent("jcl.test.com",
                                  "password",
                                  "localhost",
                                  "5347",
-                                 'sqlite://' + DB_URL)
+                                 self.db_url)
         self.handler = PasswordMessageHandler(self.comp)
-        if os.path.exists(DB_PATH):
-            os.unlink(DB_PATH)
-        model.db_connection_str = 'sqlite://' + DB_URL
-        model.db_connect()
-        Account.createTable(ifNotExists = True)
-        ExampleAccount.createTable(ifNotExists = True)
-        model.db_disconnect()
-
-    def tearDown(self):
-        model.db_connect()
-        ExampleAccount.dropTable(ifExists = True)
-        Account.dropTable(ifExists = True)
-        del TheURIOpener.cachedURIs['sqlite://' + DB_URL]
-        model.hub.threadConnection.close()
-        model.db_disconnect()
-        if os.path.exists(DB_PATH):
-            os.unlink(DB_PATH)
 
     def test_filter_waiting_password(self):
         model.db_connect()

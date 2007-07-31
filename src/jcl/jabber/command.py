@@ -334,9 +334,11 @@ class JCLCommandManager(CommandManager):
         return (self.add_form_select_user_jids(command_node, lang_class), [])
 
     def select_user_jid_step_1(self, info_query, session_context,
-                               command_node, lang_class):
+                               command_node, lang_class,
+                               actions=[ACTION_NEXT],
+                               default_action=0):
         self.__logger.debug("Executing select_user_jid step 1")
-        self.add_actions(command_node, [ACTION_NEXT])
+        self.add_actions(command_node, actions, default_action)
         return (self.add_form_select_user_jid(command_node, lang_class), [])
 
     def select_accounts_step_2(self, info_query, session_context,
@@ -520,8 +522,36 @@ class JCLCommandManager(CommandManager):
         command_node.setProp("status", STATUS_COMPLETED)
         return (None, [])
 
-    def execute_get_user_roster(self, info_query):
-        return []
+    def execute_get_user_roster_1(self, info_query, session_context,
+                                  command_node, lang_class):
+     (result_form, result) = self.select_user_jid_step_1(info_query,
+                                                         session_context,
+                                                         command_node,
+                                                         lang_class,
+                                                         actions=[ACTION_COMPLETE])
+     return (result_form, result)
+
+    def execute_get_user_roster_2(self, info_query, session_context,
+                                  command_node, lang_class):
+        self.__logger.debug("Executing command 'get-user-roster' step 2")
+        result_form = Form(xmlnode_or_type="result")
+        result_form.add_field(field_type="hidden",
+                              name="FORM_TYPE",
+                              value="http://jabber.org/protocol/admin")
+        user_jid = session_context["user_jid"]
+        result_form.fields.append(FieldNoType(name="user_jid",
+                                              value=user_jid))
+        result_form.as_xml(command_node)
+        x_form = command_node.children
+        query = x_form.newChild(None, "query", None)
+        roster_ns = query.newNs("jabber:iq:roster", None)
+        query.setNs(roster_ns)
+        for legacy_jid in account.get_legacy_jids(user_jid):
+            item = query.newChild(None, "item", None)
+            item.setProp("jid", legacy_jid.jid)
+            item.setProp("name", legacy_jid.legacy_address)
+        command_node.setProp("status", STATUS_COMPLETED)
+        return (result_form, [])
 
     def execute_get_user_lastlogin(self, info_query):
         return []

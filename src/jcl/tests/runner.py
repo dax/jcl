@@ -23,6 +23,7 @@
 import unittest
 import sys
 import os
+import tempfile
 
 from sqlobject import *
 
@@ -30,14 +31,12 @@ import jcl
 from jcl.runner import JCLRunner
 
 import jcl.model as model
-from jcl.model import account
 from jcl.model.account import Account, PresenceAccount
 
 if sys.platform == "win32":
-   DB_PATH = "/c|/temp/test.db"
+    DB_DIR = "/c|/temp/"
 else:
-   DB_PATH = "/tmp/test.db"
-DB_URL = "sqlite://" + DB_PATH# + "?debug=1&debugThreading=1"
+    DB_DIR = "/tmp/"
 
 class JCLRunner_TestCase(unittest.TestCase):
     def setUp(self):
@@ -122,7 +121,9 @@ class JCLRunner_TestCase(unittest.TestCase):
 
     def test__run(self):
         self.runner.pid_file = "/tmp/jcl.pid"
-        self.runner.db_url = DB_URL
+        db_path = tempfile.mktemp("db", "jcltest", DB_DIR)
+        db_url = "sqlite://" + db_path
+        self.runner.db_url = db_url
         def do_nothing():
             pass
         self.runner._run(do_nothing)
@@ -131,7 +132,7 @@ class JCLRunner_TestCase(unittest.TestCase):
         Account.dropTable()
         PresenceAccount.dropTable()
         model.db_disconnect()
-        os.unlink(DB_PATH)
+        os.unlink(db_path)
         self.assertFalse(os.access("/tmp/jcl.pid", os.F_OK))
         
     def test__get_help(self):

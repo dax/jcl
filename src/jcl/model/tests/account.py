@@ -22,21 +22,20 @@
 
 import unittest
 import sys
-import os
 
 from sqlobject import *
-from sqlobject.dbconnection import TheURIOpener
 
 from jcl.error import FieldError
 import jcl.model as model
 from jcl.model import account
 from jcl.model.account import Account, PresenceAccount
 
+from jcl.tests import JCLTestCase
+
 if sys.platform == "win32":
-   DB_PATH = "/c|/temp/jcl_test.db"
+    DB_DIR = "/c|/temp/"
 else:
-   DB_PATH = "/tmp/jcl_test.db"
-DB_URL = DB_PATH# + "?debug=1&debugThreading=1"
+    DB_DIR = "/tmp/"
 
 class ExampleAccount(Account):
     login = StringCol(default="")
@@ -163,10 +162,7 @@ class AccountModule_TestCase(unittest.TestCase):
         self.assertEquals(account.mandatory_field("test", "value"),
                           "value")
 
-class InheritableAccount_TestCase(unittest.TestCase):
-    def setUp(self):
-        self.db_url = DB_URL
-        model.db_connection_str = 'sqlite://' + self.db_url
+class InheritableAccount_TestCase(JCLTestCase):
 
     def test_get_register_fields(self):
         """
@@ -191,25 +187,8 @@ class InheritableAccount_TestCase(unittest.TestCase):
 
 class Account_TestCase(InheritableAccount_TestCase):
     def setUp(self):
-        if os.path.exists(DB_PATH):
-            os.unlink(DB_PATH)
-        self.db_url = DB_URL
-        model.db_connection_str = 'sqlite://' + self.db_url
-        model.db_connect()
-        Account.createTable(ifNotExists = True)
-        ExampleAccount.createTable(ifNotExists = True)
-        model.db_disconnect()
+        JCLTestCase.setUp(self, tables=[Account, ExampleAccount])
         self.account_class = Account
-
-    def tearDown(self):
-        model.db_connect()
-        ExampleAccount.dropTable(ifExists = True)
-        Account.dropTable(ifExists = True)
-        del TheURIOpener.cachedURIs['sqlite://' + self.db_url]
-        model.hub.threadConnection.close()
-        model.db_disconnect()
-        if os.path.exists(DB_PATH):
-            os.unlink(DB_PATH)
 
     def test_set_status(self):
         model.db_connect()
@@ -240,31 +219,15 @@ class Account_TestCase(InheritableAccount_TestCase):
 
 class PresenceAccount_TestCase(InheritableAccount_TestCase):
     def setUp(self):
-        if os.path.exists(DB_PATH):
-            os.unlink(DB_PATH)
-        self.db_url = DB_URL
-        model.db_connection_str = 'sqlite://' + self.db_url
+        JCLTestCase.setUp(self, tables=[Account, PresenceAccount,
+                                        PresenceAccountExample])
         model.db_connect()
-        Account.createTable(ifNotExists = True)
-        PresenceAccount.createTable(ifNotExists = True)
-        PresenceAccountExample.createTable(ifNotExists = True)
         self.account = PresenceAccountExample(\
             user_jid="test1@test.com",
             name="account11",
             jid="account11@jcl.test.com")
         model.db_disconnect()
         self.account_class = PresenceAccount
-
-    def tearDown(self):
-        model.db_connect()
-        PresenceAccountExample.dropTable(ifExists = True)
-        PresenceAccount.dropTable(ifExists = True)
-        Account.dropTable(ifExists = True)
-        del TheURIOpener.cachedURIs['sqlite://' + self.db_url]
-        model.hub.threadConnection.close()
-        model.db_disconnect()
-        if os.path.exists(DB_PATH):
-            os.unlink(DB_PATH)
 
     def test_get_presence_actions_fields(self):
         fields = self.account_class.get_presence_actions_fields()

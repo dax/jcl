@@ -21,15 +21,11 @@
 ##
 
 import unittest
-import sys
-import os
 
 from pyxmpp.presence import Presence
 from pyxmpp.jabber.dataforms import Form
 from pyxmpp.iq import Iq
 from pyxmpp.message import Message
-
-from sqlobject.dbconnection import TheURIOpener
 
 from jcl.lang import Lang
 from jcl.jabber.component import JCLComponent
@@ -37,14 +33,9 @@ import jcl.jabber.command as command
 from jcl.jabber.command import FieldNoType, JCLCommandManager
 import jcl.model as model
 import jcl.model.account as account
-from jcl.model.account import Account
+from jcl.model.account import Account, LegacyJID
 from jcl.model.tests.account import ExampleAccount, Example2Account
-
-if sys.platform == "win32":
-   DB_PATH = "/c|/temp/jcl_test.db"
-else:
-   DB_PATH = "/tmp/jcl_test.db"
-DB_URL = DB_PATH# + "?debug=1&debugThreading=1"
+from jcl.tests import JCLTestCase
 
 class FieldNoType_TestCase(unittest.TestCase):
     def test_complete_xml_element(self):
@@ -64,31 +55,16 @@ class CommandManager_TestCase(unittest.TestCase):
         command_name = command.command_manager.get_short_command_name("test-command")
         self.assertEquals(command_name, "test_command")
 
-class JCLCommandManager_TestCase(unittest.TestCase):
+class JCLCommandManager_TestCase(JCLTestCase):
     def setUp(self):
+        JCLTestCase.setUp(self, tables=[Account, ExampleAccount,
+                                        Example2Account, LegacyJID])
         self.comp = JCLComponent("jcl.test.com",
                                  "password",
                                  "localhost",
                                  "5347")
-        model.db_connection_str = 'sqlite://' + DB_URL
-        model.db_connect()
-        Account.createTable(ifNotExists=True)
-        ExampleAccount.createTable(ifNotExists=True)
-        Example2Account.createTable(ifNotExists = True)
-        model.db_disconnect()
         self.command_manager = JCLCommandManager(self.comp,
                                                  self.comp.account_manager)
-
-    def tearDown(self):
-        model.db_connect()
-        Example2Account.dropTable(ifExists=True)
-        ExampleAccount.dropTable(ifExists=True)
-        Account.dropTable(ifExists=True)
-        del TheURIOpener.cachedURIs['sqlite://' + DB_URL]
-        model.hub.threadConnection.close()
-        model.db_disconnect()
-        if os.path.exists(DB_PATH):
-            os.unlink(DB_PATH)
 
     def __check_actions(self, info_query, expected_actions=None, action_index=0):
         actions = info_query.xpath_eval("c:command/c:actions",
@@ -1255,14 +1231,104 @@ class JCLCommandManager_TestCase(unittest.TestCase):
                           "pass2")
         self.assertEquals(account11.password, "pass2")
 
-#     def test_execute_get_user_roster(self):
-#         #TODO : implement command
-#         info_query = Iq(stanza_type="set",
-#                         from_jid="user1@test.com",
-#                         to_jid="jcl.test.com")
-#         result = self.command_manager.execute_add_user(info_query)
-#         self.assertNotEquals(result, None)
-#         self.assertEquals(len(result), 1)
+    def test_execute_get_user_roster(self):
+        self.comp.account_manager.account_classes = (ExampleAccount,
+                                                     Example2Account)
+        model.db_connect()
+        account11 = ExampleAccount(user_jid="test1@test.com",
+                                   name="account11",
+                                   jid="account11@jcl.test.com")
+        ljid111 = LegacyJID(legacy_address="test111@test.com",
+                            jid="test111%test.com@test.com",
+                            account=account11)
+        ljid112 = LegacyJID(legacy_address="test112@test.com",
+                            jid="test112%test.com@test.com",
+                            account=account11)
+        account12 = Example2Account(user_jid="test1@test.com",
+                                    name="account12",
+                                    jid="account12@jcl.test.com")
+        ljid121 = LegacyJID(legacy_address="test121@test.com",
+                            jid="test121%test.com@test.com",
+                            account=account12)
+        account21 = ExampleAccount(user_jid="test2@test.com",
+                                   name="account21",
+                                   jid="account21@jcl.test.com")
+        ljid211 = LegacyJID(legacy_address="test211@test.com",
+                            jid="test211%test.com@test.com",
+                            account=account21)
+        ljid212 = LegacyJID(legacy_address="test212@test.com",
+                            jid="test212%test.com@test.com",
+                            account=account21)
+        account22 = ExampleAccount(user_jid="test2@test.com",
+                                   name="account11",
+                                   jid="account11@jcl.test.com")
+        ljid221 = LegacyJID(legacy_address="test221@test.com",
+                            jid="test221%test.com@test.com",
+                            account=account22)
+        model.db_disconnect()
+        info_query = Iq(stanza_type="set",
+                        from_jid="user1@test.com",
+                        to_jid="jcl.test.com")
+        command_node = info_query.set_new_content(command.COMMAND_NS, "command")
+        command_node.setProp("node", "http://jabber.org/protocol/admin#get-user-roster")
+        result = self.command_manager.apply_command_action(info_query,
+                                                           "http://jabber.org/protocol/admin#get-user-roster",
+                                                           "execute")
+        self.assertNotEquals(result, None)
+        self.assertEquals(len(result), 1)
+        xml_command = result[0].xpath_eval("c:command",
+                                           {"c": "http://jabber.org/protocol/commands"})[0]
+        self.assertEquals(xml_command.prop("status"), "executing")
+        self.assertNotEquals(xml_command.prop("sessionid"), None)
+        self.__check_actions(result[0], ["complete"])
+
+        # Second step
+        info_query = Iq(stanza_type="set",
+                        from_jid="user1@test.com",
+                        to_jid="jcl.test.com")
+        command_node = info_query.set_new_content(command.COMMAND_NS, "command")
+        command_node.setProp("node", "http://jabber.org/protocol/admin#get-user-roster")
+        session_id = xml_command.prop("sessionid")
+        command_node.setProp("sessionid", session_id)
+        command_node.setProp("action", "complete")
+        submit_form = Form(xmlnode_or_type="submit")
+        submit_form.add_field(field_type="jid-single",
+                              name="user_jid",
+                              value="test1@test.com")
+        submit_form.as_xml(command_node)
+        result = self.command_manager.apply_command_action(info_query,
+                                                           "http://jabber.org/protocol/admin#get-user-roster",
+                                                           "execute")
+        self.assertNotEquals(result, None)
+        self.assertEquals(len(result), 1)
+        xml_command = result[0].xpath_eval("c:command",
+                                           {"c": "http://jabber.org/protocol/commands"})[0]
+        self.assertEquals(xml_command.prop("status"), "completed")
+        self.assertEquals(xml_command.prop("sessionid"), session_id)
+        self.__check_actions(result[0])
+        context_session = self.command_manager.sessions[session_id][1]
+        self.assertEquals(context_session["user_jid"],
+                          "test1@test.com")
+        fields = result[0].xpath_eval("c:command/data:x/data:field",
+                                      {"c": "http://jabber.org/protocol/commands",
+                                       "data": "jabber:x:data"})
+        self.assertEquals(len(fields), 2)
+        self.assertEquals(fields[0].prop("var"), "FORM_TYPE")
+        self.assertEquals(fields[0].prop("type"), "hidden")
+        self.assertEquals(fields[0].children.name, "value")
+        self.assertEquals(fields[0].children.content,
+                          "http://jabber.org/protocol/admin")
+        items = result[0].xpath_eval("c:command/data:x/roster:query/roster:item",
+                                     {"c": "http://jabber.org/protocol/commands",
+                                      "data": "jabber:x:data",
+                                      "roster": "jabber:iq:roster"})
+        self.assertEquals(len(items), 3)
+        self.assertEquals(items[0].prop("jid"), "test111%test.com@test.com")
+        self.assertEquals(items[0].prop("name"), "test111@test.com")
+        self.assertEquals(items[1].prop("jid"), "test112%test.com@test.com")
+        self.assertEquals(items[1].prop("name"), "test112@test.com")
+        self.assertEquals(items[2].prop("jid"), "test121%test.com@test.com")
+        self.assertEquals(items[2].prop("name"), "test121@test.com")
 
 #     def test_execute_get_user_last_login(self):
 #         #TODO : implement command
