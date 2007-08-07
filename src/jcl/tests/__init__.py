@@ -41,11 +41,10 @@ class JCLTestCase(unittest.TestCase):
         if os.path.exists(self.db_path):
             os.unlink(self.db_path)
 
-from jcl.tests import lang, runner
-from jcl.jabber import tests as jabber
-from jcl.model import tests as model
-
 def suite():
+    from jcl.tests import lang, runner
+    from jcl.jabber import tests as jabber
+    from jcl.model import tests as model
     suite = unittest.TestSuite()
     suite.addTest(lang.suite())
     suite.addTest(runner.suite())

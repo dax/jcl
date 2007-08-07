@@ -64,7 +64,7 @@ class Account(InheritableSQLObject):
     user_jid = StringCol()
     name = StringCol()
     jid = StringCol()
-    __status = StringCol(default=OFFLINE, dbName="status")
+    _status = StringCol(default=OFFLINE, dbName="status")
     in_error = BoolCol(default=False)
     legacy_jids = MultipleJoin('LegacyJID')
     enabled = BoolCol(default=True)
@@ -91,7 +91,7 @@ class Account(InheritableSQLObject):
 
     def get_status(self):
         """Return current Jabber status"""
-        return self.__status
+        return self._status
 
     def set_status(self, status):
         """Set current Jabber status"""
@@ -106,7 +106,7 @@ class Account(InheritableSQLObject):
             # TODO seems to be a bug : first_check = True only
             # if previous status was OFFLINE
             self.first_check = True
-        self.__status = status
+        self._status = status
 
     status = property(get_status, set_status)
 
@@ -151,10 +151,14 @@ def get_account(bare_user_jid, name, account_class=Account):
     model.db_disconnect()
     return result
 
-def get_accounts(bare_user_jid, account_class=Account):
+def get_accounts(bare_user_jid, account_class=Account, filter=None):
     model.db_connect()
-    accounts = account_class.select(\
-        account_class.q.user_jid == unicode(bare_user_jid))
+    if filter is not None:
+        filter = AND(account_class.q.user_jid == unicode(bare_user_jid),
+                     filter)
+    else:
+        filter = account_class.q.user_jid == unicode(bare_user_jid)
+    accounts = account_class.select(filter)
     if accounts.count() == 0:
         model.db_disconnect()
         return
