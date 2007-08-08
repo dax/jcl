@@ -639,29 +639,20 @@ class JCLCommandManager(CommandManager):
         command_node.setProp("status", STATUS_COMPLETED)
         return (result_form, [])
 
-    def execute_add_to_blacklist_in(self, info_query):
-        return []
-
-    def execute_add_to_blacklist_out(self, info_query):
-        return []
-
-    def execute_edit_whitelist(self, info_query):
-        return []
-
-    def execute_add_to_whitelist_in(self, info_query):
-        return []
-
-    def execute_add_to_whitelist_out(self, info_query):
-        return []
-
-    def execute_get_registered_users_num(self, info_query):
-        return []
-
-    def execute_get_disabled_users_num(self, info_query):
-        return []
-
-    def execute_get_online_users_num(self, info_query):
-        return []
+    def execute_get_online_users_num_1(self, info_query, session_context,
+                                       command_node, lang_class):
+        result_form = Form(xmlnode_or_type="result")
+        result_form.add_field(field_type="hidden",
+                              name="FORM_TYPE",
+                              value="http://jabber.org/protocol/admin")
+        num_accounts = account.get_all_accounts_count(\
+            filter=(Account.q._status != account.OFFLINE))
+        result_form.fields.append(FieldNoType(name="onlineusersnum",
+                                              label="TODO",
+                                              value=num_accounts))
+        result_form.as_xml(command_node)
+        command_node.setProp("status", STATUS_COMPLETED)
+        return (result_form, [])
 
     def execute_get_active_users_num(self, info_query):
         return []

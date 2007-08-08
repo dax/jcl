@@ -1592,77 +1592,48 @@ class JCLCommandManager_TestCase(JCLTestCase):
         self.assertEquals(fields[1].children.name, "value")
         self.assertEquals(fields[1].children.content, "2")
 
-#     def test_execute_add_to_blacklist_in(self):
-#         #TODO : implement command
-#         info_query = Iq(stanza_type="set",
-#                         from_jid="user1@test.com",
-#                         to_jid="jcl.test.com")
-#         result = self.command_manager.execute_add_user(info_query)
-#         self.assertNotEquals(result, None)
-#         self.assertEquals(len(result), 1)
-
-#     def test_execute_add_to_blacklist_out(self):
-#         #TODO : implement command
-#         info_query = Iq(stanza_type="set",
-#                         from_jid="user1@test.com",
-#                         to_jid="jcl.test.com")
-#         result = self.command_manager.execute_add_user(info_query)
-#         self.assertNotEquals(result, None)
-#         self.assertEquals(len(result), 1)
-
-#     def test_execute_edit_whitelist(self):
-#         #TODO : implement command
-#         info_query = Iq(stanza_type="set",
-#                         from_jid="user1@test.com",
-#                         to_jid="jcl.test.com")
-#         result = self.command_manager.execute_add_user(info_query)
-#         self.assertNotEquals(result, None)
-#         self.assertEquals(len(result), 1)
-
-#     def test_execute_add_to_whitelist_in(self):
-#         #TODO : implement command
-#         info_query = Iq(stanza_type="set",
-#                         from_jid="user1@test.com",
-#                         to_jid="jcl.test.com")
-#         result = self.command_manager.execute_add_user(info_query)
-#         self.assertNotEquals(result, None)
-#         self.assertEquals(len(result), 1)
-
-#     def test_execute_add_to_whitelist_out(self):
-#         #TODO : implement command
-#         info_query = Iq(stanza_type="set",
-#                         from_jid="user1@test.com",
-#                         to_jid="jcl.test.com")
-#         result = self.command_manager.execute_add_user(info_query)
-#         self.assertNotEquals(result, None)
-#         self.assertEquals(len(result), 1)
-
-#     def test_execute_get_registered_users_num(self):
-#         #TODO : implement command
-#         info_query = Iq(stanza_type="set",
-#                         from_jid="user1@test.com",
-#                         to_jid="jcl.test.com")
-#         result = self.command_manager.execute_add_user(info_query)
-#         self.assertNotEquals(result, None)
-#         self.assertEquals(len(result), 1)
-
-#     def test_execute_get_disabled_users_num(self):
-#         #TODO : implement command
-#         info_query = Iq(stanza_type="set",
-#                         from_jid="user1@test.com",
-#                         to_jid="jcl.test.com")
-#         result = self.command_manager.execute_add_user(info_query)
-#         self.assertNotEquals(result, None)
-#         self.assertEquals(len(result), 1)
-
-#     def test_execute_get_online_users_num(self):
-#         #TODO : implement command
-#         info_query = Iq(stanza_type="set",
-#                         from_jid="user1@test.com",
-#                         to_jid="jcl.test.com")
-#         result = self.command_manager.execute_add_user(info_query)
-#         self.assertNotEquals(result, None)
-#         self.assertEquals(len(result), 1)
+    def test_execute_get_online_users_num(self):
+        self.comp.account_manager.account_classes = (ExampleAccount,
+                                                     Example2Account)
+        model.db_connect()
+        account11 = ExampleAccount(user_jid="test1@test.com",
+                                   name="account11",
+                                   jid="account11@jcl.test.com")
+        account11.status = account.ONLINE
+        account12 = Example2Account(user_jid="test1@test.com",
+                                    name="account12",
+                                    jid="account12@jcl.test.com")
+        account12.status = "away"
+        account21 = ExampleAccount(user_jid="test2@test.com",
+                                   name="account21",
+                                   jid="account21@jcl.test.com")
+        account22 = ExampleAccount(user_jid="test2@test.com",
+                                   name="account11",
+                                   jid="account11@jcl.test.com")
+        account22.status = "chat"
+        model.db_disconnect()
+        info_query = Iq(stanza_type="set",
+                        from_jid="user1@test.com",
+                        to_jid="jcl.test.com")
+        command_node = info_query.set_new_content(command.COMMAND_NS, "command")
+        command_node.setProp("node", "http://jabber.org/protocol/admin#get-online-users-num")
+        result = self.command_manager.apply_command_action(info_query,
+                                                           "http://jabber.org/protocol/admin#get-online-users-num",
+                                                           "execute")
+        self.assertNotEquals(result, None)
+        self.assertEquals(len(result), 1)
+        xml_command = result[0].xpath_eval("c:command",
+                                           {"c": "http://jabber.org/protocol/commands"})[0]
+        self.assertEquals(xml_command.prop("status"), "completed")
+        self.assertNotEquals(xml_command.prop("sessionid"), None)
+        self.__check_actions(result[0])
+        fields = result[0].xpath_eval("c:command/data:x/data:field",
+                                      {"c": "http://jabber.org/protocol/commands",
+                                       "data": "jabber:x:data"})
+        self.assertEquals(len(fields), 2)
+        self.assertEquals(fields[1].prop("var"), "onlineusersnum")
+        self.assertEquals(fields[1].children.name, "value")
+        self.assertEquals(fields[1].children.content, "3")
 
 #     def test_execute_get_active_users_num(self):
 #         #TODO : implement command
