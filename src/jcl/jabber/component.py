@@ -241,7 +241,7 @@ class JCLComponent(Component, object):
 
     def send_stanzas(self, stanzas):
         """Send given stanza list"""
-        self.__logger.debug("Sending responses")
+        self.__logger.debug("Sending responses: " + str(stanzas))
         if stanzas is not None:
             for stanza in stanzas:
                 self.stream.send(stanza)

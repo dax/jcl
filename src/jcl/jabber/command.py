@@ -223,7 +223,17 @@ class JCLCommandManager(CommandManager):
     """Implement default set of Ad-Hoc commands"""
 
     def __init__(self, component=None, account_manager=None):
-        """JCLCommandManager constructor"""
+        """
+        JCLCommandManager constructor
+        Not implemented commands:
+        "http://jabber.org/protocol/admin#user-stats",
+        "http://jabber.org/protocol/admin#edit-blacklist",
+        "http://jabber.org/protocol/admin#add-to-blacklist-in",
+        "http://jabber.org/protocol/admin#add-to-blacklist-out",
+        "http://jabber.org/protocol/admin#edit-whitelist",
+        "http://jabber.org/protocol/admin#add-to-whitelist-in",
+        "http://jabber.org/protocol/admin#add-to-whitelist-out",
+        """
         CommandManager.__init__(self, component, account_manager)
         self.__logger = logging.getLogger("jcl.jabber.command.JCLCommandManager")
         self.commands.extend(["list",
@@ -236,13 +246,6 @@ class JCLCommandManager(CommandManager):
                               "http://jabber.org/protocol/admin#change-user-password",
                               "http://jabber.org/protocol/admin#get-user-roster",
                               "http://jabber.org/protocol/admin#get-user-lastlogin",
-                              "http://jabber.org/protocol/admin#user-stats",
-                              "http://jabber.org/protocol/admin#edit-blacklist",
-                              "http://jabber.org/protocol/admin#add-to-blacklist-in",
-                              "http://jabber.org/protocol/admin#add-to-blacklist-out",
-                              "http://jabber.org/protocol/admin#edit-whitelist",
-                              "http://jabber.org/protocol/admin#add-to-whitelist-in",
-                              "http://jabber.org/protocol/admin#add-to-whitelist-out",
                               "http://jabber.org/protocol/admin#get-registered-users-num",
                               "http://jabber.org/protocol/admin#get-disabled-users-num",
                               "http://jabber.org/protocol/admin#get-online-users-num",
@@ -262,6 +265,9 @@ class JCLCommandManager(CommandManager):
                               "http://jabber.org/protocol/admin#edit-admin",
                               "http://jabber.org/protocol/admin#restart",
                               "http://jabber.org/protocol/admin#shutdown"])
+
+    def get_name_and_jid(self, mixed_name_and_jid):
+        return mixed_name_and_jid.split("/", 1)[:2]
 
     ## Reusable steps
     def add_form_select_user_jids(self, command_node, lang_class):
@@ -298,7 +304,7 @@ class JCLCommandManager(CommandManager):
 
     def add_form_select_accounts(self, session_context,
                                  command_node, lang_class,
-                                 filter=None):
+                                 filter=None, format_as_xml=True):
         """
         Add a form to select accounts for user JIDs contained in
         session_context[\"user_jids\"]
@@ -310,11 +316,13 @@ class JCLCommandManager(CommandManager):
                                       label="Account") # TODO
         self.__add_accounts_to_field(session_context["user_jids"],
                                      field, lang_class, filter)
-        result_form.as_xml(command_node)
+        if format_as_xml:
+            result_form.as_xml(command_node)
         return result_form
 
     def add_form_select_account(self, session_context,
-                                command_node, lang_class):
+                                command_node, lang_class,
+                                format_as_xml=True):
         """
         Add a form to select account for user JIDs contained in
         session_context[\"user_jids\"]
@@ -326,7 +334,8 @@ class JCLCommandManager(CommandManager):
                                       label="Account") # TODO
         self.__add_accounts_to_field(session_context["user_jid"],
                                      field, lang_class)
-        result_form.as_xml(command_node)
+        if format_as_xml:
+            result_form.as_xml(command_node)
         return result_form
 
     def select_user_jids_step_1(self, info_query, session_context,
@@ -344,19 +353,19 @@ class JCLCommandManager(CommandManager):
         return (self.add_form_select_user_jid(command_node, lang_class), [])
 
     def select_accounts_step_2(self, info_query, session_context,
-                               command_node, lang_class):
+                               command_node, lang_class, format_as_xml=True):
         self.__logger.debug("Executing select_accounts step 2")
         self.add_actions(command_node, [ACTION_PREVIOUS, ACTION_COMPLETE], 1)
         return (self.add_form_select_accounts(session_context, command_node,
-                                              lang_class),
+                                              lang_class, format_as_xml),
                 [])
 
     def select_account_step_2(self, info_query, session_context,
-                              command_node, lang_class):
+                              command_node, lang_class, format_as_xml=True):
         self.__logger.debug("Executing select_account step 2")
         self.add_actions(command_node, [ACTION_PREVIOUS, ACTION_COMPLETE], 1)
         return (self.add_form_select_account(session_context, command_node,
-                                             lang_class),
+                                             lang_class, format_as_xml),
                 [])
 
     def execute_list_1(self, info_query, session_context,
@@ -432,7 +441,7 @@ class JCLCommandManager(CommandManager):
         self.__logger.debug("Executing command 'delete-user' step 3")
         result = []
         for account_name in session_context["account_names"]:
-            name, user_jid = account_name.split("/", 1)[:2]
+            name, user_jid = self.get_name_and_jid(account_name)
             result += self.account_manager.remove_account_from_name(user_jid,
                                                                     name)
         command_node.setProp("status", STATUS_COMPLETED)
@@ -454,7 +463,7 @@ class JCLCommandManager(CommandManager):
         self.__logger.debug("Executing command 'disable-user' step 3")
         result = []
         for account_name in session_context["account_names"]:
-            name, user_jid = account_name.split("/", 1)[:2]
+            name, user_jid = self.get_name_and_jid(account_name)
             _account = account.get_account(user_jid, name)
             _account.enabled = False
         command_node.setProp("status", STATUS_COMPLETED)
@@ -476,7 +485,7 @@ class JCLCommandManager(CommandManager):
         self.__logger.debug("Executing command 'reenable-user' step 3")
         result = []
         for account_name in session_context["account_names"]:
-            name, user_jid = account_name.split("/", 1)[:2]
+            name, user_jid = self.get_name_and_jid(account_name)
             _account = account.get_account(user_jid, name)
             _account.enabled = True
         command_node.setProp("status", STATUS_COMPLETED)
@@ -498,7 +507,7 @@ class JCLCommandManager(CommandManager):
         self.__logger.debug("Executing command 'end-user-session' step 3")
         result = []
         for account_name in session_context["account_names"]:
-            name, user_jid = account_name.split("/", 1)[:2]
+            name, user_jid = self.get_name_and_jid(account_name)
             _account = account.get_account(user_jid, name)
             result += self.component.account_manager.send_presence_unavailable(
                 _account)
@@ -515,7 +524,7 @@ class JCLCommandManager(CommandManager):
         result_form.add_field(field_type="hidden",
                               name="FORM_TYPE",
                               value="http://jabber.org/protocol/admin")
-        name, user_jid = session_context["account_name"][0].split("/", 1)[:2]
+        name, user_jid = self.get_name_and_jid(session_context["account_name"][0])
         _account = account.get_account(user_jid, name)
         result_form.fields.append(FieldNoType(name="accountjids",
                                               value=user_jid))
@@ -533,17 +542,19 @@ class JCLCommandManager(CommandManager):
         (result_form, result) = self.select_account_step_2(info_query,
                                                            session_context,
                                                            command_node,
-                                                           lang_class)
+                                                           lang_class,
+                                                           False)
         result_form.add_field(field_type="text-private",
                               name="password",
                               label=lang_class.field_password)
+        result_form.as_xml(command_node)
         return (result_form, result)
 
     def execute_change_user_password_3(self, info_query, session_context,
                                        command_node, lang_class):
         self.__logger.debug("Executing command 'change-user-password' step 2")
-        _account = account.get_account(session_context["user_jid"][0],
-                                       session_context["account_name"][0])
+        name, user_jid = self.get_name_and_jid(session_context["account_name"][0])
+        _account = account.get_account(user_jid, name)
         _account.password = session_context["password"][0]
         command_node.setProp("status", STATUS_COMPLETED)
         return (None, [])
@@ -589,9 +600,8 @@ class JCLCommandManager(CommandManager):
         result_form.add_field(field_type="hidden",
                               name="FORM_TYPE",
                               value="http://jabber.org/protocol/admin")
-        user_jid = session_context["user_jid"][0]
-        _account = account.get_account(user_jid,
-                                       session_context["account_name"][0])
+        name, user_jid = self.get_name_and_jid(session_context["account_name"][0])
+        _account = account.get_account(user_jid, name)
         result_form.fields.append(FieldNoType(name="user_jid",
                                               value=user_jid))
         result_form.fields.append(FieldNoType(name="lastlogin",

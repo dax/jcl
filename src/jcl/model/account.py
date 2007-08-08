@@ -187,9 +187,12 @@ def get_accounts_count(bare_user_jid, account_class=Account):
     model.db_disconnect()
     return accounts_count
 
-def get_all_accounts_count(account_class=Account):
+def get_all_accounts_count(account_class=Account, filter=None):
     model.db_connect()
-    accounts_count = account_class.select().count()
+    if filter is None:
+        accounts_count = account_class.select().count()
+    else:
+        accounts_count = account_class.select(filter).count()
     model.db_disconnect()
     return accounts_count
 

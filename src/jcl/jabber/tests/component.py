@@ -737,7 +737,7 @@ class JCLComponent_TestCase(JCLTestCase):
                         to_jid="jcl.test.com")
         disco_items = self.comp.disco_get_items("http://jabber.org/protocol/commands",
                                                 info_query)
-        self.assertEquals(len(disco_items.get_items()), 36)
+        self.assertEquals(len(disco_items.get_items()), 29)
         item = disco_items.get_items()[0]
         self.assertEquals(item.get_node(), "list")
         self.assertEquals(item.get_name(), Lang.en.command_list)

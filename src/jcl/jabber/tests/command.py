@@ -1275,6 +1275,10 @@ class JCLCommandManager_TestCase(JCLTestCase):
         context_session = self.command_manager.sessions[session_id][1]
         self.assertEquals(context_session["user_jid"],
                           ["test1@test.com"])
+        fields = result[0].xpath_eval("c:command/data:x/data:field",
+                                      {"c": "http://jabber.org/protocol/commands",
+                                       "data": "jabber:x:data"})
+        self.assertEquals(len(fields), 2)
 
         # Third step
         info_query = Iq(stanza_type="set",
@@ -1287,7 +1291,7 @@ class JCLCommandManager_TestCase(JCLTestCase):
         submit_form = Form(xmlnode_or_type="submit")
         submit_form.add_field(field_type="list-single",
                               name="account_name",
-                              value="account11")
+                              value="account11/test1@test.com")
         submit_form.add_field(field_type="text-private",
                               name="password",
                               value="pass2")
@@ -1301,7 +1305,7 @@ class JCLCommandManager_TestCase(JCLTestCase):
         self.assertEquals(xml_command.prop("sessionid"), session_id)
         self.__check_actions(result[0])
         self.assertEquals(context_session["account_name"],
-                          ["account11"])
+                          ["account11/test1@test.com"])
         self.assertEquals(context_session["password"],
                           ["pass2"])
         self.assertEquals(account11.password, "pass2")
@@ -1478,7 +1482,7 @@ class JCLCommandManager_TestCase(JCLTestCase):
         submit_form = Form(xmlnode_or_type="submit")
         submit_form.add_field(field_type="list-single",
                               name="account_name",
-                              value="account11")
+                              value="account11/test1@test.com")
         submit_form.as_xml(command_node)
         result = self.command_manager.apply_command_action(info_query,
                                                            "http://jabber.org/protocol/admin#get-user-lastlogin",
@@ -1489,7 +1493,7 @@ class JCLCommandManager_TestCase(JCLTestCase):
         self.assertEquals(xml_command.prop("sessionid"), session_id)
         self.__check_actions(result[0])
         self.assertEquals(context_session["account_name"],
-                          ["account11"])
+                          ["account11/test1@test.com"])
         fields = result[0].xpath_eval("c:command/data:x/data:field",
                                       {"c": "http://jabber.org/protocol/commands",
                                        "data": "jabber:x:data"})
