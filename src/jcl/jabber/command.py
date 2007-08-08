@@ -579,8 +579,26 @@ class JCLCommandManager(CommandManager):
         command_node.setProp("status", STATUS_COMPLETED)
         return (result_form, [])
 
-    def execute_get_user_lastlogin(self, info_query):
-        return []
+    execute_get_user_lastlogin_1 = select_user_jid_step_1
+    execute_get_user_lastlogin_2 = select_account_step_2
+    
+    def execute_get_user_lastlogin_3(self, info_query, session_context,
+                                     command_node, lang_class):
+        self.__logger.debug("Executing command 'get-user-roster' step 2")
+        result_form = Form(xmlnode_or_type="result")
+        result_form.add_field(field_type="hidden",
+                              name="FORM_TYPE",
+                              value="http://jabber.org/protocol/admin")
+        user_jid = session_context["user_jid"][0]
+        _account = account.get_account(user_jid,
+                                       session_context["account_name"][0])
+        result_form.fields.append(FieldNoType(name="user_jid",
+                                              value=user_jid))
+        result_form.fields.append(FieldNoType(name="lastlogin",
+                                              value=_account.lastlogin))
+        result_form.as_xml(command_node)
+        command_node.setProp("status", STATUS_COMPLETED)
+        return (result_form, [])
 
     def execute_user_stats(self, info_query):
         return []

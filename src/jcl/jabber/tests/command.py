@@ -1405,14 +1405,106 @@ class JCLCommandManager_TestCase(JCLTestCase):
         self.assertEquals(items[2].prop("jid"), "test121%test.com@test.com")
         self.assertEquals(items[2].prop("name"), "test121@test.com")
 
-#     def test_execute_get_user_last_login(self):
-#         #TODO : implement command
-#         info_query = Iq(stanza_type="set",
-#                         from_jid="user1@test.com",
-#                         to_jid="jcl.test.com")
-#         result = self.command_manager.execute_add_user(info_query)
-#         self.assertNotEquals(result, None)
-#         self.assertEquals(len(result), 1)
+    def test_execute_get_user_lastlogin(self):
+        self.comp.account_manager.account_classes = (ExampleAccount,
+                                                     Example2Account)
+        model.db_connect()
+        account11 = ExampleAccount(user_jid="test1@test.com",
+                                   name="account11",
+                                   jid="account11@jcl.test.com")
+        account11.status = account.ONLINE
+        account12 = Example2Account(user_jid="test1@test.com",
+                                    name="account12",
+                                    jid="account12@jcl.test.com")
+        account21 = ExampleAccount(user_jid="test2@test.com",
+                                   name="account21",
+                                   jid="account21@jcl.test.com")
+        account22 = ExampleAccount(user_jid="test2@test.com",
+                                   name="account11",
+                                   jid="account11@jcl.test.com")
+        model.db_disconnect()
+        info_query = Iq(stanza_type="set",
+                        from_jid="user1@test.com",
+                        to_jid="jcl.test.com")
+        command_node = info_query.set_new_content(command.COMMAND_NS, "command")
+        command_node.setProp("node", "http://jabber.org/protocol/admin#get-user-lastlogin")
+        result = self.command_manager.apply_command_action(info_query,
+                                                           "http://jabber.org/protocol/admin#get-user-lastlogin",
+                                                           "execute")
+        self.assertNotEquals(result, None)
+        self.assertEquals(len(result), 1)
+        xml_command = result[0].xpath_eval("c:command",
+                                           {"c": "http://jabber.org/protocol/commands"})[0]
+        self.assertEquals(xml_command.prop("status"), "executing")
+        self.assertNotEquals(xml_command.prop("sessionid"), None)
+        self.__check_actions(result[0], ["next"])
+
+        # Second step
+        info_query = Iq(stanza_type="set",
+                        from_jid="user1@test.com",
+                        to_jid="jcl.test.com")
+        command_node = info_query.set_new_content(command.COMMAND_NS, "command")
+        command_node.setProp("node", "http://jabber.org/protocol/admin#get-user-lastlogin")
+        session_id = xml_command.prop("sessionid")
+        command_node.setProp("sessionid", session_id)
+        command_node.setProp("action", "next")
+        submit_form = Form(xmlnode_or_type="submit")
+        submit_form.add_field(field_type="jid-single",
+                              name="user_jid",
+                              value="test1@test.com")
+        submit_form.as_xml(command_node)
+        result = self.command_manager.apply_command_action(info_query,
+                                                           "http://jabber.org/protocol/admin#get-user-lastlogin",
+                                                           "execute")
+        self.assertNotEquals(result, None)
+        self.assertEquals(len(result), 1)
+        xml_command = result[0].xpath_eval("c:command",
+                                           {"c": "http://jabber.org/protocol/commands"})[0]
+        self.assertEquals(xml_command.prop("status"), "executing")
+        self.assertEquals(xml_command.prop("sessionid"), session_id)
+        self.__check_actions(result[0], ["prev", "complete"], 1)
+        context_session = self.command_manager.sessions[session_id][1]
+        self.assertEquals(context_session["user_jid"],
+                          ["test1@test.com"])
+
+        # Third step
+        info_query = Iq(stanza_type="set",
+                        from_jid="user1@test.com",
+                        to_jid="jcl.test.com")
+        command_node = info_query.set_new_content(command.COMMAND_NS, "command")
+        command_node.setProp("node", "http://jabber.org/protocol/admin#get-user-lastlogin")
+        command_node.setProp("sessionid", session_id)
+        command_node.setProp("action", "complete")
+        submit_form = Form(xmlnode_or_type="submit")
+        submit_form.add_field(field_type="list-single",
+                              name="account_name",
+                              value="account11")
+        submit_form.as_xml(command_node)
+        result = self.command_manager.apply_command_action(info_query,
+                                                           "http://jabber.org/protocol/admin#get-user-lastlogin",
+                                                           "execute")
+        xml_command = result[0].xpath_eval("c:command",
+                                           {"c": "http://jabber.org/protocol/commands"})[0]
+        self.assertEquals(xml_command.prop("status"), "completed")
+        self.assertEquals(xml_command.prop("sessionid"), session_id)
+        self.__check_actions(result[0])
+        self.assertEquals(context_session["account_name"],
+                          ["account11"])
+        fields = result[0].xpath_eval("c:command/data:x/data:field",
+                                      {"c": "http://jabber.org/protocol/commands",
+                                       "data": "jabber:x:data"})
+        self.assertEquals(len(fields), 3)
+        self.assertEquals(fields[0].prop("var"), "FORM_TYPE")
+        self.assertEquals(fields[0].prop("type"), "hidden")
+        self.assertEquals(fields[0].children.name, "value")
+        self.assertEquals(fields[0].children.content,
+                          "http://jabber.org/protocol/admin")
+        self.assertEquals(fields[1].prop("var"), "user_jid")
+        self.assertEquals(fields[1].children.name, "value")
+        self.assertEquals(fields[1].children.content, "test1@test.com")
+        self.assertEquals(fields[2].prop("var"), "lastlogin")
+        self.assertEquals(fields[2].children.name, "value")
+        self.assertEquals(fields[2].children.content, account11.lastlogin.isoformat(" "))
 
 #     def test_execute_user_stats(self):
 #         #TODO : implement command

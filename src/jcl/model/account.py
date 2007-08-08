@@ -26,8 +26,10 @@
 
 __revision__ = "$Id: account.py,v 1.3 2005/09/18 20:24:07 dax Exp $"
 
+import datetime
+
 from sqlobject.inheritance import InheritableSQLObject
-from sqlobject.col import StringCol, IntCol, BoolCol, ForeignKey
+from sqlobject.col import StringCol, IntCol, BoolCol, ForeignKey, DateTimeCol
 from sqlobject.joins import MultipleJoin
 from sqlobject.sqlbuilder import AND
 
@@ -68,7 +70,8 @@ class Account(InheritableSQLObject):
     in_error = BoolCol(default=False)
     legacy_jids = MultipleJoin('LegacyJID')
     enabled = BoolCol(default=True)
-
+    lastlogin = DateTimeCol(default=datetime.datetime.today())
+    
 ## Use these attributs to support volatile password
 ##    login = StringCol(default = "")
 ##    password = StringCol(default = None)
@@ -103,9 +106,10 @@ class Account(InheritableSQLObject):
                 if not getattr(self, 'store_password'):
                     setattr(self, 'password', None)
         else:
-            # TODO seems to be a bug : first_check = True only
-            # if previous status was OFFLINE
-            self.first_check = True
+            if self._status == OFFLINE:
+                # TODO : first_check
+                self.first_check = True
+                self.lastlogin = datetime.datetime.today()
         self._status = status
 
     status = property(get_status, set_status)
