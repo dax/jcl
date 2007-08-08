@@ -610,8 +610,19 @@ class JCLCommandManager(CommandManager):
         command_node.setProp("status", STATUS_COMPLETED)
         return (result_form, [])
 
-    def execute_user_stats(self, info_query):
-        return []
+    def execute_get_registered_users_num_1(self, info_query, session_context,
+                                           command_node, lang_class):
+        result_form = Form(xmlnode_or_type="result")
+        result_form.add_field(field_type="hidden",
+                              name="FORM_TYPE",
+                              value="http://jabber.org/protocol/admin")
+        num_accounts = account.get_all_accounts_count()
+        result_form.fields.append(FieldNoType(name="registeredusersnum",
+                                              label="TODO",
+                                              value=num_accounts))
+        result_form.as_xml(command_node)
+        command_node.setProp("status", STATUS_COMPLETED)
+        return (result_form, [])
 
     def execute_edit_blacklist(self, info_query):
         return []

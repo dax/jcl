@@ -1510,14 +1510,45 @@ class JCLCommandManager_TestCase(JCLTestCase):
         self.assertEquals(fields[2].children.name, "value")
         self.assertEquals(fields[2].children.content, account11.lastlogin.isoformat(" "))
 
-#     def test_execute_user_stats(self):
-#         #TODO : implement command
-#         info_query = Iq(stanza_type="set",
-#                         from_jid="user1@test.com",
-#                         to_jid="jcl.test.com")
-#         result = self.command_manager.execute_add_user(info_query)
-#         self.assertNotEquals(result, None)
-#         self.assertEquals(len(result), 1)
+    def test_execute_get_registered_users_num(self):
+        self.comp.account_manager.account_classes = (ExampleAccount,
+                                                     Example2Account)
+        model.db_connect()
+        account11 = ExampleAccount(user_jid="test1@test.com",
+                                   name="account11",
+                                   jid="account11@jcl.test.com")
+        account12 = Example2Account(user_jid="test1@test.com",
+                                    name="account12",
+                                    jid="account12@jcl.test.com")
+        account21 = ExampleAccount(user_jid="test2@test.com",
+                                   name="account21",
+                                   jid="account21@jcl.test.com")
+        account22 = ExampleAccount(user_jid="test2@test.com",
+                                   name="account11",
+                                   jid="account11@jcl.test.com")
+        model.db_disconnect()
+        info_query = Iq(stanza_type="set",
+                        from_jid="user1@test.com",
+                        to_jid="jcl.test.com")
+        command_node = info_query.set_new_content(command.COMMAND_NS, "command")
+        command_node.setProp("node", "http://jabber.org/protocol/admin#get-registered-users-num")
+        result = self.command_manager.apply_command_action(info_query,
+                                                           "http://jabber.org/protocol/admin#get-registered-users-num",
+                                                           "execute")
+        self.assertNotEquals(result, None)
+        self.assertEquals(len(result), 1)
+        xml_command = result[0].xpath_eval("c:command",
+                                           {"c": "http://jabber.org/protocol/commands"})[0]
+        self.assertEquals(xml_command.prop("status"), "completed")
+        self.assertNotEquals(xml_command.prop("sessionid"), None)
+        self.__check_actions(result[0])
+        fields = result[0].xpath_eval("c:command/data:x/data:field",
+                                      {"c": "http://jabber.org/protocol/commands",
+                                       "data": "jabber:x:data"})
+        self.assertEquals(len(fields), 2)
+        self.assertEquals(fields[1].prop("var"), "registeredusersnum")
+        self.assertEquals(fields[1].children.name, "value")
+        self.assertEquals(fields[1].children.content, "4")
 
 #     def test_execute_edit_blacklist(self):
 #         #TODO : implement command
