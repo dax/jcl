@@ -226,13 +226,17 @@ class JCLCommandManager(CommandManager):
         """
         JCLCommandManager constructor
         Not implemented commands:
-        "http://jabber.org/protocol/admin#user-stats",
-        "http://jabber.org/protocol/admin#edit-blacklist",
-        "http://jabber.org/protocol/admin#add-to-blacklist-in",
-        "http://jabber.org/protocol/admin#add-to-blacklist-out",
-        "http://jabber.org/protocol/admin#edit-whitelist",
-        "http://jabber.org/protocol/admin#add-to-whitelist-in",
-        "http://jabber.org/protocol/admin#add-to-whitelist-out",
+        'http://jabber.org/protocol/admin#user-stats',
+        'http://jabber.org/protocol/admin#edit-blacklist',
+        'http://jabber.org/protocol/admin#add-to-blacklist-in',
+        'http://jabber.org/protocol/admin#add-to-blacklist-out',
+        'http://jabber.org/protocol/admin#edit-whitelist',
+        'http://jabber.org/protocol/admin#add-to-whitelist-in',
+        'http://jabber.org/protocol/admin#add-to-whitelist-out',
+        'http://jabber.org/protocol/admin#get-active-users-num',
+        'http://jabber.org/protocol/admin#get-idle-users-num',
+        'http://jabber.org/protocol/admin#get-active-users',
+        'http://jabber.org/protocol/admin#get-idle-users',
         """
         CommandManager.__init__(self, component, account_manager)
         self.__logger = logging.getLogger("jcl.jabber.command.JCLCommandManager")
@@ -249,13 +253,9 @@ class JCLCommandManager(CommandManager):
                               "http://jabber.org/protocol/admin#get-registered-users-num",
                               "http://jabber.org/protocol/admin#get-disabled-users-num",
                               "http://jabber.org/protocol/admin#get-online-users-num",
-                              "http://jabber.org/protocol/admin#get-active-users-num",
-                              "http://jabber.org/protocol/admin#get-idle-users-num",
                               "http://jabber.org/protocol/admin#get-registered-users-list",
                               "http://jabber.org/protocol/admin#get-disabled-users-list",
                               "http://jabber.org/protocol/admin#get-online-users",
-                              "http://jabber.org/protocol/admin#get-active-users",
-                              "http://jabber.org/protocol/admin#get-idle-users",
                               "http://jabber.org/protocol/admin#announce",
                               "http://jabber.org/protocol/admin#set-motd",
                               "http://jabber.org/protocol/admin#edit-motd",
@@ -448,7 +448,7 @@ class JCLCommandManager(CommandManager):
         return (None, result)
 
     execute_disable_user_1 = select_user_jids_step_1
-    
+
     def execute_disable_user_2(self, info_query, session_context,
                                command_node, lang_class):
         self.__logger.debug("Executing 'disable-user' step 2")
@@ -592,7 +592,7 @@ class JCLCommandManager(CommandManager):
 
     execute_get_user_lastlogin_1 = select_user_jid_step_1
     execute_get_user_lastlogin_2 = select_account_step_2
-    
+
     def execute_get_user_lastlogin_3(self, info_query, session_context,
                                      command_node, lang_class):
         self.__logger.debug("Executing command 'get-user-roster' step 2")
@@ -654,14 +654,50 @@ class JCLCommandManager(CommandManager):
         command_node.setProp("status", STATUS_COMPLETED)
         return (result_form, [])
 
-    def execute_get_active_users_num(self, info_query):
+    def add_form_list_accounts(self, command_node, lang_class,
+                               filter=None, limit=None):
+        result_form = Form(xmlnode_or_type="result")
+        result_form.add_field(field_type="hidden",
+                              name="FORM_TYPE",
+                              value="http://jabber.org/protocol/admin")
+        accounts = account.get_all_accounts(filter=filter, limit=limit)
+        accounts_labels = []
+        for _account in accounts:
+            accounts_labels += [_account.user_jid + " (" + _account.name
+                                + " " + str(_account.__class__.__name__) + ")"]
+        result_form.fields.append(FieldNoType(name="registeredusers",
+                                              label="TODO",
+                                              values=accounts_labels))
+        result_form.as_xml(command_node)
+        command_node.setProp("status", STATUS_COMPLETED)
+        return (result_form, [])
+
+    def execute_get_registered_users_list_1(self, info_query, session_context,
+                                            command_node, lang_class):
+        num_accounts = account.get_all_accounts_count()
+        if num_accounts < 25:
+            return self.add_form_list_accounts(command_node, lang_class)
+        else:
+            self.add_actions(command_node, [ACTION_NEXT])
+            result_form = Form(xmlnode_or_type="result")
+            result_form.add_field(field_type="hidden",
+                                  name="FORM_TYPE",
+                                  value="http://jabber.org/protocol/admin")
+            max_items_field = result_form.add_field(name="max_items",
+                                                    field_type="list-single",
+                                                    label="TODO")
+            for value in ["25", "50", "75", "100", "150", "200"]:
+                max_items_field.add_option(label=value,
+                                           values=[value])
+            result_form.as_xml(command_node)
+            return (result_form, [])
         return []
 
-    def execute_get_idle_users_num(self, info_query):
-        return []
-
-    def execute_get_registered_users_list(self, info_query):
-        return []
+    def execute_get_registered_users_list_2(self, info_query, session_context,
+                                            command_node, lang_class):
+        limit = int(session_context["max_items"][0])
+        return self.add_form_list_accounts(command_node, lang_class,
+                                           limit=limit)
 
     def execute_get_disabled_users_list(self, info_query):
         return []

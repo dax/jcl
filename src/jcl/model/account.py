@@ -170,12 +170,9 @@ def get_accounts(bare_user_jid, account_class=Account, filter=None):
         yield _account
     model.db_disconnect()
 
-def get_all_accounts(account_class=Account):
+def get_all_accounts(account_class=Account, filter=None, limit=None):
     model.db_connect()
-    accounts = account_class.select()
-    if accounts.count() == 0:
-        model.db_disconnect()
-        return
+    accounts = account_class.select(clause=filter, limit=limit)
     for _account in accounts:
         yield _account
     model.db_disconnect()
