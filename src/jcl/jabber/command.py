@@ -338,6 +338,21 @@ class JCLCommandManager(CommandManager):
             result_form.as_xml(command_node)
         return result_form
 
+    def add_form_select_max(self, command_node, lang_class):
+        self.add_actions(command_node, [ACTION_NEXT])
+        result_form = Form(xmlnode_or_type="result")
+        result_form.add_field(field_type="hidden",
+                              name="FORM_TYPE",
+                              value="http://jabber.org/protocol/admin")
+        max_items_field = result_form.add_field(name="max_items",
+                                                field_type="list-single",
+                                                label="TODO")
+        for value in ["25", "50", "75", "100", "150", "200"]:
+            max_items_field.add_option(label=value,
+                                       values=[value])
+        result_form.as_xml(command_node)
+        return (result_form, [])
+
     def select_user_jids_step_1(self, info_query, session_context,
                                 command_node, lang_class):
         self.__logger.debug("Executing select_user_jids step 1")
@@ -678,20 +693,7 @@ class JCLCommandManager(CommandManager):
         if num_accounts < 25:
             return self.add_form_list_accounts(command_node, lang_class)
         else:
-            self.add_actions(command_node, [ACTION_NEXT])
-            result_form = Form(xmlnode_or_type="result")
-            result_form.add_field(field_type="hidden",
-                                  name="FORM_TYPE",
-                                  value="http://jabber.org/protocol/admin")
-            max_items_field = result_form.add_field(name="max_items",
-                                                    field_type="list-single",
-                                                    label="TODO")
-            for value in ["25", "50", "75", "100", "150", "200"]:
-                max_items_field.add_option(label=value,
-                                           values=[value])
-            result_form.as_xml(command_node)
-            return (result_form, [])
-        return []
+            return self.add_form_select_max(command_node, lang_class)
 
     def execute_get_registered_users_list_2(self, info_query, session_context,
                                             command_node, lang_class):
@@ -699,8 +701,21 @@ class JCLCommandManager(CommandManager):
         return self.add_form_list_accounts(command_node, lang_class,
                                            limit=limit)
 
-    def execute_get_disabled_users_list(self, info_query):
-        return []
+    def execute_get_disabled_users_list_1(self, info_query, session_context,
+                                          command_node, lang_class):
+        num_accounts = account.get_all_accounts_count()
+        if num_accounts < 25:
+            return self.add_form_list_accounts(command_node, lang_class,
+                                               filter=(Account.q.enabled == False))
+        else:
+            return self.add_form_select_max(command_node, lang_class)
+
+    def execute_get_disabled_users_list_2(self, info_query, session_context,
+                                          command_node, lang_class):
+        limit = int(session_context["max_items"][0])
+        return self.add_form_list_accounts(command_node, lang_class,
+                                           limit=limit,
+                                           filter=(Account.q.enabled == False))
 
     def execute_get_online_users(self, info_query):
         return []
