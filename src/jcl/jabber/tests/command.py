@@ -1835,7 +1835,7 @@ class JCLCommandManager_TestCase(JCLTestCase):
                                       {"c": "http://jabber.org/protocol/commands",
                                        "data": "jabber:x:data"})
         self.assertEquals(len(fields), 2)
-        self.assertEquals(fields[1].prop("var"), "registeredusers")
+        self.assertEquals(fields[1].prop("var"), "disabledusers")
         values = result[0].xpath_eval("c:command/data:x/data:field[2]/data:value",
                                       {"c": "http://jabber.org/protocol/commands",
                                        "data": "jabber:x:data"})
@@ -1944,7 +1944,174 @@ class JCLCommandManager_TestCase(JCLTestCase):
         self.assertEquals(fields[0].children.name, "value")
         self.assertEquals(fields[0].children.content,
                           "http://jabber.org/protocol/admin")
-        self.assertEquals(fields[1].prop("var"), "registeredusers")
+        self.assertEquals(fields[1].prop("var"), "disabledusers")
+        values = result[0].xpath_eval("c:command/data:x/data:field[2]/data:value",
+                                      {"c": "http://jabber.org/protocol/commands",
+                                       "data": "jabber:x:data"})
+        self.assertEquals(len(values), 25)
+        i = 0
+        while i < 12:
+            self.assertEquals(values[i * 2].content,
+                              "test1@test.com (account11" + str(i)
+                              + " ExampleAccount)")
+            self.assertEquals(values[i * 2 + 1].content,
+                              "test2@test.com (account2" + str(i)
+                              + " ExampleAccount)")
+            i += 1
+        self.assertEquals(values[24].content,
+                          "test1@test.com (account1112 ExampleAccount)")
+
+    def test_execute_get_online_users_list(self):
+        self.comp.account_manager.account_classes = (ExampleAccount,
+                                                     Example2Account)
+        model.db_connect()
+        account11 = ExampleAccount(user_jid="test1@test.com",
+                                   name="account11",
+                                   jid="account11@jcl.test.com")
+        account11.status = account.ONLINE
+        account12 = Example2Account(user_jid="test1@test.com",
+                                    name="account12",
+                                    jid="account12@jcl.test.com")
+        account12.status = "away"
+        account21 = ExampleAccount(user_jid="test2@test.com",
+                                   name="account21",
+                                   jid="account21@jcl.test.com")
+        account22 = ExampleAccount(user_jid="test2@test.com",
+                                   name="account11",
+                                   jid="account11@jcl.test.com")
+        account22.status = "xa"
+        model.db_disconnect()
+        info_query = Iq(stanza_type="set",
+                        from_jid="user1@test.com",
+                        to_jid="jcl.test.com")
+        command_node = info_query.set_new_content(command.COMMAND_NS, "command")
+        command_node.setProp("node",
+                             "http://jabber.org/protocol/admin#get-online-users-list")
+        result = self.command_manager.apply_command_action(\
+            info_query,
+            "http://jabber.org/protocol/admin#get-online-users-list",
+            "execute")
+        self.assertNotEquals(result, None)
+        self.assertEquals(len(result), 1)
+        xml_command = result[0].xpath_eval("c:command",
+                                           {"c": "http://jabber.org/protocol/commands"})[0]
+        self.assertEquals(xml_command.prop("status"), "completed")
+        self.assertNotEquals(xml_command.prop("sessionid"), None)
+        self.__check_actions(result[0])
+        fields = result[0].xpath_eval("c:command/data:x/data:field",
+                                      {"c": "http://jabber.org/protocol/commands",
+                                       "data": "jabber:x:data"})
+        self.assertEquals(len(fields), 2)
+        self.assertEquals(fields[1].prop("var"), "onlineusers")
+        values = result[0].xpath_eval("c:command/data:x/data:field[2]/data:value",
+                                      {"c": "http://jabber.org/protocol/commands",
+                                       "data": "jabber:x:data"})
+        self.assertEquals(len(values), 3)
+        self.assertEquals(values[0].content,
+                          "test1@test.com (account11 ExampleAccount)")
+        self.assertEquals(values[1].content,
+                          "test1@test.com (account12 Example2Account)")
+        self.assertEquals(values[2].content,
+                          "test2@test.com (account11 ExampleAccount)")
+
+    def test_execute_get_online_users_list_max(self):
+        self.comp.account_manager.account_classes = (ExampleAccount,
+                                                     Example2Account)
+        model.db_connect()
+        for i in xrange(20):
+            _account = ExampleAccount(user_jid="test1@test.com",
+                                      name="account11" + str(i),
+                                      jid="account11" + str(i)
+                                      + "@jcl.test.com")
+            _account.status = account.ONLINE
+            Example2Account(user_jid="test1@test.com",
+                            name="account12" + str(i),
+                            jid="account12" + str(i) + "@jcl.test.com")
+            _account = ExampleAccount(user_jid="test2@test.com",
+                                      name="account2" + str(i),
+                                      jid="account2" + str(i)
+                                      + "@jcl.test.com")
+            _account.status = "away"
+        model.db_disconnect()
+        info_query = Iq(stanza_type="set",
+                        from_jid="user1@test.com",
+                        to_jid="jcl.test.com")
+        command_node = info_query.set_new_content(command.COMMAND_NS, "command")
+        command_node.setProp("node",
+                             "http://jabber.org/protocol/admin#get-online-users-list")
+        result = self.command_manager.apply_command_action(\
+            info_query,
+            "http://jabber.org/protocol/admin#get-online-users-list",
+            "execute")
+        self.assertNotEquals(result, None)
+        self.assertEquals(len(result), 1)
+        xml_command = result[0].xpath_eval("c:command",
+                                           {"c": "http://jabber.org/protocol/commands"})[0]
+        self.assertEquals(xml_command.prop("status"), "executing")
+        self.assertNotEquals(xml_command.prop("sessionid"), None)
+        self.__check_actions(result[0], ["next"])
+        fields = result[0].xpath_eval("c:command/data:x/data:field",
+                                      {"c": "http://jabber.org/protocol/commands",
+                                       "data": "jabber:x:data"})
+        self.assertEquals(len(fields), 2)
+        self.assertEquals(fields[1].prop("var"), "max_items")
+        self.assertEquals(fields[1].prop("type"), "list-single")
+        options = result[0].xpath_eval("c:command/data:x/data:field[2]/data:option",
+                                       {"c": "http://jabber.org/protocol/commands",
+                                        "data": "jabber:x:data"})
+        self.assertEquals(len(options), 6)
+        self.assertEquals(options[0].prop("label"), "25")
+        self.assertEquals(options[0].content, "25")
+        self.assertEquals(options[1].prop("label"), "50")
+        self.assertEquals(options[1].content, "50")
+        self.assertEquals(options[2].prop("label"), "75")
+        self.assertEquals(options[2].content, "75")
+        self.assertEquals(options[3].prop("label"), "100")
+        self.assertEquals(options[3].content, "100")
+        self.assertEquals(options[4].prop("label"), "150")
+        self.assertEquals(options[4].content, "150")
+        self.assertEquals(options[5].prop("label"), "200")
+        self.assertEquals(options[5].content, "200")
+
+        # Second step
+        info_query = Iq(stanza_type="set",
+                        from_jid="user1@test.com",
+                        to_jid="jcl.test.com")
+        command_node = info_query.set_new_content(command.COMMAND_NS, "command")
+        command_node.setProp("node",
+                             "http://jabber.org/protocol/admin#get-online-users-list")
+        session_id = xml_command.prop("sessionid")
+        command_node.setProp("sessionid", session_id)
+        command_node.setProp("action", "next")
+        submit_form = Form(xmlnode_or_type="submit")
+        submit_form.add_field(field_type="list-single",
+                              name="max_items",
+                              value="25")
+        submit_form.as_xml(command_node)
+        result = self.command_manager.apply_command_action(\
+            info_query,
+            "http://jabber.org/protocol/admin#get-online-users-list",
+            "execute")
+        self.assertNotEquals(result, None)
+        self.assertEquals(len(result), 1)
+        xml_command = result[0].xpath_eval("c:command",
+                                           {"c": "http://jabber.org/protocol/commands"})[0]
+        self.assertEquals(xml_command.prop("status"), "completed")
+        self.assertEquals(xml_command.prop("sessionid"), session_id)
+        self.__check_actions(result[0])
+        context_session = self.command_manager.sessions[session_id][1]
+        self.assertEquals(context_session["max_items"],
+                          ["25"])
+        fields = result[0].xpath_eval("c:command/data:x/data:field",
+                                      {"c": "http://jabber.org/protocol/commands",
+                                       "data": "jabber:x:data"})
+        self.assertEquals(len(fields), 2)
+        self.assertEquals(fields[0].prop("var"), "FORM_TYPE")
+        self.assertEquals(fields[0].prop("type"), "hidden")
+        self.assertEquals(fields[0].children.name, "value")
+        self.assertEquals(fields[0].children.content,
+                          "http://jabber.org/protocol/admin")
+        self.assertEquals(fields[1].prop("var"), "onlineusers")
         values = result[0].xpath_eval("c:command/data:x/data:field[2]/data:value",
                                       {"c": "http://jabber.org/protocol/commands",
                                        "data": "jabber:x:data"})

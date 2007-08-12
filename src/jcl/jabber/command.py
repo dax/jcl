@@ -255,7 +255,7 @@ class JCLCommandManager(CommandManager):
                               "http://jabber.org/protocol/admin#get-online-users-num",
                               "http://jabber.org/protocol/admin#get-registered-users-list",
                               "http://jabber.org/protocol/admin#get-disabled-users-list",
-                              "http://jabber.org/protocol/admin#get-online-users",
+                              "http://jabber.org/protocol/admin#get-online-users-lists",
                               "http://jabber.org/protocol/admin#announce",
                               "http://jabber.org/protocol/admin#set-motd",
                               "http://jabber.org/protocol/admin#edit-motd",
@@ -351,6 +351,25 @@ class JCLCommandManager(CommandManager):
             max_items_field.add_option(label=value,
                                        values=[value])
         result_form.as_xml(command_node)
+        return (result_form, [])
+
+    def add_form_list_accounts(self, command_node, lang_class,
+                               var_name, var_label,
+                               filter=None, limit=None):
+        result_form = Form(xmlnode_or_type="result")
+        result_form.add_field(field_type="hidden",
+                              name="FORM_TYPE",
+                              value="http://jabber.org/protocol/admin")
+        accounts = account.get_all_accounts(filter=filter, limit=limit)
+        accounts_labels = []
+        for _account in accounts:
+            accounts_labels += [_account.user_jid + " (" + _account.name
+                                + " " + str(_account.__class__.__name__) + ")"]
+        result_form.fields.append(FieldNoType(name=var_name,
+                                              label=var_label,
+                                              values=accounts_labels))
+        result_form.as_xml(command_node)
+        command_node.setProp("status", STATUS_COMPLETED)
         return (result_form, [])
 
     def select_user_jids_step_1(self, info_query, session_context,
@@ -669,29 +688,12 @@ class JCLCommandManager(CommandManager):
         command_node.setProp("status", STATUS_COMPLETED)
         return (result_form, [])
 
-    def add_form_list_accounts(self, command_node, lang_class,
-                               filter=None, limit=None):
-        result_form = Form(xmlnode_or_type="result")
-        result_form.add_field(field_type="hidden",
-                              name="FORM_TYPE",
-                              value="http://jabber.org/protocol/admin")
-        accounts = account.get_all_accounts(filter=filter, limit=limit)
-        accounts_labels = []
-        for _account in accounts:
-            accounts_labels += [_account.user_jid + " (" + _account.name
-                                + " " + str(_account.__class__.__name__) + ")"]
-        result_form.fields.append(FieldNoType(name="registeredusers",
-                                              label="TODO",
-                                              values=accounts_labels))
-        result_form.as_xml(command_node)
-        command_node.setProp("status", STATUS_COMPLETED)
-        return (result_form, [])
-
     def execute_get_registered_users_list_1(self, info_query, session_context,
                                             command_node, lang_class):
         num_accounts = account.get_all_accounts_count()
         if num_accounts < 25:
-            return self.add_form_list_accounts(command_node, lang_class)
+            return self.add_form_list_accounts(command_node, lang_class,
+                                               "registeredusers", "TODO")
         else:
             return self.add_form_select_max(command_node, lang_class)
 
@@ -699,6 +701,7 @@ class JCLCommandManager(CommandManager):
                                             command_node, lang_class):
         limit = int(session_context["max_items"][0])
         return self.add_form_list_accounts(command_node, lang_class,
+                                           "registeredusers", "TODO",
                                            limit=limit)
 
     def execute_get_disabled_users_list_1(self, info_query, session_context,
@@ -706,6 +709,7 @@ class JCLCommandManager(CommandManager):
         num_accounts = account.get_all_accounts_count()
         if num_accounts < 25:
             return self.add_form_list_accounts(command_node, lang_class,
+                                               "disabledusers", "TODO",
                                                filter=(Account.q.enabled == False))
         else:
             return self.add_form_select_max(command_node, lang_class)
@@ -714,11 +718,29 @@ class JCLCommandManager(CommandManager):
                                           command_node, lang_class):
         limit = int(session_context["max_items"][0])
         return self.add_form_list_accounts(command_node, lang_class,
+                                           "disabledusers", "TODO",
                                            limit=limit,
                                            filter=(Account.q.enabled == False))
 
-    def execute_get_online_users(self, info_query):
-        return []
+    def execute_get_online_users_list_1(self, info_query, session_context,
+                                        command_node, lang_class):
+        num_accounts = account.get_all_accounts_count()
+        if num_accounts < 25:
+            return self.add_form_list_accounts(\
+                command_node, lang_class,
+                "onlineusers", "TODO",
+                filter=(Account.q._status != account.OFFLINE))
+        else:
+            return self.add_form_select_max(command_node, lang_class)
+
+    def execute_get_online_users_list_2(self, info_query, session_context,
+                                        command_node, lang_class):
+        limit = int(session_context["max_items"][0])
+        return self.add_form_list_accounts(\
+            command_node, lang_class,
+            "onlineusers", "TODO",
+            limit=limit,
+            filter=(Account.q._status != account.OFFLINE))
 
     def execute_get_active_users(self, info_query):
         return []
