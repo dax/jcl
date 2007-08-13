@@ -193,6 +193,18 @@ def get_all_accounts_count(account_class=Account, filter=None):
     model.db_disconnect()
     return accounts_count
 
+def get_all_user_jids(account_class=Account, limit=None, filter=None):
+    model.db_connect()
+    accounts = account_class.select(clause=filter, limit=limit,
+                                    orderBy=["user_jid"])
+    current_account = None
+    for _account in accounts:
+        if current_account is None \
+               or current_account.user_jid != _account.user_jid:
+            current_account = _account
+            yield _account
+    model.db_disconnect()
+    
 class PresenceAccount(Account):
     DO_NOTHING = 0
     DO_SOMETHING = 1

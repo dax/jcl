@@ -28,6 +28,7 @@ import logging
 from pyxmpp.jid import JID
 from pyxmpp.jabber.disco import DiscoInfo, DiscoItems, DiscoItem, DiscoIdentity
 from pyxmpp.jabber.dataforms import Form, Field
+from pyxmpp.message import Message
 
 from jcl.jabber.disco import DiscoHandler, RootDiscoGetInfoHandler
 from jcl.model import account
@@ -742,14 +743,35 @@ class JCLCommandManager(CommandManager):
             limit=limit,
             filter=(Account.q._status != account.OFFLINE))
 
-    def execute_get_active_users(self, info_query):
-        return []
+    def execute_announce_1(self, info_query, session_context,
+                           command_node, lang_class):
+        self.add_actions(command_node, [ACTION_NEXT])
+        result_form = Form(xmlnode_or_type="result",
+                           title="TODO",
+                           instructions="TODO")
+        result_form.add_field(field_type="hidden",
+                              name="FORM_TYPE",
+                              value="http://jabber.org/protocol/admin")
+        result_form.add_field(name="announcement",
+                              field_type="text-multi",
+                              label="TODO",
+                              required=True)
+        result_form.as_xml(command_node)
+        return (result_form, [])
 
-    def execute_get_idle_users(self, info_query):
-        return []
-
-    def execute_announce(self, info_query):
-        return []
+    def execute_announce_2(self, info_query, session_context,
+                           command_node, lang_class):
+        self.__logger.debug("Executing command 'announce' step 2")
+        announcement = session_context["announcement"][0]
+        accounts = account.get_all_user_jids(\
+            filter=(Account.q._status != account.OFFLINE))
+        result = []
+        for _account in accounts:
+            result.append(Message(from_jid=self.component.jid,
+                                  to_jid=_account.user_jid,
+                                  body=announcement))
+            command_node.setProp("status", STATUS_COMPLETED)
+        return (None, result)
 
     def execute_set_motd(self, info_query):
         return []
