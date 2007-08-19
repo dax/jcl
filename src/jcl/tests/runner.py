@@ -48,7 +48,7 @@ class JCLRunner_TestCase(unittest.TestCase):
         
     def test_configure_default(self):
         self.runner.configure()
-        self.assertEquals(self.runner.config_file, None)
+        self.assertEquals(self.runner.config_file, "jmc.conf")
         self.assertEquals(self.runner.server, "localhost")
         self.assertEquals(self.runner.port, 5347)
         self.assertEquals(self.runner.secret, "secret")
@@ -139,9 +139,9 @@ class JCLRunner_TestCase(unittest.TestCase):
         self.assertNotEquals(self.runner._get_help(), None)
         
 def suite():
-    suite = unittest.TestSuite()
-    suite.addTest(unittest.makeSuite(JCLRunner_TestCase, 'test'))
-    return suite
+    test_suite = unittest.TestSuite()
+    test_suite.addTest(unittest.makeSuite(JCLRunner_TestCase, 'test'))
+    return test_suite
 
 if __name__ == '__main__':
     unittest.main(defaultTest='suite')

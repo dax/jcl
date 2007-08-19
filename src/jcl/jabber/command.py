@@ -25,6 +25,8 @@ import re
 import datetime
 import logging
 
+from sqlobject.sqlbuilder import AND
+
 from pyxmpp.jid import JID
 from pyxmpp.jabber.disco import DiscoInfo, DiscoItems, DiscoItem, DiscoIdentity
 from pyxmpp.jabber.dataforms import Form, Field
@@ -32,7 +34,7 @@ from pyxmpp.message import Message
 
 from jcl.jabber.disco import DiscoHandler, RootDiscoGetInfoHandler
 from jcl.model import account
-from jcl.model.account import Account
+from jcl.model.account import Account, User
 
 COMMAND_NS = "http://jabber.org/protocol/commands"
 
@@ -364,7 +366,7 @@ class JCLCommandManager(CommandManager):
         accounts = account.get_all_accounts(filter=filter, limit=limit)
         accounts_labels = []
         for _account in accounts:
-            accounts_labels += [_account.user_jid + " (" + _account.name
+            accounts_labels += [_account.user.jid + " (" + _account.name
                                 + " " + str(_account.__class__.__name__) + ")"]
         result_form.fields.append(FieldNoType(name=var_name,
                                               label=var_label,
@@ -763,23 +765,65 @@ class JCLCommandManager(CommandManager):
                            command_node, lang_class):
         self.__logger.debug("Executing command 'announce' step 2")
         announcement = session_context["announcement"][0]
-        accounts = account.get_all_user_jids(\
-            filter=(Account.q._status != account.OFFLINE))
+        users = account.get_all_users(\
+            filter=AND(Account.q.userID == User.q.id,
+                       Account.q._status != account.OFFLINE),
+            distinct=True)
         result = []
-        for _account in accounts:
+        for user in users:
             result.append(Message(from_jid=self.component.jid,
-                                  to_jid=_account.user_jid,
+                                  to_jid=user.jid,
                                   body=announcement))
             command_node.setProp("status", STATUS_COMPLETED)
         return (None, result)
 
-    def execute_set_motd(self, info_query):
+    def execute_set_motd_1(self, info_query, session_context,
+                           command_node, lang_class):
+        self.add_actions(command_node, [ACTION_NEXT])
+        result_form = Form(xmlnode_or_type="result",
+                           title="TODO",
+                           instructions="TODO")
+        result_form.add_field(field_type="hidden",
+                              name="FORM_TYPE",
+                              value="http://jabber.org/protocol/admin")
+        result_form.add_field(name="motd",
+                              field_type="text-multi",
+                              label="TODO",
+                              required=True)
+        result_form.as_xml(command_node)
+        return (result_form, [])
+
+    def execute_set_motd_2(self, info_query, session_context,
+                           command_node, lang_class):
+        self.__logger.debug("Executing command 'set motd' step 2")
+        motd = session_context["motd"][0]
+        self.component.set_motd(motd)
+        users = account.get_all_users(\
+            filter=AND(Account.q.userID == User.q.id,
+                       Account.q._status != account.OFFLINE),
+            distinct=True)
+        result = []
+        for user in users:
+            for _account in user.accounts:
+                if _account.status == account.OFFLINE:
+                    user.has_received_motd = False
+                else:
+                    user.has_received_motd = True
+            if user.has_received_motd:
+                result.extend(self.component.get_motd(user.jid))
+        command_node.setProp("status", STATUS_COMPLETED)
+        return (None, result)
+
+    def execute_edit_motd_1(self, info_query, session_context,
+                            command_node, lang_class):
         return []
 
-    def execute_edit_motd(self, info_query):
+    def execute_edit_motd_2(self, info_query, session_context,
+                            command_node, lang_class):
         return []
 
-    def execute_delete_motd(self, info_query):
+    def execute_delete_motd_1(self, info_query, session_context,
+                              command_node, lang_class):
         return []
 
     def execute_set_welcome(self, info_query):

@@ -32,6 +32,7 @@ from jcl.jabber import Handler
 from jcl.jabber.component import JCLComponent
 from jcl.lang import Lang
 import jcl.model as model
+from jcl.model import account
 from jcl.model.account import Account
 
 from pyxmpp.message import Message
@@ -49,12 +50,16 @@ class FeederComponent(JCLComponent):
                  secret,
                  server,
                  port,
+                 config,
+                 config_file,
                  lang = Lang()):
         JCLComponent.__init__(self,
                               jid,
                               secret,
                               server,
                               port,
+                              config,
+                              config_file,
                               lang=lang)
         # Define default feeder and sender, can be override
         self.handler = FeederHandler(Feeder(self), Sender(self))
@@ -99,7 +104,7 @@ class MessageSender(Sender):
         """Create message to send"""
         subject, body = data
         return Message(from_jid=to_account.jid,
-                       to_jid=to_account.user_jid,
+                       to_jid=to_account.user.jid,
                        subject=subject,
                        body=body)
 
@@ -117,7 +122,7 @@ class HeadlineSender(MessageSender):
         """Create headline to send"""
         subject, body = data
         return Message(from_jid=to_account.jid,
-                       to_jid=to_account.user_jid,
+                       to_jid=to_account.user.jid,
                        subject=subject,
                        stanza_type="headline",
                        body=body)
@@ -138,8 +143,7 @@ class FeederHandler(Handler):
         Filter account to be processed by the handler
         return all accounts.
         """
-        accounts = Account.select(clauseTables=["account"],
-                                  orderBy=["user_jid", "name"])
+        accounts = account.get_all_accounts()
         return accounts
 
     def handle(self, stanza, lang_class, data):

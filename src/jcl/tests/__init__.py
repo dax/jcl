@@ -21,10 +21,10 @@ class JCLTestCase(unittest.TestCase):
 
     def setUp(self, tables=[]):
         self.tables = tables
-        self.db_path = tempfile.mktemp("db", "jcltest", DB_DIR)
+        self.db_path = tempfile.mktemp(".db", "jcltest", DB_DIR)
         if os.path.exists(self.db_path):
             os.unlink(self.db_path)
-        self.db_url = "sqlite://" + self.db_path
+        self.db_url = "sqlite://" + self.db_path #+ "?debug=True"
         jcl.model.db_connection_str = self.db_url
         jcl.model.db_connect()
         for table in tables:
@@ -45,12 +45,12 @@ def suite():
     from jcl.tests import lang, runner
     from jcl.jabber import tests as jabber
     from jcl.model import tests as model
-    suite = unittest.TestSuite()
-    suite.addTest(lang.suite())
-    suite.addTest(runner.suite())
-    suite.addTest(jabber.suite())
-    suite.addTest(model.suite())
-    return suite
+    test_suite = unittest.TestSuite()
+    test_suite.addTest(lang.suite())
+    test_suite.addTest(runner.suite())
+    test_suite.addTest(jabber.suite())
+    test_suite.addTest(model.suite())
+    return test_suite
 
 if __name__ == '__main__':
     unittest.main(defaultTest='suite')

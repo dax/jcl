@@ -26,9 +26,6 @@ import unittest
 import threading
 import time
 import re
-import tempfile
-
-from sqlobject.dbconnection import TheURIOpener
 
 from pyxmpp.jid import JID
 from pyxmpp.iq import Iq
@@ -37,12 +34,12 @@ from pyxmpp.message import Message
 from pyxmpp.jabber.dataforms import Form
 
 from jcl.jabber import Handler
-from jcl.jabber.component import JCLComponent
+from jcl.jabber.component import JCLComponent, AccountManager
 from jcl.jabber.presence import DefaultSubscribeHandler, \
     DefaultUnsubscribeHandler, DefaultPresenceHandler
 import jcl.model as model
 import jcl.model.account as account
-from jcl.model.account import Account, LegacyJID
+from jcl.model.account import Account, LegacyJID, User
 from jcl.lang import Lang
 
 from jcl.model.tests.account import ExampleAccount, Example2Account
@@ -159,11 +156,12 @@ class JCLComponent_TestCase(JCLTestCase):
     ###########################################################################
     def setUp(self):
         JCLTestCase.setUp(self, tables=[Account, LegacyJID, ExampleAccount,
-                                        Example2Account])
+                                        Example2Account, User])
         self.comp = JCLComponent("jcl.test.com",
                                  "password",
                                  "localhost",
-                                 "5347")
+                                 "5347",
+                                 None)
         self.max_tick_count = 1
         self.saved_time_handler = None
 
@@ -288,13 +286,14 @@ class JCLComponent_TestCase(JCLTestCase):
         self.max_tick_count = 1
         self.comp.handle_tick = self.__handle_tick_test_time_handler
         model.db_connect()
-        account11 = Account(user_jid="test1@test.com",
+        user1 = User(jid="test1@test.com")
+        account11 = Account(user=user1,
                             name="account11",
                             jid="account11@jcl.test.com")
-        account12 = Account(user_jid="test1@test.com",
+        account12 = Account(user=user1,
                             name="account12",
                             jid="account12@jcl.test.com")
-        account2 = Account(user_jid="test2@test.com",
+        account2 = Account(user=User(jid="test2@test.com"),
                            name="account2",
                            jid="account2@jcl.test.com")
         model.db_disconnect()
@@ -307,45 +306,45 @@ class JCLComponent_TestCase(JCLTestCase):
             raise self.comp.queue.get(0)
         presence_sent = self.comp.stream.sent
         self.assertEqual(len(presence_sent), 5)
-        self.assertEqual(len([presence \
-                              for presence in presence_sent \
-                              if presence.get_to_jid() == "test1@test.com"]), \
-                          3)
+        self.assertEqual(len([presence
+                              for presence in presence_sent
+                              if presence.get_to_jid() == "test1@test.com"]),
+                         3)
         self.assertEqual(\
-            len([presence \
-                 for presence in presence_sent \
+            len([presence
+                 for presence in presence_sent
                  if presence.get_from_jid() == \
-                 "jcl.test.com" \
-                 and presence.xpath_eval("@type")[0].get_content() \
-                 == "unavailable"]), \
+                 "jcl.test.com"
+                 and presence.xpath_eval("@type")[0].get_content()
+                 == "unavailable"]),
             2)
         self.assertEqual(\
-            len([presence \
-                 for presence in presence_sent \
+            len([presence
+                 for presence in presence_sent
                  if presence.get_from_jid() == \
-                 "account11@jcl.test.com" \
+                 "account11@jcl.test.com"
                  and presence.xpath_eval("@type")[0].get_content() \
-                 == "unavailable"]), \
+                 == "unavailable"]),
             1)
         self.assertEqual(\
-            len([presence \
-                 for presence in presence_sent \
+            len([presence
+                 for presence in presence_sent
                  if presence.get_from_jid() == \
-                 "account12@jcl.test.com" \
+                 "account12@jcl.test.com"
                  and presence.xpath_eval("@type")[0].get_content() \
-                 == "unavailable"]), \
+                 == "unavailable"]),
             1)
         self.assertEqual(len([presence \
-                              for presence in presence_sent \
-                              if presence.get_to_jid() == "test2@test.com"]), \
+                              for presence in presence_sent
+                              if presence.get_to_jid() == "test2@test.com"]),
                           2)
         self.assertEqual(\
-            len([presence \
-                 for presence in presence_sent \
+            len([presence
+                 for presence in presence_sent
                  if presence.get_from_jid() == \
-                 "account2@jcl.test.com" \
+                 "account2@jcl.test.com"
                  and presence.xpath_eval("@type")[0].get_content() \
-                 == "unavailable"]), \
+                 == "unavailable"]),
             1)
 
     ###########################################################################
@@ -376,15 +375,16 @@ class JCLComponent_TestCase(JCLTestCase):
 
     def test_authenticated_send_probe(self):
         model.db_connect()
-        account11 = Account(user_jid = "test1@test.com", \
-                            name = "account11", \
-                            jid = "account11@jcl.test.com")
-        account12 = Account(user_jid = "test1@test.com", \
-                            name = "account12", \
-                            jid = "account12@jcl.test.com")
-        account2 = Account(user_jid = "test2@test.com", \
-                           name = "account2", \
-                           jid = "account2@jcl.test.com")
+        user1 = User(jid="test1@test.com")
+        account11 = Account(user=user1,
+                            name="account11",
+                            jid="account11@jcl.test.com")
+        account12 = Account(user=user1,
+                            name="account12",
+                            jid="account12@jcl.test.com")
+        account2 = Account(user=User(jid="test2@test.com"),
+                           name="account2",
+                           jid="account2@jcl.test.com")
         model.db_disconnect()
         self.comp.stream = MockStream()
         self.comp.authenticated()
@@ -396,18 +396,18 @@ class JCLComponent_TestCase(JCLTestCase):
         self.assertEquals(presence.get_node().prop("type"), "probe")
         presence = self.comp.stream.sent[1]
         self.assertTrue(isinstance(presence, Presence))
-        self.assertEquals(presence.get_from(), "account11@jcl.test.com")
-        self.assertEquals(presence.get_to(), "test1@test.com")
+        self.assertEquals(presence.get_from(), "jcl.test.com")
+        self.assertEquals(presence.get_to(), "test2@test.com")
         self.assertEquals(presence.get_node().prop("type"), "probe")
         presence = self.comp.stream.sent[2]
         self.assertTrue(isinstance(presence, Presence))
-        self.assertEquals(presence.get_from(), "account12@jcl.test.com")
+        self.assertEquals(presence.get_from(), "account11@jcl.test.com")
         self.assertEquals(presence.get_to(), "test1@test.com")
         self.assertEquals(presence.get_node().prop("type"), "probe")
         presence = self.comp.stream.sent[3]
         self.assertTrue(isinstance(presence, Presence))
-        self.assertEquals(presence.get_from(), "jcl.test.com")
-        self.assertEquals(presence.get_to(), "test2@test.com")
+        self.assertEquals(presence.get_from(), "account12@jcl.test.com")
+        self.assertEquals(presence.get_to(), "test1@test.com")
         self.assertEquals(presence.get_node().prop("type"), "probe")
         presence = self.comp.stream.sent[4]
         self.assertTrue(isinstance(presence, Presence))
@@ -429,8 +429,8 @@ class JCLComponent_TestCase(JCLTestCase):
     def test_handle_get_gateway(self):
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
-        info_query = Iq(stanza_type = "get",
-                        from_jid = "user1@test.com")
+        info_query = Iq(stanza_type="get",
+                        from_jid="user1@test.com")
         info_query.new_query("jabber:iq:gateway")
         self.comp.handle_get_gateway(info_query)
         self.assertEquals(len(self.comp.stream.sent), 1)
@@ -452,8 +452,8 @@ class JCLComponent_TestCase(JCLTestCase):
     def test_handle_set_gateway(self):
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
-        info_query = Iq(stanza_type = "get",
-                        from_jid = "user1@test.com")
+        info_query = Iq(stanza_type="get",
+                        from_jid="user1@test.com")
         query = info_query.new_query("jabber:iq:gateway")
         prompt = query.newChild(None, "prompt", None)
         prompt.addContent("user@test.com")
@@ -550,13 +550,13 @@ class JCLComponent_TestCase(JCLTestCase):
         model.db_connect()
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
-        account1 = Account(user_jid = "user1@test.com", \
-                           name = "account1", \
-                           jid = "account1@jcl.test.com")
+        account1 = Account(user=User(jid="user1@test.com"),
+                           name="account1",
+                           jid="account1@jcl.test.com")
         model.db_disconnect()
-        info_query = Iq(stanza_type = "get", \
-                        from_jid = "user1@test.com", \
-                        to_jid = "jcl.test.com")
+        info_query = Iq(stanza_type="get",
+                        from_jid="user1@test.com",
+                        to_jid="jcl.test.com")
         disco_items = self.comp.disco_get_items(None, info_query)
         self.assertEquals(len(disco_items.get_items()), 1)
         disco_item = disco_items.get_items()[0]
@@ -567,7 +567,7 @@ class JCLComponent_TestCase(JCLTestCase):
     def test_disco_get_items_unknown_node(self):
         self.comp.account_manager.account_classes = (ExampleAccount, )
         model.db_connect()
-        account11 = ExampleAccount(user_jid="user1@test.com",
+        account11 = ExampleAccount(user=User(jid="user1@test.com"),
                                    name="account11",
                                    jid="account11@jcl.test.com")
         model.db_disconnect()
@@ -580,10 +580,11 @@ class JCLComponent_TestCase(JCLTestCase):
     def test_disco_get_items_unknown_node_multiple_account_types(self):
         self.comp.account_manager.account_classes = (ExampleAccount, Example2Account)
         model.db_connect()
-        account11 = ExampleAccount(user_jid="user1@test.com",
+        user1 = User(jid="user1@test.com")
+        account11 = ExampleAccount(user=user1,
                                    name="account11",
                                    jid="account11@jcl.test.com")
-        account21 = Example2Account(user_jid="user1@test.com",
+        account21 = Example2Account(user=user1,
                                     name="account21",
                                     jid="account21@jcl.test.com")
         model.db_disconnect()
@@ -597,7 +598,7 @@ class JCLComponent_TestCase(JCLTestCase):
     def test_disco_get_items_1type_with_node(self):
         """get_items on an account. Must return nothing"""
         model.db_connect()
-        account1 = Account(user_jid="user1@test.com",
+        account1 = Account(user=User(jid="user1@test.com"),
                            name="account1",
                            jid="account1@jcl.test.com")
         model.db_disconnect()
@@ -614,10 +615,11 @@ class JCLComponent_TestCase(JCLTestCase):
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
         model.db_connect()
-        account11 = ExampleAccount(user_jid="user1@test.com",
+        user1 = User(jid="user1@test.com")
+        account11 = ExampleAccount(user=user1,
                                    name="account11",
                                    jid="account11@jcl.test.com")
-        account21 = Example2Account(user_jid="user1@test.com",
+        account21 = Example2Account(user=user1,
                                     name="account21",
                                     jid="account21@jcl.test.com")
         model.db_disconnect()
@@ -648,16 +650,18 @@ class JCLComponent_TestCase(JCLTestCase):
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
         model.db_connect()
-        account11 = ExampleAccount(user_jid="user1@test.com",
+        user1 = User(jid="user1@test.com")
+        user2 = User(jid="user2@test.com")
+        account11 = ExampleAccount(user=user1,
                                    name="account11",
                                    jid="account11@jcl.test.com")
-        account12 = ExampleAccount(user_jid="user2@test.com",
+        account12 = ExampleAccount(user=user2,
                                    name="account12",
                                    jid="account12@jcl.test.com")
-        account21 = Example2Account(user_jid="user1@test.com",
+        account21 = Example2Account(user=user1,
                                     name="account21",
                                     jid="account21@jcl.test.com")
-        account22 = Example2Account(user_jid="user2@test.com",
+        account22 = Example2Account(user=user2,
                                     name="account22",
                                     jid="account22@jcl.test.com")
         model.db_disconnect()
@@ -678,16 +682,18 @@ class JCLComponent_TestCase(JCLTestCase):
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
         model.db_connect()
-        account11 = ExampleAccount(user_jid="user1@test.com",
+        user1 = User(jid="user1@test.com")
+        user2 = User(jid="user2@test.com")
+        account11 = ExampleAccount(user=user1,
                                    name="account11",
                                    jid="account11@jcl.test.com")
-        account12 = ExampleAccount(user_jid="user2@test.com",
+        account12 = ExampleAccount(user=user2,
                                    name="account12",
                                    jid="account12@jcl.test.com")
-        account21 = Example2Account(user_jid="user1@test.com",
+        account21 = Example2Account(user=user1,
                                     name="account21",
                                     jid="account21@jcl.test.com")
-        account22 = Example2Account(user_jid="user2@test.com",
+        account22 = Example2Account(user=user2,
                                     name="account22",
                                     jid="account22@jcl.test.com")
         model.db_disconnect()
@@ -705,7 +711,7 @@ class JCLComponent_TestCase(JCLTestCase):
         """get_items on a first type account. Must return nothing"""
         self.comp.account_manager.account_classes = (ExampleAccount, Example2Account)
         model.db_connect()
-        account1 = ExampleAccount(user_jid="user1@test.com",
+        account1 = ExampleAccount(user=User(jid="user1@test.com"),
                                   name="account1",
                                   jid="account1@jcl.test.com")
         model.db_disconnect()
@@ -719,7 +725,7 @@ class JCLComponent_TestCase(JCLTestCase):
         """get_items on a second type account. Must return nothing"""
         self.comp.account_manager.account_classes = (ExampleAccount, Example2Account)
         model.db_connect()
-        account1 = Example2Account(user_jid="user1@test.com",
+        account1 = Example2Account(user=User(jid="user1@test.com"),
                                    name="account1",
                                    jid="account1@jcl.test.com")
         model.db_disconnect()
@@ -869,13 +875,14 @@ class JCLComponent_TestCase(JCLTestCase):
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
         model.db_connect()
-        account11 = Account(user_jid="user1@test.com",
+        user1 = User(jid="user1@test.com")
+        account11 = Account(user=user1,
                            name="account11",
                            jid="account11@jcl.test.com")
-        account12 = Account(user_jid="user1@test.com",
+        account12 = Account(user=user1,
                            name="account12",
                            jid="account12@jcl.test.com")
-        account21 = Account(user_jid="user1@test.com",
+        account21 = Account(user=User(jid="user2@test.com"),
                            name="account21",
                            jid="account21@jcl.test.com")
         model.db_disconnect()
@@ -915,51 +922,52 @@ class JCLComponent_TestCase(JCLTestCase):
         model.db_connect()
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
-        account1 = ExampleAccount(user_jid = "user1@test.com", \
-                                  name = "account1", \
-                                  jid = "account1@jcl.test.com", \
-                                  login = "mylogin", \
-                                  password = "mypassword", \
-                                  store_password = False, \
-                                  test_enum = "choice3", \
-                                  test_int = 1)
-        account11 = ExampleAccount(user_jid = "user1@test.com", \
-                                   name = "account11", \
-                                   jid = "account11@jcl.test.com", \
-                                   login = "mylogin11", \
-                                   password = "mypassword11", \
-                                   store_password = False, \
-                                   test_enum = "choice2", \
-                                   test_int = 11)
-        account21 = ExampleAccount(user_jid = "user2@test.com", \
-                                   name = "account21", \
-                                   jid = "account21@jcl.test.com", \
-                                   login = "mylogin21", \
-                                   password = "mypassword21", \
-                                   store_password = False, \
-                                   test_enum = "choice1", \
-                                   test_int = 21)
+        user1 = User(jid="user1@test.com")
+        account1 = ExampleAccount(user=user1,
+                                  name="account1",
+                                  jid="account1@jcl.test.com",
+                                  login="mylogin",
+                                  password="mypassword",
+                                  store_password=False,
+                                  test_enum="choice3",
+                                  test_int=1)
+        account11 = ExampleAccount(user=user1,
+                                   name="account11",
+                                   jid="account11@jcl.test.com",
+                                   login="mylogin11",
+                                   password="mypassword11",
+                                   store_password=False,
+                                   test_enum="choice2",
+                                   test_int=11)
+        account21 = ExampleAccount(user=User(jid="user2@test.com"),
+                                   name="account21",
+                                   jid="account21@jcl.test.com",
+                                   login="mylogin21",
+                                   password="mypassword21",
+                                   store_password=False,
+                                   test_enum="choice1",
+                                   test_int=21)
         model.db_disconnect()
-        self.comp.handle_get_register(Iq(stanza_type = "get", \
-                                         from_jid = "user1@test.com", \
-                                         to_jid = "account1@jcl.test.com"))
+        self.comp.handle_get_register(Iq(stanza_type="get",
+                                         from_jid="user1@test.com",
+                                         to_jid="account1@jcl.test.com"))
         self.assertEquals(len(self.comp.stream.sent), 1)
         iq_sent = self.comp.stream.sent[0]
         self.assertEquals(iq_sent.get_to(), "user1@test.com")
-        titles = iq_sent.xpath_eval("jir:query/jxd:x/jxd:title", \
-                                    {"jir" : "jabber:iq:register", \
+        titles = iq_sent.xpath_eval("jir:query/jxd:x/jxd:title",
+                                    {"jir" : "jabber:iq:register",
                                      "jxd" : "jabber:x:data"})
         self.assertEquals(len(titles), 1)
-        self.assertEquals(titles[0].content, \
+        self.assertEquals(titles[0].content,
                           Lang.en.register_title)
-        instructions = iq_sent.xpath_eval("jir:query/jxd:x/jxd:instructions", \
-                                          {"jir" : "jabber:iq:register", \
+        instructions = iq_sent.xpath_eval("jir:query/jxd:x/jxd:instructions",
+                                          {"jir" : "jabber:iq:register",
                                            "jxd" : "jabber:x:data"})
         self.assertEquals(len(instructions), 1)
-        self.assertEquals(instructions[0].content, \
+        self.assertEquals(instructions[0].content,
                           Lang.en.register_instructions)
-        fields = iq_sent.xpath_eval("jir:query/jxd:x/jxd:field", \
-                                    {"jir" : "jabber:iq:register", \
+        fields = iq_sent.xpath_eval("jir:query/jxd:x/jxd:field",
+                                    {"jir" : "jabber:iq:register",
                                      "jxd" : "jabber:x:data"})
         self.assertEquals(len(fields), 6)
         field = fields[0]
@@ -995,8 +1003,8 @@ class JCLComponent_TestCase(JCLTestCase):
         self.assertEquals(field.children.name, "value")
         self.assertEquals(field.children.content, "choice3")
         # TODO : correct xpath expression (field[4])
-        options = iq_sent.xpath_eval("jir:query/jxd:x/jxd:field/jxd:option", \
-                                     {"jir" : "jabber:iq:register", \
+        options = iq_sent.xpath_eval("jir:query/jxd:x/jxd:field/jxd:option",
+                                     {"jir" : "jabber:iq:register",
                                       "jxd" : "jabber:x:data"})
 
         self.assertEquals(options[0].prop("label"), "choice1")
@@ -1020,35 +1028,35 @@ class JCLComponent_TestCase(JCLTestCase):
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
         self.comp.account_manager.account_classes = (ExampleAccount, Example2Account)
-        self.comp.handle_get_register(Iq(stanza_type = "get", \
-                                         from_jid = "user1@test.com", \
-                                         to_jid = "jcl.test.com/example"))
+        self.comp.handle_get_register(Iq(stanza_type="get",
+                                         from_jid="user1@test.com",
+                                         to_jid="jcl.test.com/example"))
         self.__check_get_register_new_type()
 
     def test_handle_get_register_new_type2(self):
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
         self.comp.account_manager.account_classes = (ExampleAccount, Example2Account)
-        self.comp.handle_get_register(Iq(stanza_type = "get", \
-                                         from_jid = JID("user1@test.com"), \
-                                         to_jid = JID("jcl.test.com/example2")))
+        self.comp.handle_get_register(Iq(stanza_type="get",
+                                         from_jid=JID("user1@test.com"),
+                                         to_jid=JID("jcl.test.com/example2")))
         self.assertEquals(len(self.comp.stream.sent), 1)
         iq_sent = self.comp.stream.sent[0]
         self.assertEquals(iq_sent.get_to(), "user1@test.com")
-        titles = iq_sent.xpath_eval("jir:query/jxd:x/jxd:title", \
-                                    {"jir" : "jabber:iq:register", \
+        titles = iq_sent.xpath_eval("jir:query/jxd:x/jxd:title",
+                                    {"jir" : "jabber:iq:register",
                                      "jxd" : "jabber:x:data"})
         self.assertEquals(len(titles), 1)
-        self.assertEquals(titles[0].content, \
+        self.assertEquals(titles[0].content,
                           Lang.en.register_title)
-        instructions = iq_sent.xpath_eval("jir:query/jxd:x/jxd:instructions", \
-                                          {"jir" : "jabber:iq:register", \
+        instructions = iq_sent.xpath_eval("jir:query/jxd:x/jxd:instructions",
+                                          {"jir" : "jabber:iq:register",
                                            "jxd" : "jabber:x:data"})
         self.assertEquals(len(instructions), 1)
-        self.assertEquals(instructions[0].content, \
+        self.assertEquals(instructions[0].content,
                           Lang.en.register_instructions)
-        fields = iq_sent.xpath_eval("jir:query/jxd:x/jxd:field", \
-                                    {"jir" : "jabber:iq:register", \
+        fields = iq_sent.xpath_eval("jir:query/jxd:x/jxd:field",
+                                    {"jir" : "jabber:iq:register",
                                      "jxd" : "jabber:x:data"})
         self.assertEquals(len(fields), 2)
         self.assertEquals(fields[0].prop("type"), "text-single")
@@ -1080,7 +1088,7 @@ class JCLComponent_TestCase(JCLTestCase):
         model.db_connect()
         _account = account.get_account("user1@test.com", "account1")
         self.assertNotEquals(_account, None)
-        self.assertEquals(_account.user_jid, "user1@test.com")
+        self.assertEquals(_account.user.jid, "user1@test.com")
         self.assertEquals(_account.name, "account1")
         self.assertEquals(_account.jid, "account1@jcl.test.com")
         model.db_disconnect()
@@ -1134,7 +1142,7 @@ class JCLComponent_TestCase(JCLTestCase):
         model.db_connect()
         _account = account.get_account("user1@test.com", "account1")
         self.assertNotEquals(_account, None)
-        self.assertEquals(_account.user_jid, "user1@test.com")
+        self.assertEquals(_account.user.jid, "user1@test.com")
         self.assertEquals(_account.name, "account1")
         self.assertEquals(_account.jid, "account1@jcl.test.com")
         model.db_disconnect()
@@ -1203,7 +1211,7 @@ class JCLComponent_TestCase(JCLTestCase):
         model.db_connect()
         _account = account.get_account("user1@test.com", "account1")
         self.assertNotEquals(_account, None)
-        self.assertEquals(_account.user_jid, "user1@test.com")
+        self.assertEquals(_account.user.jid, "user1@test.com")
         self.assertEquals(_account.name, "account1")
         self.assertEquals(_account.jid, "account1@jcl.test.com")
         self.assertEquals(_account.login, "mylogin")
@@ -1265,7 +1273,7 @@ class JCLComponent_TestCase(JCLTestCase):
         model.db_connect()
         _account = account.get_account("user1@test.com", "account1")
         self.assertNotEquals(_account, None)
-        self.assertEquals(_account.user_jid, "user1@test.com")
+        self.assertEquals(_account.user.jid, "user1@test.com")
         self.assertEquals(_account.name, "account1")
         self.assertEquals(_account.jid, "account1@jcl.test.com")
         self.assertEquals(_account.login, "mylogin")
@@ -1336,45 +1344,46 @@ class JCLComponent_TestCase(JCLTestCase):
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
         self.comp.account_manager.account_classes = (Example2Account, ExampleAccount)
-        existing_account = ExampleAccount(user_jid = "user1@test.com", \
-                                          name = "account1", \
-                                          jid = "account1@jcl.test.com", \
-                                          login = "mylogin", \
-                                          password = "mypassword", \
-                                          store_password = True, \
-                                          test_enum = "choice1", \
-                                          test_int = 21)
-        another_account = ExampleAccount(user_jid = "user1@test.com", \
-                                         name = "account2", \
-                                         jid = "account2@jcl.test.com", \
-                                         login = "mylogin", \
-                                         password = "mypassword", \
-                                         store_password = True, \
-                                         test_enum = "choice1", \
-                                         test_int = 21)
+        user1 = User(jid="user1@test.com")
+        existing_account = ExampleAccount(user=user1,
+                                          name="account1",
+                                          jid="account1@jcl.test.com",
+                                          login="mylogin",
+                                          password="mypassword",
+                                          store_password=True,
+                                          test_enum="choice1",
+                                          test_int=21)
+        another_account = ExampleAccount(user=user1,
+                                         name="account2",
+                                         jid="account2@jcl.test.com",
+                                         login="mylogin",
+                                         password="mypassword",
+                                         store_password=True,
+                                         test_enum="choice1",
+                                         test_int=21)
         model.db_disconnect()
         x_data = Form("submit")
-        x_data.add_field(name = "name", \
-                         value = "account1", \
-                         field_type = "text-single")
-        x_data.add_field(name = "login", \
-                         value = "mylogin2", \
-                         field_type = "text-single")
-        x_data.add_field(name = "password", \
-                         value = "mypassword2", \
-                         field_type = "text-private")
-        x_data.add_field(name = "store_password", \
-                         value = False, \
-                         field_type = "boolean")
-        x_data.add_field(name = "test_enum", \
-                         value = "choice3", \
-                         field_type = "list-single")
-        x_data.add_field(name = "test_int", \
-                         value = 43, \
-                         field_type = "text-single")
-        iq_set = Iq(stanza_type = "set", \
-                    from_jid = "user1@test.com", \
-                    to_jid = "account1@jcl.test.com")
+        x_data.add_field(name="name",
+                         value="account1",
+                         field_type="text-single")
+        x_data.add_field(name="login",
+                         value="mylogin2",
+                         field_type="text-single")
+        x_data.add_field(name="password",
+                         value="mypassword2",
+                         field_type="text-private")
+        x_data.add_field(name="store_password",
+                         value=False,
+                         field_type="boolean")
+        x_data.add_field(name="test_enum",
+                         value="choice3",
+                         field_type="list-single")
+        x_data.add_field(name="test_int",
+                         value=43,
+                         field_type="text-single")
+        iq_set = Iq(stanza_type="set",
+                    from_jid="user1@test.com",
+                    to_jid="account1@jcl.test.com")
         query = iq_set.new_query("jabber:iq:register")
         x_data.as_xml(query)
         self.comp.handle_set_register(iq_set)
@@ -1383,7 +1392,7 @@ class JCLComponent_TestCase(JCLTestCase):
         _account = account.get_account("user1@test.com", "account1")
         self.assertNotEquals(_account, None)
         self.assertEquals(_account.__class__.__name__, "ExampleAccount")
-        self.assertEquals(_account.user_jid, "user1@test.com")
+        self.assertEquals(_account.user.jid, "user1@test.com")
         self.assertEquals(_account.name, "account1")
         self.assertEquals(_account.jid, "account1@jcl.test.com")
         self.assertEquals(_account.login, "mylogin2")
@@ -1414,13 +1423,14 @@ class JCLComponent_TestCase(JCLTestCase):
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
         model.db_connect()
-        account11 = Account(user_jid="user1@test.com",
+        user1 = User(jid="user1@test.com")
+        account11 = Account(user=user1,
                             name="account1",
                             jid="account1@jcl.test.com")
-        account12 = Account(user_jid="user1@test.com",
+        account12 = Account(user=user1,
                             name="account2",
                             jid="account2@jcl.test.com")
-        account21 = Account(user_jid="user2@test.com",
+        account21 = Account(user=User(jid="user2@test.com"),
                             name="account1",
                             jid="account1@jcl.test.com")
         model.db_disconnect()
@@ -1439,7 +1449,7 @@ class JCLComponent_TestCase(JCLTestCase):
         for _account in accounts:
             i = i + 1
         self.assertEquals(i, 1)
-        self.assertEquals(_account.user_jid, "user2@test.com")
+        self.assertEquals(_account.user.jid, "user2@test.com")
         self.assertEquals(_account.name, "account1")
         self.assertEquals(_account.jid, "account1@jcl.test.com")
         model.db_disconnect()
@@ -1481,60 +1491,62 @@ class JCLComponent_TestCase(JCLTestCase):
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
         model.db_connect()
-        account11 = Account(user_jid = "user1@test.com", \
-                            name = "account11", \
-                            jid = "account11@jcl.test.com")
-        account12 = Account(user_jid = "user1@test.com", \
-                            name = "account12", \
-                            jid = "account12@jcl.test.com")
-        account2 = Account(user_jid = "user2@test.com", \
-                           name = "account2", \
-                           jid = "account2@jcl.test.com")
+        user1 = User(jid="user1@test.com")
+        account11 = Account(user=user1,
+                            name="account11",
+                            jid="account11@jcl.test.com")
+        account12 = Account(user=user1,
+                            name="account12",
+                            jid="account12@jcl.test.com")
+        account2 = Account(user=User(jid="user2@test.com"),
+                           name="account2",
+                           jid="account2@jcl.test.com")
         model.db_disconnect()
         self.comp.handle_presence_available(Presence(\
-            stanza_type = "available", \
-            from_jid = "user1@test.com",\
-            to_jid = "jcl.test.com"))
+            stanza_type="available",
+            from_jid="user1@test.com",
+            to_jid="jcl.test.com"))
         presence_sent = self.comp.stream.sent
         self.assertEqual(len(presence_sent), 3)
-        self.assertEqual(len([presence \
-                              for presence in presence_sent \
+        self.assertEqual(len([presence
+                              for presence in presence_sent
                               if presence.get_to_jid() == "user1@test.com" \
-                              and presence.get_type() is None]), \
+                              and presence.get_type() is None]),
                           3)
-        self.assertEqual(len([presence \
-                              for presence in presence_sent \
+        self.assertEqual(len([presence
+                              for presence in presence_sent
                               if presence.get_from_jid() == \
                               "jcl.test.com" \
                               and isinstance(presence, Presence) \
-                              and presence.get_type() is None]), \
+                              and presence.get_type() is None]),
                           1)
-        self.assertEqual(len([presence \
-                              for presence in presence_sent \
+        self.assertEqual(len([presence
+                              for presence in presence_sent
                               if presence.get_from_jid() == \
                               "account11@jcl.test.com" \
                               and isinstance(presence, Presence) \
-                              and presence.get_type() is None]), \
+                              and presence.get_type() is None]),
                           1)
-        self.assertEqual(len([presence \
-                              for presence in presence_sent \
+        self.assertEqual(len([presence
+                              for presence in presence_sent
                               if presence.get_from_jid() == \
                               "account12@jcl.test.com" \
                               and isinstance(presence, Presence) \
-                              and presence.get_type() is None]), \
+                              and presence.get_type() is None]),
                           1)
 
     def test_handle_presence_available_to_component_legacy_users(self):
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
         model.db_connect()
-        account11 = Account(user_jid="user1@test.com",
+        user1 = User(jid="user1@test.com")
+        account11 = Account(user=user1,
                             name="account11",
                             jid="account11@jcl.test.com")
-        account12 = Account(user_jid="user1@test.com",
+        account12 = Account(user=user1,
                             name="account12",
                             jid="account12@jcl.test.com")
-        account2 = Account(user_jid="user2@test.com",
+        account2 = Account(user=User(jid="user2@test.com"),
                            name="account2",
                            jid="account2@jcl.test.com")
         legacy_jid111 = LegacyJID(legacy_address="u111@test.com",
@@ -1618,20 +1630,21 @@ class JCLComponent_TestCase(JCLTestCase):
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
         model.db_connect()
-        account11 = Account(user_jid = "user1@test.com", \
-                            name = "account11", \
-                            jid = "account11@jcl.test.com")
-        account12 = Account(user_jid = "user1@test.com", \
-                            name = "account12", \
-                            jid = "account12@jcl.test.com")
-        account2 = Account(user_jid = "user2@test.com", \
-                           name = "account2", \
-                           jid = "account2@jcl.test.com")
+        user1 = User(jid="user1@test.com")
+        account11 = Account(user=user1,
+                            name="account11",
+                            jid="account11@jcl.test.com")
+        account12 = Account(user=user1,
+                            name="account12",
+                            jid="account12@jcl.test.com")
+        account2 = Account(user=User(jid="user2@test.com"),
+                           name="account2",
+                           jid="account2@jcl.test.com")
         model.db_disconnect()
         self.comp.handle_presence_available(Presence(\
-            stanza_type = "available", \
-            from_jid = "unknown@test.com",\
-            to_jid = "jcl.test.com"))
+            stanza_type="available",
+            from_jid="unknown@test.com",
+            to_jid="jcl.test.com"))
         presence_sent = self.comp.stream.sent
         self.assertEqual(len(presence_sent), 0)
 
@@ -1639,20 +1652,21 @@ class JCLComponent_TestCase(JCLTestCase):
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
         model.db_connect()
-        account11 = Account(user_jid = "user1@test.com", \
-                            name = "account11", \
-                            jid = "account11@jcl.test.com")
-        account12 = Account(user_jid = "user1@test.com", \
-                            name = "account12", \
-                            jid = "account12@jcl.test.com")
-        account2 = Account(user_jid = "user2@test.com", \
-                           name = "account2", \
-                           jid = "account2@jcl.test.com")
+        user1 = User(jid="user1@test.com")
+        account11 = Account(user=user1,
+                            name="account11",
+                            jid="account11@jcl.test.com")
+        account12 = Account(user=user1,
+                            name="account12",
+                            jid="account12@jcl.test.com")
+        account2 = Account(user=User(jid="user2@test.com"),
+                           name="account2",
+                           jid="account2@jcl.test.com")
         model.db_disconnect()
         self.comp.handle_presence_available(Presence(\
-            stanza_type = "available", \
-            from_jid = "user1@test.com",\
-            to_jid = "account11@jcl.test.com"))
+            stanza_type="available",
+            from_jid="user1@test.com",
+            to_jid="account11@jcl.test.com"))
         presence_sent = self.comp.stream.sent
         self.assertEqual(len(presence_sent), 1)
         self.assertEqual(presence_sent[0].get_to(), "user1@test.com")
@@ -1665,13 +1679,14 @@ class JCLComponent_TestCase(JCLTestCase):
         self.comp.stream_class = MockStream
         self.comp.presence_available_handlers += [(DefaultPresenceHandler(self.comp),)]
         model.db_connect()
-        account11 = Account(user_jid="user1@test.com",
+        user1 = User(jid="user1@test.com")
+        account11 = Account(user=user1,
                             name="account11",
                             jid="account11@jcl.test.com")
-        account12 = Account(user_jid="user1@test.com",
+        account12 = Account(user=user1,
                             name="account12",
                             jid="account12@jcl.test.com")
-        account2 = Account(user_jid="user2@test.com",
+        account2 = Account(user=User(jid="user2@test.com"),
                            name="account2",
                            jid="account2@jcl.test.com")
         model.db_disconnect()
@@ -1691,20 +1706,21 @@ class JCLComponent_TestCase(JCLTestCase):
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
         model.db_connect()
-        account11 = Account(user_jid = "user1@test.com", \
-                            name = "account11", \
-                            jid = "account11@jcl.test.com")
-        account12 = Account(user_jid = "user1@test.com", \
-                            name = "account12", \
-                            jid = "account12@jcl.test.com")
-        account2 = Account(user_jid = "user2@test.com", \
-                           name = "account2", \
-                           jid = "account2@jcl.test.com")
+        user1 = User(jid="user1@test.com")
+        account11 = Account(user=user1,
+                            name="account11",
+                            jid="account11@jcl.test.com")
+        account12 = Account(user=user1,
+                            name="account12",
+                            jid="account12@jcl.test.com")
+        account2 = Account(user=User(jid="user2@test.com"),
+                           name="account2",
+                           jid="account2@jcl.test.com")
         model.db_disconnect()
         self.comp.handle_presence_available(Presence(\
-            stanza_type = "available", \
-            from_jid = "unknown@test.com",\
-            to_jid = "account11@jcl.test.com"))
+            stanza_type="available",
+            from_jid="unknown@test.com",
+            to_jid="account11@jcl.test.com"))
         presence_sent = self.comp.stream.sent
         self.assertEqual(len(presence_sent), 0)
 
@@ -1712,20 +1728,21 @@ class JCLComponent_TestCase(JCLTestCase):
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
         model.db_connect()
-        account11 = Account(user_jid = "user1@test.com", \
-                            name = "account11", \
-                            jid = "account11@jcl.test.com")
-        account12 = Account(user_jid = "user1@test.com", \
-                            name = "account12", \
-                            jid = "account12@jcl.test.com")
-        account2 = Account(user_jid = "user2@test.com", \
-                           name = "account2", \
-                           jid = "account2@jcl.test.com")
+        user1 = User(jid="user1@test.com")
+        account11 = Account(user=user1,
+                            name="account11",
+                            jid="account11@jcl.test.com")
+        account12 = Account(user=user1,
+                            name="account12",
+                            jid="account12@jcl.test.com")
+        account2 = Account(user=User(jid="user2@test.com"),
+                           name="account2",
+                           jid="account2@jcl.test.com")
         model.db_disconnect()
         self.comp.handle_presence_available(Presence(\
-            stanza_type = "available", \
-            from_jid = "user1@test.com",\
-            to_jid = "unknown@jcl.test.com"))
+            stanza_type="available",
+            from_jid="user1@test.com",
+            to_jid="unknown@jcl.test.com"))
         presence_sent = self.comp.stream.sent
         self.assertEqual(len(presence_sent), 0)
 
@@ -1733,21 +1750,22 @@ class JCLComponent_TestCase(JCLTestCase):
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
         model.db_connect()
-        account11 = Account(user_jid = "user1@test.com", \
-                            name = "account11", \
-                            jid = "account11@jcl.test.com")
+        user1 = User(jid="user1@test.com")
+        account11 = Account(user=user1,
+                            name="account11",
+                            jid="account11@jcl.test.com")
         account11.store_password = False
-        account12 = Account(user_jid = "user1@test.com", \
-                            name = "account12", \
-                            jid = "account12@jcl.test.com")
-        account2 = Account(user_jid = "user2@test.com", \
-                           name = "account2", \
-                           jid = "account2@jcl.test.com")
+        account12 = Account(user=user1,
+                            name="account12",
+                            jid="account12@jcl.test.com")
+        account2 = Account(user=User(jid="user2@test.com"),
+                           name="account2",
+                           jid="account2@jcl.test.com")
         model.db_disconnect()
         self.comp.handle_presence_available(Presence(\
-            stanza_type = "available", \
-            from_jid = "user1@test.com",\
-            to_jid = "account11@jcl.test.com"))
+            stanza_type="available",
+            from_jid="user1@test.com",
+            to_jid="account11@jcl.test.com"))
         messages_sent = self.comp.stream.sent
         self.assertEqual(len(messages_sent), 1)
         presence = messages_sent[0]
@@ -1761,21 +1779,22 @@ class JCLComponent_TestCase(JCLTestCase):
         model.db_connect()
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
-        account11 = ExampleAccount(user_jid = "user1@test.com", \
-                                   name = "account11", \
-                                   jid = "account11@jcl.test.com")
+        user1 = User(jid="user1@test.com")
+        account11 = ExampleAccount(user=user1,
+                                   name="account11",
+                                   jid="account11@jcl.test.com")
         account11.store_password = False
-        account12 = ExampleAccount(user_jid = "user1@test.com", \
-                                   name = "account12", \
-                                   jid = "account12@jcl.test.com")
-        account2 = ExampleAccount(user_jid = "user2@test.com", \
-                                  name = "account2", \
-                                  jid = "account2@jcl.test.com")
+        account12 = ExampleAccount(user=user1,
+                                   name="account12",
+                                   jid="account12@jcl.test.com")
+        account2 = ExampleAccount(user=User(jid="user2@test.com"),
+                                  name="account2",
+                                  jid="account2@jcl.test.com")
         model.db_disconnect()
         self.comp.handle_presence_available(Presence(\
-            stanza_type = "available", \
-            from_jid = "user1@test.com",\
-            to_jid = "account11@jcl.test.com"))
+            stanza_type="available",
+            from_jid="user1@test.com",
+            to_jid="account11@jcl.test.com"))
         messages_sent = self.comp.stream.sent
         self.assertEqual(len(messages_sent), 2)
         password_message = None
@@ -1805,63 +1824,65 @@ class JCLComponent_TestCase(JCLTestCase):
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
         model.db_connect()
-        account11 = Account(user_jid = "user1@test.com", \
-                            name = "account11", \
-                            jid = "account11@jcl.test.com")
-        account12 = Account(user_jid = "user1@test.com", \
-                            name = "account12", \
-                            jid = "account12@jcl.test.com")
-        account2 = Account(user_jid = "user2@test.com", \
-                           name = "account2", \
-                           jid = "account2@jcl.test.com")
+        user1 = User(jid="user1@test.com")
+        account11 = Account(user=user1,
+                            name="account11",
+                            jid="account11@jcl.test.com")
+        account12 = Account(user=user1,
+                            name="account12",
+                            jid="account12@jcl.test.com")
+        account2 = Account(user=User(jid="user2@test.com"),
+                           name="account2",
+                           jid="account2@jcl.test.com")
         model.db_disconnect()
         self.comp.handle_presence_unavailable(Presence(\
-            stanza_type = "unavailable", \
-            from_jid = "user1@test.com",\
-            to_jid = "jcl.test.com"))
+            stanza_type="unavailable",
+            from_jid="user1@test.com",
+            to_jid="jcl.test.com"))
         presence_sent = self.comp.stream.sent
         self.assertEqual(len(presence_sent), 3)
-        self.assertEqual(len([presence \
-                              for presence in presence_sent \
+        self.assertEqual(len([presence
+                              for presence in presence_sent
                               if presence.get_to_jid() == "user1@test.com" \
-                              and presence.get_type() == "unavailable"]), \
+                              and presence.get_type() == "unavailable"]),
                           3)
         self.assertEqual(\
-            len([presence \
-                 for presence in presence_sent \
+            len([presence
+                 for presence in presence_sent
                  if presence.get_from_jid() == \
                  "jcl.test.com" \
                  and presence.xpath_eval("@type")[0].get_content() \
-                 == "unavailable"]), \
+                 == "unavailable"]),
             1)
         self.assertEqual(\
-            len([presence \
-                 for presence in presence_sent \
+            len([presence
+                 for presence in presence_sent
                  if presence.get_from_jid() == \
                  "account11@jcl.test.com" \
                  and presence.xpath_eval("@type")[0].get_content() \
-                 == "unavailable"]), \
+                 == "unavailable"]),
             1)
         self.assertEqual(\
-            len([presence \
-                 for presence in presence_sent \
+            len([presence
+                 for presence in presence_sent
                  if presence.get_from_jid() == \
                  "account12@jcl.test.com" \
                  and presence.xpath_eval("@type")[0].get_content() \
-                 == "unavailable"]), \
+                 == "unavailable"]),
             1)
 
     def test_handle_presence_unavailable_to_component_legacy_users(self):
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
         model.db_connect()
-        account11 = Account(user_jid="user1@test.com",
+        user1 = User(jid="user1@test.com")
+        account11 = Account(user=user1,
                             name="account11",
                             jid="account11@jcl.test.com")
-        account12 = Account(user_jid="user1@test.com",
+        account12 = Account(user=user1,
                             name="account12",
                             jid="account12@jcl.test.com")
-        account2 = Account(user_jid="user2@test.com",
+        account2 = Account(user=User(jid="user2@test.com"),
                            name="account2",
                            jid="account2@jcl.test.com")
         legacy_jid111 = LegacyJID(legacy_address="u111@test.com",
@@ -1945,20 +1966,21 @@ class JCLComponent_TestCase(JCLTestCase):
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
         model.db_connect()
-        account11 = Account(user_jid = "user1@test.com", \
-                            name = "account11", \
-                            jid = "account11@jcl.test.com")
-        account12 = Account(user_jid = "user1@test.com", \
-                            name = "account12", \
-                            jid = "account12@jcl.test.com")
-        account2 = Account(user_jid = "user2@test.com", \
-                           name = "account2", \
-                           jid = "account2@jcl.test.com")
+        user1 = User(jid="user1@test.com")
+        account11 = Account(user=user1,
+                            name="account11",
+                            jid="account11@jcl.test.com")
+        account12 = Account(user=user1,
+                            name="account12",
+                            jid="account12@jcl.test.com")
+        account2 = Account(user=User(jid="user2@test.com"),
+                           name="account2",
+                           jid="account2@jcl.test.com")
         model.db_disconnect()
         self.comp.handle_presence_unavailable(Presence(\
-            stanza_type = "unavailable", \
-            from_jid = "unknown@test.com",\
-            to_jid = "jcl.test.com"))
+            stanza_type="unavailable",
+            from_jid="unknown@test.com",
+            to_jid="jcl.test.com"))
         presence_sent = self.comp.stream.sent
         self.assertEqual(len(presence_sent), 0)
 
@@ -1966,13 +1988,14 @@ class JCLComponent_TestCase(JCLTestCase):
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
         model.db_connect()
-        account11 = Account(user_jid="user1@test.com",
+        user1 = User(jid="user1@test.com")
+        account11 = Account(user=user1,
                             name="account11",
                             jid="account11@jcl.test.com")
-        account12 = Account(user_jid="user1@test.com",
+        account12 = Account(user=user1,
                             name="account12",
                             jid="account12@jcl.test.com")
-        account2 = Account(user_jid="user2@test.com",
+        account2 = Account(user=User(jid="user2@test.com"),
                            name="account2",
                            jid="account2@jcl.test.com")
         model.db_disconnect()
@@ -1993,46 +2016,48 @@ class JCLComponent_TestCase(JCLTestCase):
         self.comp.stream_class = MockStream
         self.comp.presence_unavailable_handlers += [(DefaultPresenceHandler(self.comp),)]
         model.db_connect()
-        account11 = Account(user_jid = "user1@test.com", \
-                            name = "account11", \
-                            jid = "account11@jcl.test.com")
-        account12 = Account(user_jid = "user1@test.com", \
-                            name = "account12", \
-                            jid = "account12@jcl.test.com")
-        account2 = Account(user_jid = "user2@test.com", \
-                           name = "account2", \
-                           jid = "account2@jcl.test.com")
+        user1 = User(jid="user1@test.com")
+        account11 = Account(user=user1,
+                            name="account11",
+                            jid="account11@jcl.test.com")
+        account12 = Account(user=user1,
+                            name="account12",
+                            jid="account12@jcl.test.com")
+        account2 = Account(user=User(jid="user2@test.com"),
+                           name="account2",
+                           jid="account2@jcl.test.com")
         model.db_disconnect()
         self.comp.handle_presence_unavailable(Presence(\
-            stanza_type = "unavailable", \
-            from_jid = "user1@test.com",\
-            to_jid = "user1%test.com@jcl.test.com"))
+            stanza_type="unavailable",
+            from_jid="user1@test.com",
+            to_jid="user1%test.com@jcl.test.com"))
         presence_sent = self.comp.stream.sent
         self.assertEqual(len(presence_sent), 1)
         self.assertEqual(presence_sent[0].get_to(), "user1@test.com")
         self.assertEqual(presence_sent[0].get_from(), "user1%test.com@jcl.test.com")
         self.assertEqual(\
-            presence_sent[0].xpath_eval("@type")[0].get_content(), \
+            presence_sent[0].xpath_eval("@type")[0].get_content(),
             "unavailable")
 
     def test_handle_presence_unavailable_to_account_unknown_user(self):
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
         model.db_connect()
-        account11 = Account(user_jid = "user1@test.com", \
-                            name = "account11", \
-                            jid = "account11@jcl.test.com")
-        account12 = Account(user_jid = "user1@test.com", \
-                            name = "account12", \
-                            jid = "account12@jcl.test.com")
-        account2 = Account(user_jid = "user2@test.com", \
-                           name = "account2", \
-                           jid = "account2@jcl.test.com")
+        user1 = User(jid="user1@test.com")
+        account11 = Account(user=user1,
+                            name="account11",
+                            jid="account11@jcl.test.com")
+        account12 = Account(user=user1,
+                            name="account12",
+                            jid="account12@jcl.test.com")
+        account2 = Account(user=User(jid="user2@test.com"),
+                           name="account2",
+                           jid="account2@jcl.test.com")
         model.db_disconnect()
         self.comp.handle_presence_unavailable(Presence(\
-            stanza_type = "unavailable", \
-            from_jid = "unknown@test.com",\
-            to_jid = "account11@jcl.test.com"))
+            stanza_type="unavailable",
+            from_jid="unknown@test.com",
+            to_jid="account11@jcl.test.com"))
         presence_sent = self.comp.stream.sent
         self.assertEqual(len(presence_sent), 0)
 
@@ -2040,20 +2065,21 @@ class JCLComponent_TestCase(JCLTestCase):
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
         model.db_connect()
-        account11 = Account(user_jid = "user1@test.com", \
-                            name = "account11", \
-                            jid = "account11@jcl.test.com")
-        account12 = Account(user_jid = "user1@test.com", \
-                            name = "account12", \
-                            jid = "account12@jcl.test.com")
-        account2 = Account(user_jid = "user2@test.com", \
-                           name = "account2", \
-                           jid = "account2@jcl.test.com")
+        user1 = User(jid="user1@test.com")
+        account11 = Account(user=user1,
+                            name="account11",
+                            jid="account11@jcl.test.com")
+        account12 = Account(user=user1,
+                            name="account12",
+                            jid="account12@jcl.test.com")
+        account2 = Account(user=User(jid="user2@test.com"),
+                           name="account2",
+                           jid="account2@jcl.test.com")
         model.db_disconnect()
         self.comp.handle_presence_unavailable(Presence(\
-            stanza_type = "unavailable", \
-            from_jid = "user1@test.com",\
-            to_jid = "unknown@jcl.test.com"))
+            stanza_type="unavailable",
+            from_jid="user1@test.com",
+            to_jid="unknown@jcl.test.com"))
         presence_sent = self.comp.stream.sent
         self.assertEqual(len(presence_sent), 0)
 
@@ -2061,39 +2087,41 @@ class JCLComponent_TestCase(JCLTestCase):
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
         model.db_connect()
-        account11 = Account(user_jid = "user1@test.com", \
-                            name = "account11", \
-                            jid = "account11@jcl.test.com")
-        account12 = Account(user_jid = "user1@test.com", \
-                            name = "account12", \
-                            jid = "account12@jcl.test.com")
-        account2 = Account(user_jid = "user2@test.com", \
-                           name = "account2", \
-                           jid = "account2@jcl.test.com")
+        user1 = User(jid="user1@test.com")
+        account11 = Account(user=user1,
+                            name="account11",
+                            jid="account11@jcl.test.com")
+        account12 = Account(user=user1,
+                            name="account12",
+                            jid="account12@jcl.test.com")
+        account2 = Account(user=User(jid="user2@test.com"),
+                           name="account2",
+                           jid="account2@jcl.test.com")
         model.db_disconnect()
         self.comp.handle_presence_subscribe(Presence(\
-            stanza_type = "subscribe", \
-            from_jid = "user1@test.com",\
-            to_jid = "jcl.test.com"))
+            stanza_type="subscribe",
+            from_jid="user1@test.com",
+            to_jid="jcl.test.com"))
         presence_sent = self.comp.stream.sent
         self.assertEqual(len(presence_sent), 1)
         self.assertEqual(presence_sent[0].get_to(), "user1@test.com")
         self.assertEqual(presence_sent[0].get_from(), "jcl.test.com")
         self.assertEqual(\
-            presence_sent[0].xpath_eval("@type")[0].get_content(), \
+            presence_sent[0].xpath_eval("@type")[0].get_content(),
             "subscribed")
 
     def test_handle_presence_subscribe_to_component_unknown_user(self):
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
         model.db_connect()
-        account11 = Account(user_jid="user1@test.com",
+        user1 = User(jid="user1@test.com")
+        account11 = Account(user=user1,
                             name="account11",
                             jid="account11@jcl.test.com")
-        account12 = Account(user_jid="user1@test.com",
+        account12 = Account(user=user1,
                             name="account12",
                             jid="account12@jcl.test.com")
-        account2 = Account(user_jid="user2@test.com",
+        account2 = Account(user=User(jid="user2@test.com"),
                            name="account2",
                            jid="account2@jcl.test.com")
         model.db_disconnect()
@@ -2108,39 +2136,41 @@ class JCLComponent_TestCase(JCLTestCase):
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
         model.db_connect()
-        account11 = Account(user_jid = "user1@test.com", \
-                            name = "account11", \
-                            jid = "account11@jcl.test.com")
-        account12 = Account(user_jid = "user1@test.com", \
-                            name = "account12", \
-                            jid = "account12@jcl.test.com")
-        account2 = Account(user_jid = "user2@test.com", \
-                           name = "account2", \
-                           jid = "account2@jcl.test.com")
+        user1 = User(jid="user1@test.com")
+        account11 = Account(user=user1,
+                            name="account11",
+                            jid="account11@jcl.test.com")
+        account12 = Account(user=user1,
+                            name="account12",
+                            jid="account12@jcl.test.com")
+        account2 = Account(user=User(jid="user2@test.com"),
+                           name="account2",
+                           jid="account2@jcl.test.com")
         model.db_disconnect()
         self.comp.handle_presence_subscribe(Presence(\
-            stanza_type = "subscribe", \
-            from_jid = "user1@test.com",\
-            to_jid = "account11@jcl.test.com"))
+            stanza_type="subscribe",
+            from_jid="user1@test.com",
+            to_jid="account11@jcl.test.com"))
         presence_sent = self.comp.stream.sent
         self.assertEqual(len(presence_sent), 1)
         self.assertEqual(presence_sent[0].get_to(), "user1@test.com")
         self.assertEqual(presence_sent[0].get_from(), "account11@jcl.test.com")
         self.assertEqual(\
-            presence_sent[0].xpath_eval("@type")[0].get_content(), \
+            presence_sent[0].xpath_eval("@type")[0].get_content(),
             "subscribed")
 
     def test_handle_presence_subscribe_to_account_unknown_user(self):
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
         model.db_connect()
-        account11 = Account(user_jid="user1@test.com",
+        user1 = User(jid="user1@test.com")
+        account11 = Account(user=user1,
                             name="account11",
                             jid="account11@jcl.test.com")
-        account12 = Account(user_jid="user1@test.com",
+        account12 = Account(user=user1,
                             name="account12",
                             jid="account12@jcl.test.com")
-        account2 = Account(user_jid="user2@test.com",
+        account2 = Account(user=User(jid="user2@test.com"),
                            name="account2",
                            jid="account2@jcl.test.com")
         model.db_disconnect()
@@ -2155,20 +2185,21 @@ class JCLComponent_TestCase(JCLTestCase):
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
         model.db_connect()
-        account11 = Account(user_jid = "user1@test.com", \
-                            name = "account11", \
-                            jid = "account11@jcl.test.com")
-        account12 = Account(user_jid = "user1@test.com", \
-                            name = "account12", \
-                            jid = "account12@jcl.test.com")
-        account2 = Account(user_jid = "user2@test.com", \
-                           name = "account2", \
-                           jid = "account2@jcl.test.com")
+        user1 = User(jid="user1@test.com")
+        account11 = Account(user=user1,
+                            name="account11",
+                            jid="account11@jcl.test.com")
+        account12 = Account(user=user1,
+                            name="account12",
+                            jid="account12@jcl.test.com")
+        account2 = Account(user=User(jid="user2@test.com"),
+                           name="account2",
+                           jid="account2@jcl.test.com")
         model.db_disconnect()
         self.comp.handle_presence_subscribe(Presence(\
-            stanza_type = "subscribe", \
-            from_jid = "user1@test.com",\
-            to_jid = "unknown@jcl.test.com"))
+            stanza_type="subscribe",
+            from_jid="user1@test.com",
+            to_jid="unknown@jcl.test.com"))
         presence_sent = self.comp.stream.sent
         self.assertEqual(len(presence_sent), 0)
 
@@ -2177,20 +2208,21 @@ class JCLComponent_TestCase(JCLTestCase):
         self.comp.stream_class = MockStream
         self.comp.presence_subscribe_handlers += [(DefaultSubscribeHandler(self.comp),)]
         model.db_connect()
-        account11 = Account(user_jid = "user1@test.com", \
-                            name = "account11", \
-                            jid = "account11@jcl.test.com")
-        account12 = Account(user_jid = "user1@test.com", \
-                            name = "account12", \
-                            jid = "account12@jcl.test.com")
-        account2 = Account(user_jid = "user2@test.com", \
-                           name = "account2", \
-                           jid = "account2@jcl.test.com")
+        user1 = User(jid="user1@test.com")
+        account11 = Account(user=user1,
+                            name="account11",
+                            jid="account11@jcl.test.com")
+        account12 = Account(user=user1,
+                            name="account12",
+                            jid="account12@jcl.test.com")
+        account2 = Account(user=User(jid="user2@test.com"),
+                           name="account2",
+                           jid="account2@jcl.test.com")
         model.db_disconnect()
         result = self.comp.handle_presence_subscribe(Presence(\
-            stanza_type = "subscribe", \
-            from_jid = "user1@test.com",\
-            to_jid = "user1%test.com@jcl.test.com"))
+            stanza_type="subscribe",
+            from_jid="user1@test.com",
+            to_jid="user1%test.com@jcl.test.com"))
         sent = self.comp.stream.sent
         self.assertEqual(len(sent), 2)
         self.assertTrue(type(sent[0]), Presence)
@@ -2208,13 +2240,14 @@ class JCLComponent_TestCase(JCLTestCase):
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
         model.db_connect()
-        account11 = Account(user_jid="user1@test.com",
+        user1 = User(jid="user1@test.com")
+        account11 = Account(user=user1,
                             name="account11",
                             jid="account11@jcl.test.com")
-        account12 = Account(user_jid="user1@test.com",
+        account12 = Account(user=user1,
                             name="account12",
                             jid="account12@jcl.test.com")
-        account2 = Account(user_jid="user2@test.com",
+        account2 = Account(user=User(jid="user2@test.com"),
                            name="account2",
                            jid="account2@jcl.test.com")
         model.db_disconnect()
@@ -2248,13 +2281,14 @@ class JCLComponent_TestCase(JCLTestCase):
         self.comp.stream_class = MockStream
         self.comp.presence_unsubscribe_handlers += [(DefaultUnsubscribeHandler(self.comp),)]
         model.db_connect()
-        account11 = Account(user_jid="user1@test.com",
+        user1 = User(jid="user1@test.com")
+        account11 = Account(user=user1,
                             name="account11",
                             jid="account11@jcl.test.com")
-        account12 = Account(user_jid="user1@test.com",
+        account12 = Account(user=user1,
                             name="account12",
                             jid="account12@jcl.test.com")
-        account2 = Account(user_jid="user2@test.com",
+        account2 = Account(user=User(jid="user2@test.com"),
                            name="account2",
                            jid="account2@jcl.test.com")
         model.db_disconnect()
@@ -2279,13 +2313,14 @@ class JCLComponent_TestCase(JCLTestCase):
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
         model.db_connect()
-        account11 = Account(user_jid="user1@test.com",
+        user1 = User(jid="user1@test.com")
+        account11 = Account(user=user1,
                             name="account11",
                             jid="account11@jcl.test.com")
-        account12 = Account(user_jid="user1@test.com",
+        account12 = Account(user=user1,
                             name="account12",
                             jid="account12@jcl.test.com")
-        account2 = Account(user_jid="user2@test.com",
+        account2 = Account(user=User(jid="user2@test.com"),
                            name="account2",
                            jid="account2@jcl.test.com")
         model.db_disconnect()
@@ -2304,13 +2339,14 @@ class JCLComponent_TestCase(JCLTestCase):
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
         model.db_connect()
-        account11 = Account(user_jid="user1@test.com",
+        user1 = User(jid="user1@test.com")
+        account11 = Account(user=user1,
                             name="account11",
                             jid="account11@jcl.test.com")
-        account12 = Account(user_jid="user1@test.com",
+        account12 = Account(user=user1,
                             name="account12",
                             jid="account12@jcl.test.com")
-        account2 = Account(user_jid ="user2@test.com",
+        account2 = Account(user=User(jid ="user2@test.com"),
                            name="account2",
                            jid="account2@jcl.test.com")
         model.db_disconnect()
@@ -2360,22 +2396,23 @@ class JCLComponent_TestCase(JCLTestCase):
         self.comp.stream_class = MockStream
         self.comp.authenticated()
         model.db_connect()
-        account11 = Account(user_jid = "user1@test.com", \
-                            name = "account11", \
-                            jid = "account11@jcl.test.com")
+        user1 = User(jid="user1@test.com")
+        account11 = Account(user=user1,
+                            name="account11",
+                            jid="account11@jcl.test.com")
         account11.waiting_password_reply = True
-        account12 = Account(user_jid = "user1@test.com", \
-                            name = "account12", \
-                            jid = "account12@jcl.test.com")
-        account2 = Account(user_jid = "user2@test.com", \
-                           name = "account2", \
-                           jid = "account2@jcl.test.com")
+        account12 = Account(user=user1,
+                            name="account12",
+                            jid="account12@jcl.test.com")
+        account2 = Account(user=User(jid="user2@test.com"),
+                           name="account2",
+                           jid="account2@jcl.test.com")
         model.db_disconnect()
         self.comp.handle_message(Message(\
-            from_jid = "user1@test.com", \
-            to_jid = "account11@jcl.test.com", \
-            subject = "[PASSWORD]", \
-            body = "secret"))
+            from_jid="user1@test.com",
+            to_jid="account11@jcl.test.com",
+            subject="[PASSWORD]",
+            body="secret"))
         messages_sent = self.comp.stream.sent
         self.assertEqual(len(messages_sent), 0)
 
@@ -2384,22 +2421,23 @@ class JCLComponent_TestCase(JCLTestCase):
         self.comp.stream_class = MockStream
         self.comp.authenticated()
         model.db_connect()
-        account11 = ExampleAccount(user_jid = "user1@test.com", \
-                                   name = "account11", \
-                                   jid = "account11@jcl.test.com")
+        user1 = User(jid="user1@test.com")
+        account11 = ExampleAccount(user=user1,
+                                   name="account11",
+                                   jid="account11@jcl.test.com")
         account11.waiting_password_reply = True
-        account12 = ExampleAccount(user_jid = "user1@test.com", \
-                                   name = "account12", \
-                                   jid = "account12@jcl.test.com")
-        account2 = ExampleAccount(user_jid = "user2@test.com", \
-                                  name = "account2", \
-                                  jid = "account2@jcl.test.com")
+        account12 = ExampleAccount(user=user1,
+                                   name="account12",
+                                   jid="account12@jcl.test.com")
+        account2 = ExampleAccount(user=User(jid="user2@test.com"),
+                                  name="account2",
+                                  jid="account2@jcl.test.com")
         model.db_disconnect()
         self.comp.handle_message(Message(\
-            from_jid = "user1@test.com", \
-            to_jid = "account11@jcl.test.com", \
-            subject = "[PASSWORD]", \
-            body = "secret"))
+            from_jid="user1@test.com",
+            to_jid="account11@jcl.test.com",
+            subject="[PASSWORD]",
+            body="secret"))
         messages_sent = self.comp.stream.sent
         self.assertEqual(len(messages_sent), 1)
         self.assertEqual(messages_sent[0].get_to(), "user1@test.com")
@@ -2418,14 +2456,14 @@ class JCLComponent_TestCase(JCLTestCase):
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
         model.db_connect()
-        _account = Account(user_jid = "user1@test.com", \
-                           name = "account11", \
-                           jid = "account11@jcl.test.com")
+        _account = Account(user=User(jid="user1@test.com"),
+                           name="account11",
+                           jid="account11@jcl.test.com")
         exception = Exception("test exception")
         self.comp.send_error(_account, exception)
         self.assertEqual(len(self.comp.stream.sent), 1)
         error_sent = self.comp.stream.sent[0]
-        self.assertEqual(error_sent.get_to(), _account.user_jid)
+        self.assertEqual(error_sent.get_to(), _account.user.jid)
         self.assertEqual(error_sent.get_from(), _account.jid)
         self.assertEqual(error_sent.get_type(), "error")
         self.assertEqual(error_sent.get_subject(), _account.default_lang_class.error_subject)
@@ -2437,9 +2475,9 @@ class JCLComponent_TestCase(JCLTestCase):
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
         model.db_connect()
-        _account = Account(user_jid = "user1@test.com", \
-                           name = "account11", \
-                           jid = "account11@jcl.test.com")
+        _account = Account(user=User(jid="user1@test.com"),
+                           name="account11",
+                           jid="account11@jcl.test.com")
         _account.in_error = True
         exception = Exception("test exception")
         self.comp.send_error(_account, exception)
@@ -2469,13 +2507,14 @@ class JCLComponent_TestCase(JCLTestCase):
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
         model.db_connect()
-        account11 = ExampleAccount(user_jid="user1@test.com",
+        user1 = User(jid="user1@test.com")
+        account11 = ExampleAccount(user=user1,
                                    name="account11",
                                    jid="account11@jcl.test.com")
-        account12 = Example2Account(user_jid="user1@test.com",
+        account12 = Example2Account(user=user1,
                                     name="account12",
                                     jid="account12@jcl.test.com")
-        account2 = ExampleAccount(user_jid="user2@test.com",
+        account2 = ExampleAccount(user=User(jid="user2@test.com"),
                                   name="account2",
                                   jid="account2@jcl.test.com")
         model.db_disconnect()
@@ -2502,14 +2541,15 @@ class JCLComponent_TestCase(JCLTestCase):
 class Handler_TestCase(JCLTestCase):
     def setUp(self):
         self.handler = Handler(None)
-        JCLTestCase.setUp(self, tables=[Account])
+        JCLTestCase.setUp(self, tables=[Account, User])
 
     def test_filter(self):
         model.db_connect()
-        account11 = Account(user_jid="user1@test.com",
+        user1 = User(jid="user1@test.com")
+        account11 = Account(user=user1,
                             name="account11",
                             jid="account11@jcl.test.com")
-        account12 = Account(user_jid="user1@test.com",
+        account12 = Account(user=user1,
                             name="account12",
                             jid="account12@jcl.test.com")
         accounts = self.handler.filter(None, None)
@@ -2522,12 +2562,58 @@ class Handler_TestCase(JCLTestCase):
     def test_handle(self):
         self.assertEquals(self.handler.handle(None, None, None), [])
 
+class AccountManager_TestCase(JCLTestCase):
+    def setUp(self):
+        JCLTestCase.setUp(self, tables=[User, Account, LegacyJID])
+        self.comp = JCLComponent("jcl.test.com",
+                                 "password",
+                                 "localhost",
+                                 "5347",
+                                 None)
+        self.account_manager = AccountManager(self.comp)
+
+    def test_send_presence_all(self):
+        user1 = User(jid="test1@test.com")
+        account11 = Account(user=user1,
+                            name="account11",
+                            jid="account11@jcl.test.com")
+        account12 = Account(user=user1,
+                            name="account12",
+                            jid="account12@jcl.test.com")
+        user2 = User(jid="test2@test.com")
+        account21 = Account(user=user2,
+                            name="account21",
+                            jid="account21@jcl.test.com")
+        account22 = Account(user=user2,
+                            name="account22",
+                            jid="account22@jcl.test.com")
+        result = self.account_manager.send_presence_all("unavailable")
+        self.assertEquals(len(result), 6)
+        self.assertEquals(result[0].get_from(), "jcl.test.com")
+        self.assertEquals(result[0].get_to(), "test1@test.com")
+        self.assertEquals(result[0].get_type(), "unavailable")
+        self.assertEquals(result[1].get_from(), "jcl.test.com")
+        self.assertEquals(result[1].get_to(), "test2@test.com")
+        self.assertEquals(result[1].get_type(), "unavailable")
+        self.assertEquals(result[2].get_from(), "account11@jcl.test.com")
+        self.assertEquals(result[2].get_to(), "test1@test.com")
+        self.assertEquals(result[2].get_type(), "unavailable")
+        self.assertEquals(result[3].get_from(), "account12@jcl.test.com")
+        self.assertEquals(result[3].get_to(), "test1@test.com")
+        self.assertEquals(result[3].get_type(), "unavailable")
+        self.assertEquals(result[4].get_from(), "account21@jcl.test.com")
+        self.assertEquals(result[4].get_to(), "test2@test.com")
+        self.assertEquals(result[4].get_type(), "unavailable")
+        self.assertEquals(result[5].get_from(), "account22@jcl.test.com")
+        self.assertEquals(result[5].get_to(), "test2@test.com")
+        self.assertEquals(result[5].get_type(), "unavailable")
 
 def suite():
-    suite = unittest.TestSuite()
-    suite.addTest(unittest.makeSuite(JCLComponent_TestCase, 'test'))
-    suite.addTest(unittest.makeSuite(Handler_TestCase, 'test'))
-    return suite
+    test_suite = unittest.TestSuite()
+    test_suite.addTest(unittest.makeSuite(JCLComponent_TestCase, 'test'))
+    test_suite.addTest(unittest.makeSuite(Handler_TestCase, 'test'))
+    test_suite.addTest(unittest.makeSuite(AccountManager_TestCase, 'test'))
+    return test_suite
 
 if __name__ == '__main__':
     unittest.main(defaultTest='suite')

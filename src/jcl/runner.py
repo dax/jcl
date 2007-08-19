@@ -28,8 +28,9 @@ from getopt import gnu_getopt
 
 from sqlobject import *
 
+from jcl.lang import Lang
+from jcl.jabber.component import JCLComponent
 import jcl.model as model
-from jcl.model import account
 from jcl.model.account import Account, PresenceAccount
 
 class JCLRunner(object):
@@ -41,7 +42,7 @@ class JCLRunner(object):
         """
         self.component_name = component_name
         self.component_version = component_version
-        self.config_file = None
+        self.config_file = "jmc.conf"
         self.server = "localhost"
         self.port = 5347
         self.secret = "secret"
@@ -107,12 +108,12 @@ class JCLRunner(object):
             self.config_file = commandline_args["config_file"]
         elif commandline_args.has_key("c"):
             self.config_file = commandline_args["c"]
-        if self.config_file is not None:
-            self.config = ConfigParser()
-            self.logger.debug("Loading config file " + self.config_file)
-            read_file = self.config.read(self.config_file)
-            if read_file == []:
-                raise IOError(2, "No such file or directory", str(self.config_file))
+        self.config = ConfigParser()
+        self.logger.debug("Loading config file " + self.config_file)
+        read_file = self.config.read(self.config_file)
+        if read_file == []:
+            self.logger.info("Creating empty config file " + self.config_file)
+        else:
             for opt in cleanopts:
                 if len(opt) > 1:
                     (section, set_func) = cleanopts[opt]
@@ -205,7 +206,9 @@ class JCLRunner(object):
                                      secret=self.secret,
                                      server=self.server,
                                      port=self.port,
-                                     lang=Lang(self.language))
+                                     lang=Lang(self.language),
+                                     config=self.config,
+                                     config_file=self.config_file)
             component.run()
         self._run(run_func)
 

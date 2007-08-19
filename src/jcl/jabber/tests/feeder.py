@@ -30,7 +30,7 @@ from sqlobject import *
 from jcl.jabber.component import JCLComponent
 from jcl.jabber.feeder import FeederComponent, Feeder, Sender, MessageSender, \
     HeadlineSender, FeederHandler
-from jcl.model.account import Account, LegacyJID
+from jcl.model.account import Account, LegacyJID, User
 import jcl.model as model
 
 from jcl.model.tests.account import ExampleAccount, Example2Account
@@ -52,11 +52,13 @@ class SenderMock(object):
 class FeederComponent_TestCase(JCLComponent_TestCase):
     def setUp(self):
         JCLTestCase.setUp(self, tables=[Account, LegacyJID, ExampleAccount,
-                                        Example2Account])
+                                        Example2Account, User])
         self.comp = FeederComponent("jcl.test.com",
                                     "password",
                                     "localhost",
-                                    "5347")
+                                    "5347",
+                                    None,
+                                    None)
 
     def test_run(self):
         self.comp.time_unit = 1
@@ -84,20 +86,21 @@ class FeederComponent_TestCase(JCLComponent_TestCase):
         class AccountFeeder(Feeder):
             def feed(self, _account):
                 return [("Simple Message for account " + _account.name,
-                         "user_jid: " + _account.user_jid),
+                         "user_jid: " + _account.user.jid),
                         ("Simple Message for account " + _account.name,
                          "jid: " + _account.jid)]
 
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
         model.db_connect()
-        account11 = Account(user_jid="user1@test.com",
+        user1 = User(jid="user1@test.com")
+        account11 = Account(user=user1,
                             name="account11",
                             jid="account11@jcl.test.com")
-        account12 = Account(user_jid="user1@test.com",
+        account12 = Account(user=user1,
                             name="account12",
                             jid="account12@jcl.test.com")
-        account2 = Account(user_jid="user2@test.com",
+        account2 = Account(user=User(jid="user2@test.com"),
                            name="account2",
                            jid="account2@jcl.test.com")
         self.comp.handler.feeder = AccountFeeder(self.comp)
@@ -106,44 +109,44 @@ class FeederComponent_TestCase(JCLComponent_TestCase):
 
         messages_sent = self.comp.stream.sent
         self.assertEquals(len(messages_sent), 6)
-        self.assertEqual(messages_sent[0].get_from(), "account11@jcl.test.com")
-        self.assertEqual(messages_sent[0].get_to(), "user1@test.com")
-        self.assertEqual(messages_sent[0].get_subject(),
-                         "Simple Message for account account11")
-        self.assertEqual(messages_sent[0].get_body(),
-                         "user_jid: user1@test.com")
-        self.assertEqual(messages_sent[1].get_from(), "account11@jcl.test.com")
-        self.assertEqual(messages_sent[1].get_to(), "user1@test.com")
-        self.assertEqual(messages_sent[1].get_subject(),
-                         "Simple Message for account account11")
-        self.assertEqual(messages_sent[1].get_body(),
-                         "jid: account11@jcl.test.com")
+        self.assertEquals(messages_sent[0].get_from(), "account11@jcl.test.com")
+        self.assertEquals(messages_sent[0].get_to(), "user1@test.com")
+        self.assertEquals(messages_sent[0].get_subject(),
+                          "Simple Message for account account11")
+        self.assertEquals(messages_sent[0].get_body(),
+                          "user_jid: user1@test.com")
+        self.assertEquals(messages_sent[1].get_from(), "account11@jcl.test.com")
+        self.assertEquals(messages_sent[1].get_to(), "user1@test.com")
+        self.assertEquals(messages_sent[1].get_subject(),
+                          "Simple Message for account account11")
+        self.assertEquals(messages_sent[1].get_body(),
+                          "jid: account11@jcl.test.com")
 
-        self.assertEqual(messages_sent[2].get_from(), "account12@jcl.test.com")
-        self.assertEqual(messages_sent[2].get_to(), "user1@test.com")
-        self.assertEqual(messages_sent[2].get_subject(),
-                         "Simple Message for account account12")
-        self.assertEqual(messages_sent[2].get_body(),
-                         "user_jid: user1@test.com")
-        self.assertEqual(messages_sent[3].get_from(), "account12@jcl.test.com")
-        self.assertEqual(messages_sent[3].get_to(), "user1@test.com")
-        self.assertEqual(messages_sent[3].get_subject(),
-                         "Simple Message for account account12")
-        self.assertEqual(messages_sent[3].get_body(),
-                         "jid: account12@jcl.test.com")
+        self.assertEquals(messages_sent[2].get_from(), "account12@jcl.test.com")
+        self.assertEquals(messages_sent[2].get_to(), "user1@test.com")
+        self.assertEquals(messages_sent[2].get_subject(),
+                          "Simple Message for account account12")
+        self.assertEquals(messages_sent[2].get_body(),
+                          "user_jid: user1@test.com")
+        self.assertEquals(messages_sent[3].get_from(), "account12@jcl.test.com")
+        self.assertEquals(messages_sent[3].get_to(), "user1@test.com")
+        self.assertEquals(messages_sent[3].get_subject(),
+                          "Simple Message for account account12")
+        self.assertEquals(messages_sent[3].get_body(),
+                          "jid: account12@jcl.test.com")
 
-        self.assertEqual(messages_sent[4].get_from(), "account2@jcl.test.com")
-        self.assertEqual(messages_sent[4].get_to(), "user2@test.com")
-        self.assertEqual(messages_sent[4].get_subject(),
-                         "Simple Message for account account2")
-        self.assertEqual(messages_sent[4].get_body(),
-                         "user_jid: user2@test.com")
-        self.assertEqual(messages_sent[5].get_from(), "account2@jcl.test.com")
-        self.assertEqual(messages_sent[5].get_to(), "user2@test.com")
-        self.assertEqual(messages_sent[5].get_subject(),
-                         "Simple Message for account account2")
-        self.assertEqual(messages_sent[5].get_body(),
-                         "jid: account2@jcl.test.com")
+        self.assertEquals(messages_sent[4].get_from(), "account2@jcl.test.com")
+        self.assertEquals(messages_sent[4].get_to(), "user2@test.com")
+        self.assertEquals(messages_sent[4].get_subject(),
+                          "Simple Message for account account2")
+        self.assertEquals(messages_sent[4].get_body(),
+                          "user_jid: user2@test.com")
+        self.assertEquals(messages_sent[5].get_from(), "account2@jcl.test.com")
+        self.assertEquals(messages_sent[5].get_to(), "user2@test.com")
+        self.assertEquals(messages_sent[5].get_subject(),
+                          "Simple Message for account account2")
+        self.assertEquals(messages_sent[5].get_body(),
+                          "jid: account2@jcl.test.com")
 
 class Feeder_TestCase(unittest.TestCase):
     def test_feed_exist(self):
@@ -157,11 +160,13 @@ class Sender_TestCase(unittest.TestCase):
 
 class MessageSender_TestCase(JCLTestCase):
     def setUp(self):
-        JCLTestCase.setUp(self, tables=[Account])
+        JCLTestCase.setUp(self, tables=[Account, User])
         self.comp = FeederComponent("jcl.test.com",
                                     "password",
                                     "localhost",
-                                    "5347")
+                                    "5347",
+                                    None,
+                                    None)
         self.sender = MessageSender(self.comp)
         self.message_type = None
 
@@ -169,14 +174,14 @@ class MessageSender_TestCase(JCLTestCase):
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
         model.db_connect()
-        account11 = Account(user_jid="user1@test.com",
+        account11 = Account(user=User(jid="user1@test.com"),
                             name="account11",
                             jid="account11@jcl.test.com")
         self.sender.send(account11, ("subject", "Body message"))
         self.assertEquals(len(self.comp.stream.sent), 1)
         message = self.comp.stream.sent[0]
         self.assertEquals(message.get_from(), account11.jid)
-        self.assertEquals(message.get_to(), account11.user_jid)
+        self.assertEquals(message.get_to(), account11.user.jid)
         self.assertEquals(message.get_subject(), "subject")
         self.assertEquals(message.get_body(), "Body message")
         self.assertEquals(message.get_type(), self.message_type)
@@ -190,30 +195,34 @@ class HeadlineSender_TestCase(MessageSender_TestCase):
 
 class FeederHandler_TestCase(JCLTestCase):
     def setUp(self):
-        JCLTestCase.setUp(self, tables=[Account, ExampleAccount])
+        JCLTestCase.setUp(self, tables=[Account, ExampleAccount, User])
         self.handler = FeederHandler(FeederMock(), SenderMock())
 
     def test_filter(self):
         model.db_connect()
-        account12 = ExampleAccount(user_jid="user2@test.com",
+        account12 = ExampleAccount(user=User(jid="user2@test.com"),
                                    name="account12",
                                    jid="account12@jcl.test.com")
-        account11 = ExampleAccount(user_jid="user1@test.com",
+        account11 = ExampleAccount(user=User(jid="user1@test.com"),
                                    name="account11",
                                    jid="account11@jcl.test.com")
         accounts = self.handler.filter(None, None)
-        self.assertEquals(accounts.count(), 2)
-        # accounts must be ordered by user_jid
-        self.assertEquals(accounts[0].name, "account11")
-        self.assertEquals(accounts[1].name, "account12")
+        i = 0
+        for _account in accounts:
+            i += 1
+            if i == 1:
+                self.assertEquals(_account.name, "account12")
+            else:
+                self.assertEquals(_account.name, "account11")
+        self.assertEquals(i, 2)
         model.db_disconnect()
 
     def test_handle(self):
         model.db_connect()
-        account11 = ExampleAccount(user_jid="user1@test.com",
+        account11 = ExampleAccount(user=User(jid="user1@test.com"),
                                    name="account11",
                                    jid="account11@jcl.test.com")
-        account12 = ExampleAccount(user_jid="user2@test.com",
+        account12 = ExampleAccount(user=User(jid="user2@test.com"),
                                    name="account12",
                                    jid="account12@jcl.test.com")
         accounts = self.handler.handle(None, None, [account11, account12])
@@ -225,11 +234,11 @@ class FeederHandler_TestCase(JCLTestCase):
 
     def test_handle_disabled_account(self):
         model.db_connect()
-        account11 = ExampleAccount(user_jid="user1@test.com",
+        account11 = ExampleAccount(user=User(jid="user1@test.com"),
                                    name="account11",
                                    jid="account11@jcl.test.com")
         account11.enabled = False
-        account12 = ExampleAccount(user_jid="user2@test.com",
+        account12 = ExampleAccount(user=User(jid="user2@test.com"),
                                    name="account12",
                                    jid="account12@jcl.test.com")
         accounts = self.handler.handle(None, None, [account11, account12])
@@ -239,14 +248,14 @@ class FeederHandler_TestCase(JCLTestCase):
         model.db_disconnect()
 
 def suite():
-    suite = unittest.TestSuite()
-    suite.addTest(unittest.makeSuite(FeederComponent_TestCase, 'test'))
-    suite.addTest(unittest.makeSuite(Feeder_TestCase, 'test'))
-    suite.addTest(unittest.makeSuite(Sender_TestCase, 'test'))
-    suite.addTest(unittest.makeSuite(MessageSender_TestCase, 'test'))
-    suite.addTest(unittest.makeSuite(HeadlineSender_TestCase, 'test'))
-    suite.addTest(unittest.makeSuite(FeederHandler_TestCase, 'test'))
-    return suite
+    test_suite = unittest.TestSuite()
+    test_suite.addTest(unittest.makeSuite(FeederComponent_TestCase, 'test'))
+    test_suite.addTest(unittest.makeSuite(Feeder_TestCase, 'test'))
+    test_suite.addTest(unittest.makeSuite(Sender_TestCase, 'test'))
+    test_suite.addTest(unittest.makeSuite(MessageSender_TestCase, 'test'))
+    test_suite.addTest(unittest.makeSuite(HeadlineSender_TestCase, 'test'))
+    test_suite.addTest(unittest.makeSuite(FeederHandler_TestCase, 'test'))
+    return test_suite
 
 if __name__ == '__main__':
     unittest.main(defaultTest='suite')

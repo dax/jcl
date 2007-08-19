@@ -21,6 +21,9 @@
 ##
 
 import unittest
+import os
+import tempfile
+from ConfigParser import ConfigParser
 
 from pyxmpp.presence import Presence
 from pyxmpp.jabber.dataforms import Form
@@ -33,7 +36,7 @@ import jcl.jabber.command as command
 from jcl.jabber.command import FieldNoType, JCLCommandManager
 import jcl.model as model
 import jcl.model.account as account
-from jcl.model.account import Account, LegacyJID
+from jcl.model.account import Account, LegacyJID, User
 from jcl.model.tests.account import ExampleAccount, Example2Account
 from jcl.tests import JCLTestCase
 
@@ -58,13 +61,25 @@ class CommandManager_TestCase(unittest.TestCase):
 class JCLCommandManager_TestCase(JCLTestCase):
     def setUp(self):
         JCLTestCase.setUp(self, tables=[Account, ExampleAccount,
-                                        Example2Account, LegacyJID])
+                                        Example2Account, LegacyJID,
+                                        User])
+        self.config_file = tempfile.mktemp(".conf", "jcltest", "/tmp")
+        print str(self.config_file)
+        self.config = ConfigParser()
+        self.config.read(self.config_file)
         self.comp = JCLComponent("jcl.test.com",
                                  "password",
                                  "localhost",
-                                 "5347")
+                                 "5347",
+                                 self.config,
+                                 self.config_file)
         self.command_manager = JCLCommandManager(self.comp,
                                                  self.comp.account_manager)
+
+    def tearDown(self):
+        JCLTestCase.tearDown(self)
+        if os.path.exists(self.config_file):
+            os.unlink(self.config_file)
 
     def __check_actions(self, info_query, expected_actions=None, action_index=0):
         actions = info_query.xpath_eval("c:command/c:actions",
@@ -115,22 +130,25 @@ class JCLCommandManager_TestCase(JCLTestCase):
         self.comp.account_manager.account_classes = (ExampleAccount,
                                                      Example2Account)
         model.db_connect()
-        account11 = ExampleAccount(user_jid="test1@test.com",
+        user1 = User(jid="test1@test.com")
+        account11 = ExampleAccount(user=user1,
                                    name="account11",
                                    jid="account11@jcl.test.com")
-        account12 = Example2Account(user_jid="test1@test.com",
+        account12 = Example2Account(user=user1,
                                     name="account12",
                                     jid="account12@jcl.test.com")
-        account21 = ExampleAccount(user_jid="test2@test.com",
+        user2 = User(jid="test2@test.com")
+        account21 = ExampleAccount(user=user2,
                                    name="account21",
                                    jid="account21@jcl.test.com")
-        account22 = ExampleAccount(user_jid="test2@test.com",
+        account22 = ExampleAccount(user=user2,
                                    name="account11",
                                    jid="account11@jcl.test.com")
-        account31 = ExampleAccount(user_jid="test3@test.com",
+        user3 = User(jid="test3@test.com")
+        account31 = ExampleAccount(user=user3,
                                    name="account31",
                                    jid="account31@jcl.test.com")
-        account32 = Example2Account(user_jid="test3@test.com",
+        account32 = Example2Account(user=user3,
                                     name="account32",
                                     jid="account32@jcl.test.com")
         model.db_disconnect()
@@ -179,23 +197,26 @@ class JCLCommandManager_TestCase(JCLTestCase):
         self.comp.account_manager.account_classes = (ExampleAccount,
                                                      Example2Account)
         model.db_connect()
-        account11 = ExampleAccount(user_jid="test1@test.com",
+        user1 = User(jid="test1@test.com")
+        account11 = ExampleAccount(user=user1,
                                    name="account11",
                                    jid="account11@jcl.test.com")
-        account12 = Example2Account(user_jid="test1@test.com",
+        account12 = Example2Account(user=user1,
                                     name="account12",
                                     jid="account12@jcl.test.com")
-        account21 = ExampleAccount(user_jid="test2@test.com",
+        user2 = User(jid="test2@test.com")
+        account21 = ExampleAccount(user=user2,
                                    name="account21",
                                    jid="account21@jcl.test.com")
         account21.enabled = False
-        account22 = ExampleAccount(user_jid="test2@test.com",
+        account22 = ExampleAccount(user=user2,
                                    name="account11",
                                    jid="account11@jcl.test.com")
-        account31 = ExampleAccount(user_jid="test3@test.com",
+        user3 = User(jid="test3@test.com")
+        account31 = ExampleAccount(user=user3,
                                    name="account31",
                                    jid="account31@jcl.test.com")
-        account32 = Example2Account(user_jid="test3@test.com",
+        account32 = Example2Account(user=user3,
                                     name="account32",
                                     jid="account32@jcl.test.com")
         model.db_disconnect()
@@ -240,22 +261,25 @@ class JCLCommandManager_TestCase(JCLTestCase):
         self.comp.account_manager.account_classes = (ExampleAccount,
                                                      Example2Account)
         model.db_connect()
-        account11 = ExampleAccount(user_jid="test1@test.com",
+        user1 = User(jid="test1@test.com")
+        user2 = User(jid="test2@test.com")
+        user3 = User(jid="test3@test.com")
+        account11 = ExampleAccount(user=user1,
                                    name="account11",
                                    jid="account11@jcl.test.com")
-        account12 = Example2Account(user_jid="test1@test.com",
+        account12 = Example2Account(user=user1,
                                     name="account12",
                                     jid="account12@jcl.test.com")
-        account21 = ExampleAccount(user_jid="test2@test.com",
+        account21 = ExampleAccount(user=user2,
                                    name="account21",
                                    jid="account21@jcl.test.com")
-        account22 = ExampleAccount(user_jid="test2@test.com",
+        account22 = ExampleAccount(user=user2,
                                    name="account11",
                                    jid="account11@jcl.test.com")
-        account31 = ExampleAccount(user_jid="test3@test.com",
+        account31 = ExampleAccount(user=user3,
                                    name="account31",
                                    jid="account31@jcl.test.com")
-        account32 = Example2Account(user_jid="test3@test.com",
+        account32 = Example2Account(user=user3,
                                     name="account32",
                                     jid="account32@jcl.test.com")
         model.db_disconnect()
@@ -411,7 +435,7 @@ class JCLCommandManager_TestCase(JCLTestCase):
         _account = account.get_account("user2@test.com",
                                        "account1")
         self.assertNotEquals(_account, None)
-        self.assertEquals(_account.user_jid, "user2@test.com")
+        self.assertEquals(_account.user.jid, "user2@test.com")
         self.assertEquals(_account.name, "account1")
         self.assertEquals(_account.jid, "account1@jcl.test.com")
         model.db_disconnect()
@@ -639,22 +663,25 @@ class JCLCommandManager_TestCase(JCLTestCase):
         self.comp.account_manager.account_classes = (ExampleAccount,
                                                      Example2Account)
         model.db_connect()
-        account11 = ExampleAccount(user_jid="test1@test.com",
+        user1 = User(jid="test1@test.com")
+        user2 = User(jid="test2@test.com")
+        user3 = User(jid="test3@test.com")
+        account11 = ExampleAccount(user=user1,
                                    name="account11",
                                    jid="account11@jcl.test.com")
-        account12 = Example2Account(user_jid="test1@test.com",
+        account12 = Example2Account(user=user1,
                                     name="account12",
                                     jid="account12@jcl.test.com")
-        account21 = ExampleAccount(user_jid="test2@test.com",
+        account21 = ExampleAccount(user=user2,
                                    name="account21",
                                    jid="account21@jcl.test.com")
-        account22 = ExampleAccount(user_jid="test2@test.com",
+        account22 = ExampleAccount(user=user2,
                                    name="account11",
                                    jid="account11@jcl.test.com")
-        account31 = ExampleAccount(user_jid="test3@test.com",
+        account31 = ExampleAccount(user=user3,
                                    name="account31",
                                    jid="account31@jcl.test.com")
-        account32 = Example2Account(user_jid="test3@test.com",
+        account32 = Example2Account(user=user3,
                                     name="account32",
                                     jid="account32@jcl.test.com")
         model.db_disconnect()
@@ -780,27 +807,30 @@ class JCLCommandManager_TestCase(JCLTestCase):
         self.comp.account_manager.account_classes = (ExampleAccount,
                                                      Example2Account)
         model.db_connect()
-        account11 = ExampleAccount(user_jid="test1@test.com",
+        user1 = User(jid="test1@test.com")
+        user2 = User(jid="test2@test.com")
+        user3 = User(jid="test3@test.com")
+        account11 = ExampleAccount(user=user1,
                                    name="account11",
                                    jid="account11@jcl.test.com")
         account11.enabled = True
-        account12 = Example2Account(user_jid="test1@test.com",
+        account12 = Example2Account(user=user1,
                                     name="account12",
                                     jid="account12@jcl.test.com")
         account12.enabled = False
-        account21 = ExampleAccount(user_jid="test2@test.com",
+        account21 = ExampleAccount(user=user2,
                                    name="account21",
                                    jid="account21@jcl.test.com")
         account21.enabled = False
-        account22 = ExampleAccount(user_jid="test2@test.com",
+        account22 = ExampleAccount(user=user2,
                                    name="account11",
                                    jid="account11@jcl.test.com")
         account22.enabled = True
-        account31 = ExampleAccount(user_jid="test3@test.com",
+        account31 = ExampleAccount(user=user3,
                                    name="account31",
                                    jid="account31@jcl.test.com")
         account31.enabled = False
-        account32 = Example2Account(user_jid="test3@test.com",
+        account32 = Example2Account(user=user3,
                                     name="account32",
                                     jid="account32@jcl.test.com")
         account32.enabled = False
@@ -885,27 +915,30 @@ class JCLCommandManager_TestCase(JCLTestCase):
         self.comp.account_manager.account_classes = (ExampleAccount,
                                                      Example2Account)
         model.db_connect()
-        account11 = ExampleAccount(user_jid="test1@test.com",
+        user1 = User(jid="test1@test.com")
+        user2 = User(jid="test2@test.com")
+        user3 = User(jid="test3@test.com")
+        account11 = ExampleAccount(user=user1,
                                    name="account11",
                                    jid="account11@jcl.test.com")
         account11.enabled = False
-        account12 = Example2Account(user_jid="test1@test.com",
+        account12 = Example2Account(user=user1,
                                     name="account12",
                                     jid="account12@jcl.test.com")
         account12.enabled = True
-        account21 = ExampleAccount(user_jid="test2@test.com",
+        account21 = ExampleAccount(user=user2,
                                    name="account21",
                                    jid="account21@jcl.test.com")
         account21.enabled = True
-        account22 = ExampleAccount(user_jid="test2@test.com",
+        account22 = ExampleAccount(user=user2,
                                    name="account11",
                                    jid="account11@jcl.test.com")
         account22.enabled = False
-        account31 = ExampleAccount(user_jid="test3@test.com",
+        account31 = ExampleAccount(user=user3,
                                    name="account31",
                                    jid="account31@jcl.test.com")
         account31.enabled = True
-        account32 = Example2Account(user_jid="test3@test.com",
+        account32 = Example2Account(user=user3,
                                     name="account32",
                                     jid="account32@jcl.test.com")
         account32.enabled = True
@@ -990,24 +1023,27 @@ class JCLCommandManager_TestCase(JCLTestCase):
         self.comp.account_manager.account_classes = (ExampleAccount,
                                                      Example2Account)
         model.db_connect()
-        account11 = ExampleAccount(user_jid="test1@test.com",
+        user1 = User(jid="test1@test.com")
+        user2 = User(jid="test2@test.com")
+        user3 = User(jid="test3@test.com")
+        account11 = ExampleAccount(user=user1,
                                    name="account11",
                                    jid="account11@jcl.test.com")
         account11.status = account.ONLINE
-        account12 = Example2Account(user_jid="test1@test.com",
+        account12 = Example2Account(user=user1,
                                     name="account12",
                                     jid="account12@jcl.test.com")
-        account21 = ExampleAccount(user_jid="test2@test.com",
+        account21 = ExampleAccount(user=user2,
                                    name="account21",
                                    jid="account21@jcl.test.com")
-        account22 = ExampleAccount(user_jid="test2@test.com",
+        account22 = ExampleAccount(user=user2,
                                    name="account11",
                                    jid="account11@jcl.test.com")
         account22.status = account.ONLINE
-        account31 = ExampleAccount(user_jid="test3@test.com",
+        account31 = ExampleAccount(user=user3,
                                    name="account31",
                                    jid="account31@jcl.test.com")
-        account32 = Example2Account(user_jid="test3@test.com",
+        account32 = Example2Account(user=user3,
                                     name="account32",
                                     jid="account32@jcl.test.com")
         model.db_disconnect()
@@ -1108,17 +1144,19 @@ class JCLCommandManager_TestCase(JCLTestCase):
         self.comp.account_manager.account_classes = (ExampleAccount,
                                                      Example2Account)
         model.db_connect()
-        account11 = ExampleAccount(user_jid="test1@test.com",
+        user1 = User(jid="test1@test.com")
+        user2 = User(jid="test2@test.com")
+        account11 = ExampleAccount(user=user1,
                                    name="account11",
                                    jid="account11@jcl.test.com")
         account11.password = "pass1"
-        account12 = Example2Account(user_jid="test1@test.com",
+        account12 = Example2Account(user=user1,
                                     name="account12",
                                     jid="account12@jcl.test.com")
-        account21 = ExampleAccount(user_jid="test2@test.com",
+        account21 = ExampleAccount(user=user2,
                                    name="account21",
                                    jid="account21@jcl.test.com")
-        account22 = ExampleAccount(user_jid="test2@test.com",
+        account22 = ExampleAccount(user=user2,
                                    name="account11",
                                    jid="account11@jcl.test.com")
         model.db_disconnect()
@@ -1218,17 +1256,19 @@ class JCLCommandManager_TestCase(JCLTestCase):
         self.comp.account_manager.account_classes = (ExampleAccount,
                                                      Example2Account)
         model.db_connect()
-        account11 = ExampleAccount(user_jid="test1@test.com",
+        user1 = User(jid="test1@test.com")
+        account11 = ExampleAccount(user=user1,
                                    name="account11",
                                    jid="account11@jcl.test.com")
         account11.password = "pass1"
-        account12 = Example2Account(user_jid="test1@test.com",
+        account12 = Example2Account(user=user1,
                                     name="account12",
                                     jid="account12@jcl.test.com")
-        account21 = ExampleAccount(user_jid="test2@test.com",
+        user2 = User(jid="test2@test.com")
+        account21 = ExampleAccount(user=user2,
                                    name="account21",
                                    jid="account21@jcl.test.com")
-        account22 = ExampleAccount(user_jid="test2@test.com",
+        account22 = ExampleAccount(user=user2,
                                    name="account11",
                                    jid="account11@jcl.test.com")
         model.db_disconnect()
@@ -1314,7 +1354,8 @@ class JCLCommandManager_TestCase(JCLTestCase):
         self.comp.account_manager.account_classes = (ExampleAccount,
                                                      Example2Account)
         model.db_connect()
-        account11 = ExampleAccount(user_jid="test1@test.com",
+        user1 = User(jid="test1@test.com")
+        account11 = ExampleAccount(user=user1,
                                    name="account11",
                                    jid="account11@jcl.test.com")
         ljid111 = LegacyJID(legacy_address="test111@test.com",
@@ -1323,13 +1364,14 @@ class JCLCommandManager_TestCase(JCLTestCase):
         ljid112 = LegacyJID(legacy_address="test112@test.com",
                             jid="test112%test.com@test.com",
                             account=account11)
-        account12 = Example2Account(user_jid="test1@test.com",
+        account12 = Example2Account(user=user1,
                                     name="account12",
                                     jid="account12@jcl.test.com")
         ljid121 = LegacyJID(legacy_address="test121@test.com",
                             jid="test121%test.com@test.com",
                             account=account12)
-        account21 = ExampleAccount(user_jid="test2@test.com",
+        user2 = User(jid="test2@test.com")
+        account21 = ExampleAccount(user=user2,
                                    name="account21",
                                    jid="account21@jcl.test.com")
         ljid211 = LegacyJID(legacy_address="test211@test.com",
@@ -1338,7 +1380,7 @@ class JCLCommandManager_TestCase(JCLTestCase):
         ljid212 = LegacyJID(legacy_address="test212@test.com",
                             jid="test212%test.com@test.com",
                             account=account21)
-        account22 = ExampleAccount(user_jid="test2@test.com",
+        account22 = ExampleAccount(user=user2,
                                    name="account11",
                                    jid="account11@jcl.test.com")
         ljid221 = LegacyJID(legacy_address="test221@test.com",
@@ -1413,17 +1455,19 @@ class JCLCommandManager_TestCase(JCLTestCase):
         self.comp.account_manager.account_classes = (ExampleAccount,
                                                      Example2Account)
         model.db_connect()
-        account11 = ExampleAccount(user_jid="test1@test.com",
+        user1 = User(jid="test1@test.com")
+        account11 = ExampleAccount(user=user1,
                                    name="account11",
                                    jid="account11@jcl.test.com")
         account11.status = account.ONLINE
-        account12 = Example2Account(user_jid="test1@test.com",
+        account12 = Example2Account(user=user1,
                                     name="account12",
                                     jid="account12@jcl.test.com")
-        account21 = ExampleAccount(user_jid="test2@test.com",
+        user2 = User(jid="test2@test.com")
+        account21 = ExampleAccount(user=user2,
                                    name="account21",
                                    jid="account21@jcl.test.com")
-        account22 = ExampleAccount(user_jid="test2@test.com",
+        account22 = ExampleAccount(user=user2,
                                    name="account11",
                                    jid="account11@jcl.test.com")
         model.db_disconnect()
@@ -1514,16 +1558,18 @@ class JCLCommandManager_TestCase(JCLTestCase):
         self.comp.account_manager.account_classes = (ExampleAccount,
                                                      Example2Account)
         model.db_connect()
-        account11 = ExampleAccount(user_jid="test1@test.com",
+        user1 = User(jid="test1@test.com")
+        account11 = ExampleAccount(user=user1,
                                    name="account11",
                                    jid="account11@jcl.test.com")
-        account12 = Example2Account(user_jid="test1@test.com",
+        account12 = Example2Account(user=user1,
                                     name="account12",
                                     jid="account12@jcl.test.com")
-        account21 = ExampleAccount(user_jid="test2@test.com",
+        user2 = User(jid="test2@test.com")
+        account21 = ExampleAccount(user=user2,
                                    name="account21",
                                    jid="account21@jcl.test.com")
-        account22 = ExampleAccount(user_jid="test2@test.com",
+        account22 = ExampleAccount(user=user2,
                                    name="account11",
                                    jid="account11@jcl.test.com")
         model.db_disconnect()
@@ -1554,17 +1600,19 @@ class JCLCommandManager_TestCase(JCLTestCase):
         self.comp.account_manager.account_classes = (ExampleAccount,
                                                      Example2Account)
         model.db_connect()
-        account11 = ExampleAccount(user_jid="test1@test.com",
+        user1 = User(jid="test1@test.com")
+        account11 = ExampleAccount(user=user1,
                                    name="account11",
                                    jid="account11@jcl.test.com")
         account11.enabled = False
-        account12 = Example2Account(user_jid="test1@test.com",
+        account12 = Example2Account(user=user1,
                                     name="account12",
                                     jid="account12@jcl.test.com")
-        account21 = ExampleAccount(user_jid="test2@test.com",
+        user2 = User(jid="test2@test.com")
+        account21 = ExampleAccount(user=user2,
                                    name="account21",
                                    jid="account21@jcl.test.com")
-        account22 = ExampleAccount(user_jid="test2@test.com",
+        account22 = ExampleAccount(user=user2,
                                    name="account11",
                                    jid="account11@jcl.test.com")
         account22.enabled = False
@@ -1596,18 +1644,20 @@ class JCLCommandManager_TestCase(JCLTestCase):
         self.comp.account_manager.account_classes = (ExampleAccount,
                                                      Example2Account)
         model.db_connect()
-        account11 = ExampleAccount(user_jid="test1@test.com",
+        user1 = User(jid="test1@test.com")
+        account11 = ExampleAccount(user=user1,
                                    name="account11",
                                    jid="account11@jcl.test.com")
         account11.status = account.ONLINE
-        account12 = Example2Account(user_jid="test1@test.com",
+        account12 = Example2Account(user=user1,
                                     name="account12",
                                     jid="account12@jcl.test.com")
         account12.status = "away"
-        account21 = ExampleAccount(user_jid="test2@test.com",
+        user2 = User(jid="test2@test.com")
+        account21 = ExampleAccount(user=user2,
                                    name="account21",
                                    jid="account21@jcl.test.com")
-        account22 = ExampleAccount(user_jid="test2@test.com",
+        account22 = ExampleAccount(user=user2,
                                    name="account11",
                                    jid="account11@jcl.test.com")
         account22.status = "chat"
@@ -1639,16 +1689,18 @@ class JCLCommandManager_TestCase(JCLTestCase):
         self.comp.account_manager.account_classes = (ExampleAccount,
                                                      Example2Account)
         model.db_connect()
-        account11 = ExampleAccount(user_jid="test1@test.com",
+        user1 = User(jid="test1@test.com")
+        account11 = ExampleAccount(user=user1,
                                    name="account11",
                                    jid="account11@jcl.test.com")
-        account12 = Example2Account(user_jid="test1@test.com",
+        account12 = Example2Account(user=user1,
                                     name="account12",
                                     jid="account12@jcl.test.com")
-        account21 = ExampleAccount(user_jid="test2@test.com",
+        user2 = User(jid="test2@test.com")
+        account21 = ExampleAccount(user=user2,
                                    name="account21",
                                    jid="account21@jcl.test.com")
-        account22 = ExampleAccount(user_jid="test2@test.com",
+        account22 = ExampleAccount(user=user2,
                                    name="account11",
                                    jid="account11@jcl.test.com")
         model.db_disconnect()
@@ -1689,14 +1741,16 @@ class JCLCommandManager_TestCase(JCLTestCase):
         self.comp.account_manager.account_classes = (ExampleAccount,
                                                      Example2Account)
         model.db_connect()
+        user1 = User(jid="test1@test.com")
+        user2 = User(jid="test2@test.com")
         for i in xrange(10):
-            ExampleAccount(user_jid="test1@test.com",
+            ExampleAccount(user=user1,
                            name="account11" + str(i),
                            jid="account11" + str(i) + "@jcl.test.com")
-            Example2Account(user_jid="test1@test.com",
+            Example2Account(user=user1,
                             name="account12" + str(i),
                             jid="account12" + str(i) + "@jcl.test.com")
-            ExampleAccount(user_jid="test2@test.com",
+            ExampleAccount(user=user2,
                            name="account2" + str(i),
                            jid="account2" + str(i) + "@jcl.test.com")
         model.db_disconnect()
@@ -1798,18 +1852,20 @@ class JCLCommandManager_TestCase(JCLTestCase):
         self.comp.account_manager.account_classes = (ExampleAccount,
                                                      Example2Account)
         model.db_connect()
-        account11 = ExampleAccount(user_jid="test1@test.com",
+        user1 = User(jid="test1@test.com")
+        account11 = ExampleAccount(user=user1,
                                    name="account11",
                                    jid="account11@jcl.test.com")
         account11.enabled = False
-        account12 = Example2Account(user_jid="test1@test.com",
+        account12 = Example2Account(user=user1,
                                     name="account12",
                                     jid="account12@jcl.test.com")
         account12.enabled = False
-        account21 = ExampleAccount(user_jid="test2@test.com",
+        user2 = User(jid="test2@test.com")
+        account21 = ExampleAccount(user=user2,
                                    name="account21",
                                    jid="account21@jcl.test.com")
-        account22 = ExampleAccount(user_jid="test2@test.com",
+        account22 = ExampleAccount(user=user2,
                                    name="account11",
                                    jid="account11@jcl.test.com")
         account22.enabled = False
@@ -1851,16 +1907,18 @@ class JCLCommandManager_TestCase(JCLTestCase):
         self.comp.account_manager.account_classes = (ExampleAccount,
                                                      Example2Account)
         model.db_connect()
+        user1 = User(jid="test1@test.com")
+        user2 = User(jid="test2@test.com")
         for i in xrange(20):
-            _account = ExampleAccount(user_jid="test1@test.com",
+            _account = ExampleAccount(user=user1,
                                       name="account11" + str(i),
                                       jid="account11" + str(i)
                                       + "@jcl.test.com")
             _account.enabled = False
-            Example2Account(user_jid="test1@test.com",
+            Example2Account(user=user1,
                             name="account12" + str(i),
                             jid="account12" + str(i) + "@jcl.test.com")
-            _account = ExampleAccount(user_jid="test2@test.com",
+            _account = ExampleAccount(user=user2,
                                       name="account2" + str(i),
                                       jid="account2" + str(i)
                                       + "@jcl.test.com")
@@ -1965,18 +2023,20 @@ class JCLCommandManager_TestCase(JCLTestCase):
         self.comp.account_manager.account_classes = (ExampleAccount,
                                                      Example2Account)
         model.db_connect()
-        account11 = ExampleAccount(user_jid="test1@test.com",
+        user1 = User(jid="test1@test.com")
+        account11 = ExampleAccount(user=user1,
                                    name="account11",
                                    jid="account11@jcl.test.com")
         account11.status = account.ONLINE
-        account12 = Example2Account(user_jid="test1@test.com",
+        account12 = Example2Account(user=user1,
                                     name="account12",
                                     jid="account12@jcl.test.com")
         account12.status = "away"
-        account21 = ExampleAccount(user_jid="test2@test.com",
+        user2 = User(jid="test2@test.com")
+        account21 = ExampleAccount(user=user2,
                                    name="account21",
                                    jid="account21@jcl.test.com")
-        account22 = ExampleAccount(user_jid="test2@test.com",
+        account22 = ExampleAccount(user=user2,
                                    name="account11",
                                    jid="account11@jcl.test.com")
         account22.status = "xa"
@@ -2018,16 +2078,18 @@ class JCLCommandManager_TestCase(JCLTestCase):
         self.comp.account_manager.account_classes = (ExampleAccount,
                                                      Example2Account)
         model.db_connect()
+        user1 = User(jid="test1@test.com")
+        user2 = User(jid="test2@test.com")
         for i in xrange(20):
-            _account = ExampleAccount(user_jid="test1@test.com",
+            _account = ExampleAccount(user=user1,
                                       name="account11" + str(i),
                                       jid="account11" + str(i)
                                       + "@jcl.test.com")
             _account.status = account.ONLINE
-            Example2Account(user_jid="test1@test.com",
+            Example2Account(user=user1,
                             name="account12" + str(i),
                             jid="account12" + str(i) + "@jcl.test.com")
-            _account = ExampleAccount(user_jid="test2@test.com",
+            _account = ExampleAccount(user=user2,
                                       name="account2" + str(i),
                                       jid="account2" + str(i)
                                       + "@jcl.test.com")
@@ -2132,18 +2194,20 @@ class JCLCommandManager_TestCase(JCLTestCase):
         self.comp.account_manager.account_classes = (ExampleAccount,
                                                      Example2Account)
         model.db_connect()
-        account11 = ExampleAccount(user_jid="test1@test.com",
+        user1 = User(jid="test1@test.com")
+        account11 = ExampleAccount(user=user1,
                                    name="account11",
                                    jid="account11@jcl.test.com")
         account11.status = account.ONLINE
-        account12 = Example2Account(user_jid="test1@test.com",
+        account12 = Example2Account(user=user1,
                                     name="account12",
                                     jid="account12@jcl.test.com")
         account12.status = "away"
-        account21 = ExampleAccount(user_jid="test2@test.com",
+        user2 = User(jid="test2@test.com")
+        account21 = ExampleAccount(user=user2,
                                    name="account21",
                                    jid="account21@jcl.test.com")
-        account22 = ExampleAccount(user_jid="test2@test.com",
+        account22 = ExampleAccount(user=user2,
                                    name="account11",
                                    jid="account11@jcl.test.com")
         account22.status = "xa"
@@ -2209,14 +2273,88 @@ class JCLCommandManager_TestCase(JCLTestCase):
         self.assertEquals(result[2].get_to(), "test2@test.com")
         self.assertEquals(result[2].get_body(), "test announce")
 
-#     def test_execute_set_motd(self):
-#         #TODO : implement command
-#         info_query = Iq(stanza_type="set",
-#                         from_jid="user1@test.com",
-#                         to_jid="jcl.test.com")
-#         result = self.command_manager.execute_add_user(info_query)
-#         self.assertNotEquals(result, None)
-#         self.assertEquals(len(result), 1)
+    def test_execute_set_motd(self):
+        self.comp.account_manager.account_classes = (ExampleAccount,
+                                                     Example2Account)
+        model.db_connect()
+        user1 = User(jid="test1@test.com")
+        account11 = ExampleAccount(user=user1,
+                                   name="account11",
+                                   jid="account11@jcl.test.com")
+        account11.status = account.ONLINE
+        account12 = Example2Account(user=user1,
+                                    name="account12",
+                                    jid="account12@jcl.test.com")
+        account12.status = "away"
+        user2 = User(jid="test2@test.com")
+        account21 = ExampleAccount(user=user2,
+                                   name="account21",
+                                   jid="account21@jcl.test.com")
+        account21.status = account.OFFLINE
+        account22 = ExampleAccount(user=user2,
+                                   name="account11",
+                                   jid="account11@jcl.test.com")
+        account22.status = account.OFFLINE
+        model.db_disconnect()
+        info_query = Iq(stanza_type="set",
+                        from_jid="user1@test.com",
+                        to_jid="jcl.test.com")
+        command_node = info_query.set_new_content(command.COMMAND_NS, "command")
+        command_node.setProp("node",
+                             "http://jabber.org/protocol/admin#set-motd")
+        result = self.command_manager.apply_command_action(\
+            info_query,
+            "http://jabber.org/protocol/admin#set-motd",
+            "execute")
+        self.assertNotEquals(result, None)
+        self.assertEquals(len(result), 1)
+        xml_command = result[0].xpath_eval("c:command",
+                                           {"c": "http://jabber.org/protocol/commands"})[0]
+        self.assertEquals(xml_command.prop("status"), "executing")
+        self.assertNotEquals(xml_command.prop("sessionid"), None)
+        self.__check_actions(result[0], ["next"])
+        fields = result[0].xpath_eval("c:command/data:x/data:field",
+                                      {"c": "http://jabber.org/protocol/commands",
+                                       "data": "jabber:x:data"})
+        self.assertEquals(len(fields), 2)
+        self.assertEquals(fields[1].prop("var"), "motd")
+        self.assertEquals(fields[1].prop("type"), "text-multi")
+        self.assertEquals(fields[1].children.name, "required")
+
+        # Second step
+        info_query = Iq(stanza_type="set",
+                        from_jid="user1@test.com",
+                        to_jid="jcl.test.com")
+        command_node = info_query.set_new_content(command.COMMAND_NS, "command")
+        command_node.setProp("node",
+                             "http://jabber.org/protocol/admin#set-motd")
+        session_id = xml_command.prop("sessionid")
+        command_node.setProp("sessionid", session_id)
+        command_node.setProp("action", "next")
+        submit_form = Form(xmlnode_or_type="submit")
+        submit_form.add_field(field_type="text-multi",
+                              name="motd",
+                              value=["Message Of The Day"])
+        submit_form.as_xml(command_node)
+        result = self.command_manager.apply_command_action(\
+            info_query,
+            "http://jabber.org/protocol/admin#set-motd",
+            "execute")
+        self.assertNotEquals(result, None)
+        self.assertEquals(len(result), 2)
+        xml_command = result[0].xpath_eval("c:command",
+                                           {"c": "http://jabber.org/protocol/commands"})[0]
+        self.assertEquals(xml_command.prop("status"), "completed")
+        self.assertEquals(xml_command.prop("sessionid"), session_id)
+        self.__check_actions(result[0])
+        context_session = self.command_manager.sessions[session_id][1]
+        self.assertEquals(context_session["motd"],
+                          ["Message Of The Day"])
+        self.assertTrue(account11.user.has_received_motd)
+        self.assertEquals(result[1].get_from(), "jcl.test.com")
+        self.assertEquals(result[1].get_to(), "test1@test.com")
+        self.assertEquals(result[1].get_body(), "Message Of The Day")
+        self.assertFalse(account21.user.has_received_motd)
 
 #     def test_execute_edit_motd(self):
 #         #TODO : implement command

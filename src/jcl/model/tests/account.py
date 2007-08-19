@@ -28,7 +28,7 @@ from sqlobject import *
 from jcl.error import FieldError
 import jcl.model as model
 from jcl.model import account
-from jcl.model.account import Account, PresenceAccount
+from jcl.model.account import Account, PresenceAccount, User
 
 from jcl.tests import JCLTestCase
 
@@ -118,7 +118,10 @@ class PresenceAccountExample(PresenceAccount):
               lambda bare_from_jid: 43)]
     get_register_fields = classmethod(_get_register_fields)
 
-class AccountModule_TestCase(unittest.TestCase):
+class AccountModule_TestCase(JCLTestCase):
+    def setUp(self):
+        JCLTestCase.setUp(self, tables=[User, Account, ExampleAccount])
+
     def test_default_post_func(self):
         result = account.default_post_func("test", None, "user1@jcl.test.com")
         self.assertEquals(result, "test")
@@ -162,6 +165,58 @@ class AccountModule_TestCase(unittest.TestCase):
         self.assertEquals(account.mandatory_field("test", "value"),
                           "value")
 
+    def test_get_accounts(self):
+        user1 = User(jid="user1@test.com")
+        Account(user=user1,
+                name="account11",
+                jid="accout11@jcl.test.com")
+        Account(user=user1,
+                name="account12",
+                jid="accout12@jcl.test.com")
+        Account(user=User(jid="test2@test.com"),
+                name="account11",
+                jid="accout11@jcl.test.com")
+        accounts = account.get_accounts("user1@test.com")
+        i = 0
+        for _account in accounts:
+            i += 1
+            self.assertEquals(_account.user.jid, "user1@test.com")
+        self.assertEquals(i, 2)
+
+    def test_get_accounts_type(self):
+        user1 = User(jid="user1@test.com")
+        Account(user=user1,
+                name="account11",
+                jid="accout11@jcl.test.com")
+        ExampleAccount(user=user1,
+                       name="account12",
+                       jid="accout12@jcl.test.com")
+        ExampleAccount(user=User(jid="test2@test.com"),
+                       name="account11",
+                       jid="accout11@jcl.test.com")
+        accounts = account.get_accounts("user1@test.com", ExampleAccount)
+        i = 0
+        for _account in accounts:
+            i += 1
+            self.assertEquals(_account.user.jid, "user1@test.com")
+            self.assertEquals(_account.name, "account12")
+        self.assertEquals(i, 1)
+
+    def test_get_account(self):
+        user1 = User(jid="user1@test.com")
+        ExampleAccount(user=user1,
+                       name="account11",
+                       jid="accout11@jcl.test.com")
+        ExampleAccount(user=user1,
+                       name="account12",
+                       jid="accout12@jcl.test.com")
+        ExampleAccount(user=User(jid="test2@test.com"),
+                       name="account11",
+                       jid="accout11@jcl.test.com")
+        _account = account.get_account("user1@test.com", "account11")
+        self.assertEquals(_account.user.jid, "user1@test.com")
+        self.assertEquals(_account.name, "account11")
+
 class InheritableAccount_TestCase(JCLTestCase):
 
     def test_get_register_fields(self):
@@ -187,12 +242,12 @@ class InheritableAccount_TestCase(JCLTestCase):
 
 class Account_TestCase(InheritableAccount_TestCase):
     def setUp(self):
-        JCLTestCase.setUp(self, tables=[Account, ExampleAccount])
+        JCLTestCase.setUp(self, tables=[User, Account, ExampleAccount])
         self.account_class = Account
 
     def test_set_status(self):
         model.db_connect()
-        account11 = Account(user_jid="test1@test.com",
+        account11 = Account(user=User(jid="test1@test.com"),
                             name="account11",
                             jid="account11@jcl.test.com")
         account11.status = account.OFFLINE
@@ -202,7 +257,7 @@ class Account_TestCase(InheritableAccount_TestCase):
 
     def test_set_status_live_password(self):
         model.db_connect()
-        account11 = ExampleAccount(user_jid="test1@test.com",
+        account11 = ExampleAccount(user=User(jid="test1@test.com"),
                                    name="account11",
                                    jid="account11@jcl.test.com",
                                    login="mylogin",
@@ -219,11 +274,11 @@ class Account_TestCase(InheritableAccount_TestCase):
 
 class PresenceAccount_TestCase(InheritableAccount_TestCase):
     def setUp(self):
-        JCLTestCase.setUp(self, tables=[Account, PresenceAccount,
+        JCLTestCase.setUp(self, tables=[User, Account, PresenceAccount,
                                         PresenceAccountExample])
         model.db_connect()
         self.account = PresenceAccountExample(\
-            user_jid="test1@test.com",
+            user=User(jid="test1@test.com"),
             name="account11",
             jid="account11@jcl.test.com")
         model.db_disconnect()

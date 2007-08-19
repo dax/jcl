@@ -29,14 +29,14 @@ from jcl.jabber.component import JCLComponent
 from jcl.jabber.message import PasswordMessageHandler
 import jcl.model.account as account
 import jcl.model as model
-from jcl.model.account import Account
+from jcl.model.account import Account, User
 
 from jcl.model.tests.account import ExampleAccount
 from jcl.tests import JCLTestCase
 
 class PasswordMessageHandler_TestCase(JCLTestCase):
     def setUp(self):
-        JCLTestCase.setUp(self, tables=[Account, ExampleAccount])
+        JCLTestCase.setUp(self, tables=[User, Account, ExampleAccount])
         self.comp = JCLComponent("jcl.test.com",
                                  "password",
                                  "localhost",
@@ -46,11 +46,12 @@ class PasswordMessageHandler_TestCase(JCLTestCase):
 
     def test_filter_waiting_password(self):
         model.db_connect()
-        account11 = ExampleAccount(user_jid="user1@test.com",
+        user1 = User(jid="user1@test.com")
+        account11 = ExampleAccount(user=user1,
                                    name="account11",
                                    jid="account11@jcl.test.com")
         account11.waiting_password_reply = True
-        account12 = ExampleAccount(user_jid="user1@test.com",
+        account12 = ExampleAccount(user=user1,
                                    name="account12",
                                    jid="account12@jcl.test.com")
         message = Message(from_jid="user1@test.com",
@@ -63,11 +64,12 @@ class PasswordMessageHandler_TestCase(JCLTestCase):
 
     def test_filter_not_waiting_password(self):
         model.db_connect()
-        account11 = ExampleAccount(user_jid="user1@test.com",
+        user1 = User(jid="user1@test.com")
+        account11 = ExampleAccount(user=user1,
                                    name="account11",
                                    jid="account11@jcl.test.com")
         account11.waiting_password_reply = False
-        account12 = ExampleAccount(user_jid="user1@test.com",
+        account12 = ExampleAccount(user=user1,
                                    name="account12",
                                    jid="account12@jcl.test.com")
         message = Message(from_jid="user1@test.com",
@@ -80,11 +82,12 @@ class PasswordMessageHandler_TestCase(JCLTestCase):
 
     def test_filter_not_good_message(self):
         model.db_connect()
-        account11 = ExampleAccount(user_jid="user1@test.com",
+        user1 = User(jid="user1@test.com")
+        account11 = ExampleAccount(user=user1,
                                    name="account11",
                                    jid="account11@jcl.test.com")
         account11.waiting_password_reply = True
-        account12 = ExampleAccount(user_jid="user1@test.com",
+        account12 = ExampleAccount(user=user1,
                                    name="account12",
                                    jid="account12@jcl.test.com")
         message = Message(from_jid="user1@test.com",
@@ -97,10 +100,11 @@ class PasswordMessageHandler_TestCase(JCLTestCase):
 
     def test_filter_not_password_account(self):
         model.db_connect()
-        account11 = Account(user_jid="user1@test.com",
+        user1 = User(jid="user1@test.com")
+        account11 = Account(user=user1,
                             name="account11",
                             jid="account11@jcl.test.com")
-        account12 = Account(user_jid="user1@test.com",
+        account12 = Account(user=user1,
                             name="account12",
                             jid="account12@jcl.test.com")
         message = Message(from_jid="user1@test.com",
@@ -113,10 +117,11 @@ class PasswordMessageHandler_TestCase(JCLTestCase):
 
     def test_handle(self):
         model.db_connect()
-        account11 = ExampleAccount(user_jid="user1@test.com",
+        user1 = User(jid="user1@test.com")
+        account11 = ExampleAccount(user=user1,
                                    name="account11",
                                    jid="account11@jcl.test.com")
-        account12 = ExampleAccount(user_jid="user1@test.com",
+        account12 = ExampleAccount(user=user1,
                                    name="account12",
                                    jid="account12@jcl.test.com")
         message = Message(from_jid="user1@test.com",
@@ -129,9 +134,9 @@ class PasswordMessageHandler_TestCase(JCLTestCase):
         model.db_disconnect()
 
 def suite():
-    suite = unittest.TestSuite()
-    suite.addTest(unittest.makeSuite(PasswordMessageHandler_TestCase, 'test'))
-    return suite
+    test_suite = unittest.TestSuite()
+    test_suite.addTest(unittest.makeSuite(PasswordMessageHandler_TestCase, 'test'))
+    return test_suite
 
 if __name__ == '__main__':
     unittest.main(defaultTest='suite')

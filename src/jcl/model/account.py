@@ -59,11 +59,36 @@ def mandatory_field(field_name, field_value):
         raise FieldError(field_name, "Field required") # TODO : add translated message
     return field_value
 
+class User(InheritableSQLObject):
+    _connection = model.hub
+
+    jid = StringCol()
+    has_received_motd = BoolCol(default=False)
+    accounts = MultipleJoin("Account")
+
+def get_user(bare_from_jid, user_class=User):
+    result = None
+    model.db_connect()
+    users = user_class.select(User.q.jid == bare_from_jid)
+    model.db_disconnect()
+    if users.count() > 0:
+        result = users[0]
+    return result
+
+def get_all_users(user_class=User, limit=None, filter=None,
+                  distinct=False):
+    model.db_connect()
+    users = user_class.select(clause=filter, limit=limit,
+                              distinct=distinct)
+    for user in users:
+        yield user
+    model.db_disconnect()
+
 class Account(InheritableSQLObject):
     """Base Account class"""
     _cacheValue = False
     _connection = model.hub
-    user_jid = StringCol()
+
     name = StringCol()
     jid = StringCol()
     _status = StringCol(default=OFFLINE, dbName="status")
@@ -71,7 +96,8 @@ class Account(InheritableSQLObject):
     legacy_jids = MultipleJoin('LegacyJID')
     enabled = BoolCol(default=True)
     lastlogin = DateTimeCol(default=datetime.datetime.today())
-    
+    user = ForeignKey("User")
+
 ## Use these attributs to support volatile password
 ##    login = StringCol(default = "")
 ##    password = StringCol(default = None)
@@ -148,8 +174,9 @@ def get_account(bare_user_jid, name, account_class=Account):
     result = None
     model.db_connect()
     accounts = account_class.select(\
-        AND(account_class.q.name == name,
-            account_class.q.user_jid == unicode(bare_user_jid)))
+        AND(AND(Account.q.name == name,
+                Account.q.userID == User.q.id),
+            User.q.jid == unicode(bare_user_jid)))
     if accounts.count() > 0:
         result = accounts[0]
     model.db_disconnect()
@@ -158,10 +185,12 @@ def get_account(bare_user_jid, name, account_class=Account):
 def get_accounts(bare_user_jid, account_class=Account, filter=None):
     model.db_connect()
     if filter is not None:
-        filter = AND(account_class.q.user_jid == unicode(bare_user_jid),
+        filter = AND(AND(Account.q.userID == User.q.id,
+                         User.q.jid == unicode(bare_user_jid)),
                      filter)
     else:
-        filter = account_class.q.user_jid == unicode(bare_user_jid)
+        filter = AND(Account.q.userID == User.q.id,
+                     User.q.jid == unicode(bare_user_jid))
     accounts = account_class.select(filter)
     if accounts.count() == 0:
         model.db_disconnect()
@@ -180,7 +209,8 @@ def get_all_accounts(account_class=Account, filter=None, limit=None):
 def get_accounts_count(bare_user_jid, account_class=Account):
     model.db_connect()
     accounts_count = account_class.select(\
-        account_class.q.user_jid == unicode(bare_user_jid)).count()
+        AND(Account.q.userID == User.q.id,
+            User.q.jid == unicode(bare_user_jid))).count()
     model.db_disconnect()
     return accounts_count
 
@@ -192,18 +222,6 @@ def get_all_accounts_count(account_class=Account, filter=None):
         accounts_count = account_class.select(filter).count()
     model.db_disconnect()
     return accounts_count
-
-def get_all_user_jids(account_class=Account, limit=None, filter=None):
-    model.db_connect()
-    accounts = account_class.select(clause=filter, limit=limit,
-                                    orderBy=["user_jid"])
-    current_account = None
-    for _account in accounts:
-        if current_account is None \
-               or current_account.user_jid != _account.user_jid:
-            current_account = _account
-            yield _account
-    model.db_disconnect()
     
 class PresenceAccount(Account):
     DO_NOTHING = 0
@@ -333,8 +351,9 @@ class PresenceAccount(Account):
 def get_legacy_jids(bare_to_jid):
     model.db_connect()
     legacy_jids = LegacyJID.select(\
-            AND(LegacyJID.q.accountID == Account.q.id,
-                Account.q.user_jid == bare_to_jid))
+            AND(AND(LegacyJID.q.accountID == Account.q.id,
+                    Account.q.userID == User.q.id),
+                User.q.jid == bare_to_jid))
     for legacy_jid in legacy_jids:
         yield legacy_jid
     model.db_disconnect()

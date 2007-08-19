@@ -21,12 +21,22 @@
 ##
 
 import unittest
+import tempfile
+import os
+from ConfigParser import ConfigParser
 
 from pyxmpp.presence import Presence
+from pyxmpp.message import Message
 
+from jcl.jabber.component import JCLComponent
 from jcl.jabber.presence import DefaultSubscribeHandler, \
-     DefaultUnsubscribeHandler, DefaultPresenceHandler
+     DefaultUnsubscribeHandler, DefaultPresenceHandler, \
+     RootPresenceAvailableHandler
+from jcl.model.account import User, LegacyJID, Account
+from jcl.lang import Lang
 
+from jcl.tests import JCLTestCase
+        
 class DefaultSubscribeHandler_TestCase(unittest.TestCase):
     def setUp(self):
         self.handler = DefaultSubscribeHandler(None)
@@ -87,12 +97,96 @@ class DefaultPresenceHandler_TestCase(unittest.TestCase):
         self.assertEquals(result[0].get_from(), "user1%test.com@jcl.test.com")
         self.assertEquals(result[0].get_type(), "unavailable")
 
+class RootPresenceAvailableHandler_TestCase(JCLTestCase):
+    def setUp(self):
+        JCLTestCase.setUp(self, tables=[User, LegacyJID, Account])
+        self.config = ConfigParser()
+        self.config_file = tempfile.mktemp(".conf", "jcltest", "/tmp")
+        self.config.read(self.config_file)
+        self.config.add_section("component")
+        self.config.set("component", "motd", "Message Of The Day")
+        self.comp = JCLComponent("jcl.test.com",
+                                 "password",
+                                 "localhost",
+                                 "5347",
+                                 self.config)
+        self.handler = RootPresenceAvailableHandler(self.comp)
+
+    def tearDown(self):
+        JCLTestCase.tearDown(self)
+        if os.path.exists(self.config_file):
+            os.unlink(self.config_file)
+
+    def test_get_root_presence(self):
+        user1 = User(jid="user1@test.com")
+        account11 = Account(user=user1,
+                            name="account11",
+                            jid="account11@jcl.test.com")
+        account12 = Account(user=user1,
+                            name="account12",
+                            jid="account12@jcl.test.com")
+        presence = Presence(stanza_type="available",
+                            from_jid="user1@test.com",
+                            to_jid="jcl.test.com")
+        self.assertFalse(user1.has_received_motd)
+        result = self.handler.get_root_presence(presence, Lang.en, 2)
+        self.assertTrue(user1.has_received_motd)
+        self.assertEquals(len(result), 2)
+        self.assertTrue(isinstance(result[0], Presence))
+        self.assertEquals(result[0].get_to(), "user1@test.com")
+        self.assertEquals(result[0].get_from(), "jcl.test.com")
+        self.assertTrue(isinstance(result[1], Message))
+        self.assertEquals(result[1].get_to(), "user1@test.com")
+        self.assertEquals(result[1].get_from(), "jcl.test.com")
+        self.assertEquals(result[1].get_body(), "Message Of The Day")
+
+    def test_get_root_presence_already_received_motd(self):
+        user1 = User(jid="user1@test.com")
+        user1.has_received_motd = True
+        account11 = Account(user=user1,
+                            name="account11",
+                            jid="account11@jcl.test.com")
+        account12 = Account(user=user1,
+                            name="account12",
+                            jid="account12@jcl.test.com")
+        presence = Presence(stanza_type="available",
+                            from_jid="user1@test.com",
+                            to_jid="jcl.test.com")
+        self.assertTrue(user1.has_received_motd)
+        result = self.handler.get_root_presence(presence, Lang.en, 2)
+        self.assertTrue(user1.has_received_motd)
+        self.assertEquals(len(result), 1)
+        self.assertTrue(isinstance(result[0], Presence))
+        self.assertEquals(result[0].get_to(), "user1@test.com")
+        self.assertEquals(result[0].get_from(), "jcl.test.com")
+
+    def test_get_root_presence_no_motd(self):
+        user1 = User(jid="user1@test.com")
+        account11 = Account(user=user1,
+                            name="account11",
+                            jid="account11@jcl.test.com")
+        account12 = Account(user=user1,
+                            name="account12",
+                            jid="account12@jcl.test.com")
+        presence = Presence(stanza_type="available",
+                            from_jid="user1@test.com",
+                            to_jid="jcl.test.com")
+        self.assertFalse(user1.has_received_motd)
+        self.config.remove_option("component", "motd")
+        result = self.handler.get_root_presence(presence, Lang.en, 2)
+        self.assertTrue(user1.has_received_motd)
+        self.assertEquals(len(result), 1)
+        self.assertTrue(isinstance(result[0], Presence))
+        self.assertEquals(result[0].get_to(), "user1@test.com")
+        self.assertEquals(result[0].get_from(), "jcl.test.com")
+
 def suite():
-    suite = unittest.TestSuite()
-    suite.addTest(unittest.makeSuite(DefaultSubscribeHandler_TestCase, 'test'))
-    suite.addTest(unittest.makeSuite(DefaultUnsubscribeHandler_TestCase, 'test'))
-    suite.addTest(unittest.makeSuite(DefaultPresenceHandler_TestCase, 'test'))
-    return suite
+    test_suite = unittest.TestSuite()
+    test_suite.addTest(unittest.makeSuite(DefaultSubscribeHandler_TestCase, 'test'))
+    test_suite.addTest(unittest.makeSuite(DefaultUnsubscribeHandler_TestCase, 'test'))
+    test_suite.addTest(unittest.makeSuite(DefaultPresenceHandler_TestCase, 'test'))
+    test_suite.addTest(unittest.makeSuite(RootPresenceAvailableHandler_TestCase, 'test'))
+    return test_suite
 
 if __name__ == '__main__':
     unittest.main(defaultTest='suite')

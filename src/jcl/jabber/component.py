@@ -61,7 +61,7 @@ from jcl.jabber.register import RootSetRegisterHandler, \
      AccountSetRegisterHandler, AccountTypeSetRegisterHandler
 import jcl.model as model
 from jcl.model import account
-from jcl.model.account import Account
+from jcl.model.account import Account, User
 from jcl.lang import Lang
 
 VERSION = "0.1"
@@ -85,6 +85,8 @@ class JCLComponent(Component, object):
                  secret,
                  server,
                  port,
+                 config,
+                 config_file="jmc.conf",
                  disco_category="headline",
                  disco_type="x-unknown",
                  lang=Lang()):
@@ -98,6 +100,8 @@ class JCLComponent(Component, object):
         # default values
         self.name = lang.get_default_lang_class().component_name
         self.spool_dir = "."
+        self.config = config
+        self.config_file = config_file
         self.version = VERSION
         self.time_unit = 60
         self.queue = Queue(100)
@@ -553,6 +557,28 @@ class JCLComponent(Component, object):
                             % (exception, "".join(traceback.format_exception
                                                   (type, value, stack, 5))))
 
+    def get_motd(self, to_jid):
+        if self.config is not None \
+               and self.config.has_option("component", "motd"):
+            motd = self.config.get("component", "motd")
+            return [Message(from_jid=self.jid,
+                            to_jid=to_jid,
+                            body=motd)]
+        else:
+            return []
+
+    def set_motd(self, motd):
+        if not self.config.has_section("component"):
+            self.config.add_section("component")
+        self.config.set("component", "motd", motd)
+        configFile = open(self.config_file, "w")
+        self.config.write(configFile)
+
+    def del_motd(self):
+        if self.config.has_section("component") \
+           and self.config.has_option("component", "motd"):
+            self.config.remove_option("component", "motd")
+
     ###########################################################################
     # Virtual methods
     ###########################################################################
@@ -693,7 +719,7 @@ class AccountManager(object):
                          new_account, first_account, from_jid=None):
         """Populate given account"""
         if from_jid is None:
-            from_jid = _account.user_jid
+            from_jid = _account.user.jid
         field = None
         result = []
         model.db_connect()
@@ -764,7 +790,7 @@ class AccountManager(object):
         bare_from_jid = unicode(from_jid.bare())
         first_account = (account.get_accounts_count(bare_from_jid) == 0)
         model.db_connect()
-        _account = account_class(user_jid=unicode(bare_from_jid),
+        _account = account_class(user=User(jid=unicode(bare_from_jid)),
                                  name=account_name,
                                  jid=self.get_account_jid(account_name))
         model.db_disconnect()
@@ -810,19 +836,15 @@ class AccountManager(object):
     def send_presence_all(self, presence):
         """Send presence to all account. Optimized to use only one sql
         request"""
-        current_user_jid = None
         result = []
         model.db_connect()
         # Explicit reference to account table (clauseTables) to use
         # "user_jid" column with Account subclasses
-        for _account in \
-                Account.select(clauseTables=["account"],
-                               orderBy=["user_jid", "name"]):
-            if current_user_jid != _account.user_jid:
-                current_user_jid = _account.user_jid
-                result.extend(self.send_presence(self.component.jid,
-                                                 _account.user_jid,
-                                                 presence))
+        for user in account.get_all_users():
+            result.extend(self.send_presence(self.component.jid,
+                                             user.jid,
+                                             presence))
+        for _account in account.get_all_accounts():
             result.extend(getattr(self, "send_presence_" +
                                   presence)(_account))
         model.db_disconnect()
@@ -932,7 +954,7 @@ class AccountManager(object):
         Return register form for an existing account (update)
         """
         reg_form = self.generate_registration_form(lang_class, _account.__class__,
-                                                   _account.user_jid)
+                                                   _account.user.jid)
         reg_form["name"].value = _account.name
         reg_form["name"].type = "hidden"
         for field in reg_form.fields:
@@ -947,7 +969,7 @@ class AccountManager(object):
     def send_presence_probe(self, _account):
         """Send presence probe to account's user"""
         return [Presence(from_jid=_account.jid,
-                         to_jid=_account.user_jid,
+                         to_jid=_account.user.jid,
                          stanza_type="probe")]
 
     def send_presence_unavailable(self, _account):
@@ -955,7 +977,7 @@ class AccountManager(object):
         model.db_connect()
         _account.status = account.OFFLINE
         result = [Presence(from_jid=_account.jid,
-                           to_jid=_account.user_jid,
+                           to_jid=_account.user.jid,
                            stanza_type="unavailable")]
         model.db_disconnect()
         return result
@@ -991,7 +1013,7 @@ class AccountManager(object):
         else:
             _account.status = show
         result.append(Presence(from_jid=_account.jid,
-                               to_jid=_account.user_jid,
+                               to_jid=_account.user.jid,
                                status=_account.status_msg,
                                show=show,
                                stanza_type="available"))
@@ -1025,7 +1047,7 @@ class AccountManager(object):
             and _account.status != account.OFFLINE:
             _account.waiting_password_reply = True
             result.append(Message(from_jid=_account.jid,
-                                  to_jid=_account.user_jid,
+                                  to_jid=_account.user.jid,
                                   subject=u"[PASSWORD] " + \
                                       lang_class.ask_password_subject,
                                   body=lang_class.ask_password_body % \
@@ -1053,7 +1075,7 @@ class AccountManager(object):
         if _account.in_error == False:
             _account.in_error = True
             result.append(Message(from_jid=_account.jid,
-                                  to_jid=_account.user_jid,
+                                  to_jid=_account.user.jid,
                                   stanza_type="error",
                                   subject=_account.default_lang_class.error_subject,
                                   body=_account.default_lang_class.error_body \

@@ -24,6 +24,7 @@
 from pyxmpp.presence import Presence
 
 from jcl.jabber import Handler
+from jcl.model import account
 import jcl.jabber as jabber
 
 class DefaultPresenceHandler(Handler):
@@ -104,11 +105,17 @@ class RootPresenceHandler(AccountPresenceHandler):
         
 class RootPresenceAvailableHandler(RootPresenceHandler, AccountPresenceAvailableHandler):
     def get_root_presence(self, stanza, lang_class, nb_accounts):
-        return self.component.account_manager.send_root_presence(stanza.get_from(),
-                                                                 "available",
-                                                                 stanza.get_show(),
-                                                                 str(nb_accounts) +
-                                                                 lang_class.message_status)
+        from_jid = stanza.get_from()
+        result = self.component.account_manager.send_root_presence(from_jid,
+                                                                   "available",
+                                                                   stanza.get_show(),
+                                                                   str(nb_accounts) +
+                                                                   lang_class.message_status)
+        user = account.get_user(unicode(from_jid.bare()))
+        if not user.has_received_motd:
+            user.has_received_motd = True
+            result.extend(self.component.get_motd(from_jid))
+        return result
         
 
 class AccountPresenceUnavailableHandler(AccountPresenceHandler):
