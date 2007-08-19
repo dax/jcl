@@ -6,7 +6,6 @@ from sqlobject.dbconnection import connectionForURI
 
 import jcl.model
 
-db_connected = False
 db_connection_str = ""
 
 # create a hub to attach a per thread connection

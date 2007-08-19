@@ -273,9 +273,9 @@ class Account_TestCase(InheritableAccount_TestCase):
         model.db_disconnect()
 
 class PresenceAccount_TestCase(InheritableAccount_TestCase):
-    def setUp(self):
+    def setUp(self, tables=[]):
         JCLTestCase.setUp(self, tables=[User, Account, PresenceAccount,
-                                        PresenceAccountExample])
+                                        PresenceAccountExample] + tables)
         model.db_connect()
         self.account = PresenceAccountExample(\
             user=User(jid="test1@test.com"),

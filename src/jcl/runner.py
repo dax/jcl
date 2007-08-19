@@ -26,12 +26,10 @@ import sys
 from ConfigParser import ConfigParser
 from getopt import gnu_getopt
 
-from sqlobject import *
-
 from jcl.lang import Lang
 from jcl.jabber.component import JCLComponent
 import jcl.model as model
-from jcl.model.account import Account, PresenceAccount
+from jcl.model.account import Account, PresenceAccount, User, LegacyJID
 
 class JCLRunner(object):
     def __init__(self, component_name, component_version):
@@ -42,7 +40,7 @@ class JCLRunner(object):
         """
         self.component_name = component_name
         self.component_version = component_version
-        self.config_file = "jmc.conf"
+        self.config_file = "jcl.conf"
         self.server = "localhost"
         self.port = 5347
         self.secret = "secret"
@@ -179,6 +177,8 @@ class JCLRunner(object):
     def setup_db(self):
         Account.createTable(ifNotExists=True)
         PresenceAccount.createTable(ifNotExists=True)
+        User.createTable(ifNotExists=True)
+        LegacyJID.createTable(ifNotExists=True)
 
     def setup_pidfile(self):
         pidfile = open(self.pid_file, "w")

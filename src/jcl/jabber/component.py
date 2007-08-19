@@ -868,7 +868,7 @@ class AccountManager(object):
             resource = ""
         model.db_connect()
         accounts = account.get_accounts(bare_from_jid, account_class)
-        if accounts:
+        if accounts.count() > 0:
             for _account in accounts:
                 yield (_account, resource, account_type)
         model.db_disconnect()

@@ -64,7 +64,6 @@ class JCLCommandManager_TestCase(JCLTestCase):
                                         Example2Account, LegacyJID,
                                         User])
         self.config_file = tempfile.mktemp(".conf", "jcltest", "/tmp")
-        print str(self.config_file)
         self.config = ConfigParser()
         self.config.read(self.config_file)
         self.comp = JCLComponent("jcl.test.com",

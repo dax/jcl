@@ -80,9 +80,7 @@ def get_all_users(user_class=User, limit=None, filter=None,
     model.db_connect()
     users = user_class.select(clause=filter, limit=limit,
                               distinct=distinct)
-    for user in users:
-        yield user
-    model.db_disconnect()
+    return users
 
 class Account(InheritableSQLObject):
     """Base Account class"""
@@ -183,7 +181,6 @@ def get_account(bare_user_jid, name, account_class=Account):
     return result
 
 def get_accounts(bare_user_jid, account_class=Account, filter=None):
-    model.db_connect()
     if filter is not None:
         filter = AND(AND(Account.q.userID == User.q.id,
                          User.q.jid == unicode(bare_user_jid)),
@@ -192,26 +189,18 @@ def get_accounts(bare_user_jid, account_class=Account, filter=None):
         filter = AND(Account.q.userID == User.q.id,
                      User.q.jid == unicode(bare_user_jid))
     accounts = account_class.select(filter)
-    if accounts.count() == 0:
-        model.db_disconnect()
-        return
-    for _account in accounts:
-        yield _account
-    model.db_disconnect()
+    return accounts
 
 def get_all_accounts(account_class=Account, filter=None, limit=None):
     model.db_connect()
     accounts = account_class.select(clause=filter, limit=limit)
-    for _account in accounts:
-        yield _account
-    model.db_disconnect()
+    return accounts
 
 def get_accounts_count(bare_user_jid, account_class=Account):
     model.db_connect()
     accounts_count = account_class.select(\
         AND(Account.q.userID == User.q.id,
             User.q.jid == unicode(bare_user_jid))).count()
-    model.db_disconnect()
     return accounts_count
 
 def get_all_accounts_count(account_class=Account, filter=None):
@@ -220,7 +209,6 @@ def get_all_accounts_count(account_class=Account, filter=None):
         accounts_count = account_class.select().count()
     else:
         accounts_count = account_class.select(filter).count()
-    model.db_disconnect()
     return accounts_count
     
 class PresenceAccount(Account):
@@ -354,9 +342,7 @@ def get_legacy_jids(bare_to_jid):
             AND(AND(LegacyJID.q.accountID == Account.q.id,
                     Account.q.userID == User.q.id),
                 User.q.jid == bare_to_jid))
-    for legacy_jid in legacy_jids:
-        yield legacy_jid
-    model.db_disconnect()
+    return legacy_jids
 
 class LegacyJID(InheritableSQLObject):
     _connection = model.hub

@@ -31,7 +31,7 @@ import jcl
 from jcl.runner import JCLRunner
 
 import jcl.model as model
-from jcl.model.account import Account, PresenceAccount
+from jcl.model.account import Account, PresenceAccount, User, LegacyJID
 
 if sys.platform == "win32":
     DB_DIR = "/c|/temp/"
@@ -48,7 +48,7 @@ class JCLRunner_TestCase(unittest.TestCase):
         
     def test_configure_default(self):
         self.runner.configure()
-        self.assertEquals(self.runner.config_file, "jmc.conf")
+        self.assertEquals(self.runner.config_file, "jcl.conf")
         self.assertEquals(self.runner.server, "localhost")
         self.assertEquals(self.runner.port, 5347)
         self.assertEquals(self.runner.secret, "secret")
@@ -131,6 +131,8 @@ class JCLRunner_TestCase(unittest.TestCase):
         # dropTable should succeed because tables should exist
         Account.dropTable()
         PresenceAccount.dropTable()
+        User.dropTable()
+        LegacyJID.dropTable()
         model.db_disconnect()
         os.unlink(db_path)
         self.assertFalse(os.access("/tmp/jcl.pid", os.F_OK))
