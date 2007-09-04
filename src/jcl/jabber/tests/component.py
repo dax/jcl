@@ -26,6 +26,9 @@ import unittest
 import threading
 import time
 import re
+from ConfigParser import ConfigParser
+import tempfile
+import os
 
 from pyxmpp.jid import JID
 from pyxmpp.iq import Iq
@@ -33,6 +36,7 @@ from pyxmpp.presence import Presence
 from pyxmpp.message import Message
 from pyxmpp.jabber.dataforms import Form
 
+import jcl.tests
 from jcl.jabber import Handler
 from jcl.jabber.component import JCLComponent, AccountManager
 from jcl.jabber.presence import DefaultSubscribeHandler, \
@@ -2499,6 +2503,62 @@ class JCLComponent_TestCase(JCLTestCase):
         self.comp.send_stanzas(None)
         self.assertEquals(len(self.comp.stream.sent), 0)
 
+    def test_get_motd(self):
+        config_file = tempfile.mktemp(".conf", "jcltest", jcl.tests.DB_DIR)
+        self.comp.config_file = config_file
+        self.comp.config = ConfigParser()
+        self.comp.config.read(self.comp.config_file)
+        self.comp.config.add_section("component")
+        self.comp.config.set("component", "motd", "test motd")
+        self.comp.config.write(open(self.comp.config_file, "w"))
+        motd = self.comp.get_motd()
+        self.assertEquals(motd, "test motd")
+        os.unlink(config_file)
+
+    def test_get_no_motd(self):
+        config_file = tempfile.mktemp(".conf", "jcltest", jcl.tests.DB_DIR)
+        self.comp.config_file = config_file
+        self.comp.config = ConfigParser()
+        self.comp.config.read(self.comp.config_file)
+        self.comp.config.write(open(self.comp.config_file, "w"))
+        motd = self.comp.get_motd()
+        self.assertEquals(motd, None)
+        os.unlink(config_file)
+
+    def test_set_new_motd(self):
+        config_file = tempfile.mktemp(".conf", "jcltest", jcl.tests.DB_DIR)
+        self.comp.config_file = config_file
+        self.comp.config = ConfigParser()
+        self.comp.set_motd("test motd")
+        self.comp.config.read(self.comp.config_file)
+        self.assertTrue(self.comp.config.has_option("component", "motd"))
+        self.assertEquals(self.comp.config.get("component", "motd"), "test motd")
+        os.unlink(config_file)
+
+    def test_set_motd(self):
+        config_file = tempfile.mktemp(".conf", "jcltest", jcl.tests.DB_DIR)
+        self.comp.config_file = config_file
+        self.comp.config = ConfigParser()
+        self.comp.config.add_section("component")
+        self.comp.config.set("component", "motd", "test motd")
+        self.comp.config.write(open(self.comp.config_file, "w"))
+        self.comp.set_motd("test new motd")
+        self.comp.config.read(self.comp.config_file)
+        self.assertTrue(self.comp.config.has_option("component", "motd"))
+        self.assertEquals(self.comp.config.get("component", "motd"), "test new motd")
+        os.unlink(config_file)
+
+    def test_del_motd(self):
+        config_file = tempfile.mktemp(".conf", "jcltest", jcl.tests.DB_DIR)
+        self.comp.config_file = config_file
+        self.comp.config = ConfigParser()
+        self.comp.config.add_section("component")
+        self.comp.config.set("component", "motd", "test motd")
+        self.comp.config.write(open(self.comp.config_file, "w"))
+        self.comp.del_motd()
+        self.comp.config.read(self.comp.config_file)
+        self.assertFalse(self.comp.config.has_option("component", "motd"))
+        os.unlink(config_file)
 
     ###########################################################################
     # 'handle_command' tests

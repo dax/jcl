@@ -557,15 +557,13 @@ class JCLComponent(Component, object):
                             % (exception, "".join(traceback.format_exception
                                                   (type, value, stack, 5))))
 
-    def get_motd(self, to_jid):
+    def get_motd(self):
         if self.config is not None \
                and self.config.has_option("component", "motd"):
             motd = self.config.get("component", "motd")
-            return [Message(from_jid=self.jid,
-                            to_jid=to_jid,
-                            body=motd)]
+            return motd
         else:
-            return []
+            return None
 
     def set_motd(self, motd):
         if not self.config.has_section("component"):
@@ -573,11 +571,15 @@ class JCLComponent(Component, object):
         self.config.set("component", "motd", motd)
         configFile = open(self.config_file, "w")
         self.config.write(configFile)
+        configFile.close()
 
     def del_motd(self):
         if self.config.has_section("component") \
            and self.config.has_option("component", "motd"):
             self.config.remove_option("component", "motd")
+            configFile = open(self.config_file, "w")
+            self.config.write(configFile)
+            configFile.close()
 
     ###########################################################################
     # Virtual methods

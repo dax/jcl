@@ -22,6 +22,7 @@
 ##
 
 from pyxmpp.presence import Presence
+from pyxmpp.message import Message
 
 from jcl.jabber import Handler
 from jcl.model import account
@@ -114,7 +115,11 @@ class RootPresenceAvailableHandler(RootPresenceHandler, AccountPresenceAvailable
         user = account.get_user(unicode(from_jid.bare()))
         if not user.has_received_motd:
             user.has_received_motd = True
-            result.extend(self.component.get_motd(from_jid))
+            motd = self.component.get_motd()
+            if motd is not None:
+                result.append(Message(from_jid=self.component.jid,
+                                      to_jid=from_jid,
+                                      body=motd))
         return result
         
 

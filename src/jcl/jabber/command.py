@@ -778,7 +778,7 @@ class JCLCommandManager(CommandManager):
         return (None, result)
 
     def execute_set_motd_1(self, info_query, session_context,
-                           command_node, lang_class):
+                           command_node, lang_class, motd=""):
         self.add_actions(command_node, [ACTION_NEXT])
         result_form = Form(xmlnode_or_type="result",
                            title="TODO",
@@ -789,6 +789,7 @@ class JCLCommandManager(CommandManager):
         result_form.add_field(name="motd",
                               field_type="text-multi",
                               label="TODO",
+                              value=[motd],
                               required=True)
         result_form.as_xml(command_node)
         return (result_form, [])
@@ -803,24 +804,28 @@ class JCLCommandManager(CommandManager):
                        Account.q._status != account.OFFLINE),
             distinct=True)
         result = []
-        for user in users:
-            for _account in user.accounts:
-                if _account.status == account.OFFLINE:
-                    user.has_received_motd = False
-                else:
-                    user.has_received_motd = True
-            if user.has_received_motd:
-                result.extend(self.component.get_motd(user.jid))
+        motd = self.component.get_motd()
+        if motd is not None:
+            for user in users:
+                for _account in user.accounts:
+                    if _account.status == account.OFFLINE:
+                        user.has_received_motd = False
+                    else:
+                        user.has_received_motd = True
+                if user.has_received_motd:
+                    result.append(Message(from_jid=self.component.jid,
+                                          to_jid=user.jid,
+                                          body=motd))
         command_node.setProp("status", STATUS_COMPLETED)
         return (None, result)
 
     def execute_edit_motd_1(self, info_query, session_context,
                             command_node, lang_class):
-        return []
+        return self.execute_set_motd_1(info_query, session_context,
+                                       command_node, lang_class,
+                                       self.component.get_motd())
 
-    def execute_edit_motd_2(self, info_query, session_context,
-                            command_node, lang_class):
-        return []
+    execute_edit_motd_2 = execute_set_motd_2
 
     def execute_delete_motd_1(self, info_query, session_context,
                               command_node, lang_class):
