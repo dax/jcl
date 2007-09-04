@@ -121,6 +121,8 @@ class Language_TestCase(unittest.TestCase):
         self.assertNotEquals(self.lang_class.command_add_user, None)
         self.assertNotEquals(self.lang_class.select_account_type, None)
 
+        self.assertNotEquals(self.lang_class.welcome_message_subject, None)
+
 class Language_fr_TestCase(Language_TestCase):
     def setUp(self):
         self.lang_class = Lang.fr

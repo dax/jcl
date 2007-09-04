@@ -117,6 +117,8 @@ class Lang:
         command_add_user = u"Create new account"
         select_account_type = u"Select account type"
 
+        welcome_message_subject = u"Welcome"
+
     class fr:
         component_name = u"composant générique Jabber Component Library"
         register_title = u"Enregistrement d'une nouvelle connexion"
@@ -164,6 +166,8 @@ class Lang:
         command_list = u"Liste les comptes"
         command_add_user = u"Créer un compte"
         select_account_type = u"Selectionner le type de comptes"
+
+        welcome_message_subject = u"Bienvenue"
 
     class nl:
         # TODO: when finish, delete this line and uncomment in tests/lang.py the makeSuite(Language_nl_TestCase, 'test') line

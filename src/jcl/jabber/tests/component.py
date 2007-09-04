@@ -1128,6 +1128,77 @@ class JCLComponent_TestCase(JCLTestCase):
         self.assertEquals(presence_account.get_node().prop("type"),
                           "subscribe")
 
+    def test_handle_set_register_new_with_welcome_message(self):
+        self.comp.stream = MockStream()
+        self.comp.stream_class = MockStream
+        config_file = tempfile.mktemp(".conf", "jcltest", jcl.tests.DB_DIR)
+        self.comp.config_file = config_file
+        self.comp.config = ConfigParser()
+        self.comp.config.read(self.comp.config_file)
+        self.comp.config.add_section("component")
+        self.comp.config.set("component", "welcome_message",
+                             "Welcome Message")
+        self.comp.config.write(open(self.comp.config_file, "w"))
+        x_data = Form("submit")
+        x_data.add_field(name="name",
+                         value="account1",
+                         field_type="text-single")
+        iq_set = Iq(stanza_type="set",
+                    from_jid="user1@test.com",
+                    to_jid="jcl.test.com")
+        query = iq_set.new_query("jabber:iq:register")
+        x_data.as_xml(query, None)
+        self.comp.handle_set_register(iq_set)
+
+        model.db_connect()
+        _account = account.get_account("user1@test.com", "account1")
+        self.assertNotEquals(_account, None)
+        self.assertEquals(_account.user.jid, "user1@test.com")
+        self.assertEquals(_account.name, "account1")
+        self.assertEquals(_account.jid, "account1@jcl.test.com")
+        model.db_disconnect()
+
+        stanza_sent = self.comp.stream.sent
+        self.assertEquals(len(stanza_sent), 5)
+        iq_result = stanza_sent[0]
+        self.assertTrue(isinstance(iq_result, Iq))
+        self.assertEquals(iq_result.get_node().prop("type"), "result")
+        self.assertEquals(iq_result.get_from(), "jcl.test.com")
+        self.assertEquals(iq_result.get_to(), "user1@test.com")
+
+        presence_component = stanza_sent[1]
+        self.assertTrue(isinstance(presence_component, Presence))
+        self.assertEquals(presence_component.get_from(), "jcl.test.com")
+        self.assertEquals(presence_component.get_to(), "user1@test.com")
+        self.assertEquals(presence_component.get_node().prop("type"),
+                          "subscribe")
+
+        message = stanza_sent[2]
+        self.assertTrue(isinstance(message, Message))
+        self.assertEquals(message.get_from(), "jcl.test.com")
+        self.assertEquals(message.get_to(), "user1@test.com")
+        self.assertEquals(message.get_subject(),
+                          Lang.en.welcome_message_subject)
+        self.assertEquals(message.get_body(),
+                          "Welcome Message")
+
+        message = stanza_sent[3]
+        self.assertTrue(isinstance(message, Message))
+        self.assertEquals(message.get_from(), "jcl.test.com")
+        self.assertEquals(message.get_to(), "user1@test.com")
+        self.assertEquals(message.get_subject(),
+                          _account.get_new_message_subject(Lang.en))
+        self.assertEquals(message.get_body(),
+                          _account.get_new_message_body(Lang.en))
+
+        presence_account = stanza_sent[4]
+        self.assertTrue(isinstance(presence_account, Presence))
+        self.assertEquals(presence_account.get_from(), "account1@jcl.test.com")
+        self.assertEquals(presence_account.get_to(), "user1@test.com")
+        self.assertEquals(presence_account.get_node().prop("type"),
+                          "subscribe")
+        os.unlink(config_file)
+
     def test_handle_set_register_new_multiple_types(self):
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
@@ -2558,6 +2629,68 @@ class JCLComponent_TestCase(JCLTestCase):
         self.comp.del_motd()
         self.comp.config.read(self.comp.config_file)
         self.assertFalse(self.comp.config.has_option("component", "motd"))
+        os.unlink(config_file)
+
+    def test_get_welcome_message(self):
+        config_file = tempfile.mktemp(".conf", "jcltest", jcl.tests.DB_DIR)
+        self.comp.config_file = config_file
+        self.comp.config = ConfigParser()
+        self.comp.config.read(self.comp.config_file)
+        self.comp.config.add_section("component")
+        self.comp.config.set("component", "welcome_message", "Welcome Message")
+        self.comp.config.write(open(self.comp.config_file, "w"))
+        motd = self.comp.get_welcome_message()
+        self.assertEquals(motd, "Welcome Message")
+        os.unlink(config_file)
+
+    def test_get_no_welcome_message(self):
+        config_file = tempfile.mktemp(".conf", "jcltest", jcl.tests.DB_DIR)
+        self.comp.config_file = config_file
+        self.comp.config = ConfigParser()
+        self.comp.config.read(self.comp.config_file)
+        self.comp.config.write(open(self.comp.config_file, "w"))
+        motd = self.comp.get_welcome_message()
+        self.assertEquals(motd, None)
+        os.unlink(config_file)
+
+    def test_set_new_welcome_message(self):
+        config_file = tempfile.mktemp(".conf", "jcltest", jcl.tests.DB_DIR)
+        self.comp.config_file = config_file
+        self.comp.config = ConfigParser()
+        self.comp.set_welcome_message("Welcome Message")
+        self.comp.config.read(self.comp.config_file)
+        self.assertTrue(self.comp.config.has_option("component",
+                                                    "welcome_message"))
+        self.assertEquals(self.comp.config.get("component", "welcome_message"),
+                          "Welcome Message")
+        os.unlink(config_file)
+
+    def test_set_welcome_message(self):
+        config_file = tempfile.mktemp(".conf", "jcltest", jcl.tests.DB_DIR)
+        self.comp.config_file = config_file
+        self.comp.config = ConfigParser()
+        self.comp.config.add_section("component")
+        self.comp.config.set("component", "welcome_message", "Welcome Message")
+        self.comp.config.write(open(self.comp.config_file, "w"))
+        self.comp.set_welcome_message("New Welcome Message")
+        self.comp.config.read(self.comp.config_file)
+        self.assertTrue(self.comp.config.has_option("component",
+                                                    "welcome_message"))
+        self.assertEquals(self.comp.config.get("component", "welcome_message"),
+                          "New Welcome Message")
+        os.unlink(config_file)
+
+    def test_del_welcome_message(self):
+        config_file = tempfile.mktemp(".conf", "jcltest", jcl.tests.DB_DIR)
+        self.comp.config_file = config_file
+        self.comp.config = ConfigParser()
+        self.comp.config.add_section("component")
+        self.comp.config.set("component", "welcome_message", "Welcome Message")
+        self.comp.config.write(open(self.comp.config_file, "w"))
+        self.comp.del_welcome_message()
+        self.comp.config.read(self.comp.config_file)
+        self.assertFalse(self.comp.config.has_option("component",
+                                                     "welcome_message"))
         os.unlink(config_file)
 
     ###########################################################################

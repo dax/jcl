@@ -557,30 +557,49 @@ class JCLComponent(Component, object):
                             % (exception, "".join(traceback.format_exception
                                                   (type, value, stack, 5))))
 
-    def get_motd(self):
+    def get_config_parameter(self, section, parameter):
         if self.config is not None \
-               and self.config.has_option("component", "motd"):
-            motd = self.config.get("component", "motd")
-            return motd
+               and self.config.has_option(section, parameter):
+            return self.config.get(section, parameter)
         else:
             return None
 
-    def set_motd(self, motd):
-        if not self.config.has_section("component"):
-            self.config.add_section("component")
-        self.config.set("component", "motd", motd)
+    def set_config_parameter(self, section, parameter, value):
+        if not self.config.has_section(section):
+            self.config.add_section(section)
+        self.config.set(section, parameter, value)
         configFile = open(self.config_file, "w")
         self.config.write(configFile)
         configFile.close()
 
-    def del_motd(self):
-        if self.config.has_section("component") \
-           and self.config.has_option("component", "motd"):
-            self.config.remove_option("component", "motd")
+    def del_config_parameter(self, section, parameter):
+        if self.config.has_section(section) \
+           and self.config.has_option(section, parameter):
+            self.config.remove_option(section, parameter)
             configFile = open(self.config_file, "w")
             self.config.write(configFile)
             configFile.close()
 
+    def get_motd(self):
+        return self.get_config_parameter("component", "motd")
+
+    def set_motd(self, motd):
+        self.set_config_parameter("component", "motd", motd)
+
+    def del_motd(self):
+        self.del_config_parameter("component", "motd")
+
+    def get_welcome_message(self):
+        return self.get_config_parameter("component", "welcome_message")
+
+    def set_welcome_message(self, welcome_message):
+        self.set_config_parameter("component", "welcome_message",
+                                  welcome_message)
+
+    def del_welcome_message(self):
+        self.del_config_parameter("component", "welcome_message")
+
+        
     ###########################################################################
     # Virtual methods
     ###########################################################################
@@ -742,6 +761,12 @@ class AccountManager(object):
             result.append(Presence(from_jid=self.component.jid,
                                    to_jid=from_jid,
                                    stanza_type="subscribe"))
+            welcome_message = self.component.get_welcome_message()
+            if welcome_message is not None:
+                result.append(Message(from_jid=self.component.jid,
+                                      to_jid=from_jid,
+                                      body=welcome_message,
+                                      subject=lang_class.welcome_message_subject))
         if new_account:
             # subscribe to user presence if this is a new account
             result.append(Message(\

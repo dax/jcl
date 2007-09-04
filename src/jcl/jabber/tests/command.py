@@ -2500,23 +2500,143 @@ class JCLCommandManager_TestCase(JCLTestCase):
         self.assertFalse(self.comp.config.has_option("component", "motd"))
         os.unlink(config_file)
 
-#     def test_execute_set_welcome(self):
-#         #TODO : implement command
-#         info_query = Iq(stanza_type="set",
-#                         from_jid="user1@test.com",
-#                         to_jid="jcl.test.com")
-#         result = self.command_manager.execute_add_user(info_query)
-#         self.assertNotEquals(result, None)
-#         self.assertEquals(len(result), 1)
+    def test_execute_set_welcome(self):
+        self.comp.account_manager.account_classes = (ExampleAccount,
+                                                     Example2Account)
+        config_file = tempfile.mktemp(".conf", "jcltest", jcl.tests.DB_DIR)
+        self.comp.config_file = config_file
+        self.comp.config = ConfigParser()
+        self.comp.set_welcome_message("Welcome Message")
+        model.db_connect()
+        user1 = User(jid="test1@test.com")
+        account11 = ExampleAccount(user=user1,
+                                   name="account11",
+                                   jid="account11@jcl.test.com")
+        account11.status = account.ONLINE
+        account12 = Example2Account(user=user1,
+                                    name="account12",
+                                    jid="account12@jcl.test.com")
+        account12.status = "away"
+        user2 = User(jid="test2@test.com")
+        account21 = ExampleAccount(user=user2,
+                                   name="account21",
+                                   jid="account21@jcl.test.com")
+        account21.status = account.OFFLINE
+        account22 = ExampleAccount(user=user2,
+                                   name="account11",
+                                   jid="account11@jcl.test.com")
+        account22.status = account.OFFLINE
+        model.db_disconnect()
+        info_query = Iq(stanza_type="set",
+                        from_jid="user1@test.com",
+                        to_jid="jcl.test.com")
+        command_node = info_query.set_new_content(command.COMMAND_NS, "command")
+        command_node.setProp("node",
+                             "http://jabber.org/protocol/admin#set-welcome")
+        result = self.command_manager.apply_command_action(\
+            info_query,
+            "http://jabber.org/protocol/admin#set-welcome",
+            "execute")
+        self.assertNotEquals(result, None)
+        self.assertEquals(len(result), 1)
+        xml_command = result[0].xpath_eval("c:command",
+                                           {"c": "http://jabber.org/protocol/commands"})[0]
+        self.assertEquals(xml_command.prop("status"), "executing")
+        self.assertNotEquals(xml_command.prop("sessionid"), None)
+        self.__check_actions(result[0], ["next"])
+        fields = result[0].xpath_eval("c:command/data:x/data:field",
+                                      {"c": "http://jabber.org/protocol/commands",
+                                       "data": "jabber:x:data"})
+        self.assertEquals(len(fields), 2)
+        self.assertEquals(fields[1].prop("var"), "welcome")
+        self.assertEquals(fields[1].prop("type"), "text-multi")
+        self.assertEquals(fields[1].children.name, "value")
+        self.assertEquals(fields[1].children.content, "Welcome Message")
+        self.assertEquals(fields[1].children.next.name, "required")
 
-#     def test_execute_delete_welcome(self):
-#         #TODO : implement command
-#         info_query = Iq(stanza_type="set",
-#                         from_jid="user1@test.com",
-#                         to_jid="jcl.test.com")
-#         result = self.command_manager.execute_add_user(info_query)
-#         self.assertNotEquals(result, None)
-#         self.assertEquals(len(result), 1)
+        # Second step
+        info_query = Iq(stanza_type="set",
+                        from_jid="user1@test.com",
+                        to_jid="jcl.test.com")
+        command_node = info_query.set_new_content(command.COMMAND_NS, "command")
+        command_node.setProp("node",
+                             "http://jabber.org/protocol/admin#set-welcome")
+        session_id = xml_command.prop("sessionid")
+        command_node.setProp("sessionid", session_id)
+        command_node.setProp("action", "next")
+        submit_form = Form(xmlnode_or_type="submit")
+        submit_form.add_field(field_type="text-multi",
+                              name="welcome",
+                              value=["New Welcome Message"])
+        submit_form.as_xml(command_node)
+        result = self.command_manager.apply_command_action(\
+            info_query,
+            "http://jabber.org/protocol/admin#set-welcome",
+            "execute")
+        self.assertNotEquals(result, None)
+        self.assertEquals(len(result), 1)
+        xml_command = result[0].xpath_eval("c:command",
+                                           {"c": "http://jabber.org/protocol/commands"})[0]
+        self.assertEquals(xml_command.prop("status"), "completed")
+        self.assertEquals(xml_command.prop("sessionid"), session_id)
+        self.__check_actions(result[0])
+        context_session = self.command_manager.sessions[session_id][1]
+        self.assertEquals(context_session["welcome"],
+                          ["New Welcome Message"])
+        self.comp.config.read(self.comp.config_file)
+        self.assertTrue(self.comp.config.has_option("component", "welcome_message"))
+        self.assertEquals(self.comp.config.get("component", "welcome_message"),
+                          "New Welcome Message")
+        os.unlink(config_file)
+
+    def test_execute_delete_welcome(self):
+        self.comp.account_manager.account_classes = (ExampleAccount,
+                                                     Example2Account)
+        config_file = tempfile.mktemp(".conf", "jcltest", jcl.tests.DB_DIR)
+        self.comp.config_file = config_file
+        self.comp.config = ConfigParser()
+        self.comp.set_motd("test motd")
+        model.db_connect()
+        user1 = User(jid="test1@test.com")
+        account11 = ExampleAccount(user=user1,
+                                   name="account11",
+                                   jid="account11@jcl.test.com")
+        account11.status = account.ONLINE
+        account12 = Example2Account(user=user1,
+                                    name="account12",
+                                    jid="account12@jcl.test.com")
+        account12.status = "away"
+        user2 = User(jid="test2@test.com")
+        account21 = ExampleAccount(user=user2,
+                                   name="account21",
+                                   jid="account21@jcl.test.com")
+        account21.status = account.OFFLINE
+        account22 = ExampleAccount(user=user2,
+                                   name="account11",
+                                   jid="account11@jcl.test.com")
+        account22.status = account.OFFLINE
+        model.db_disconnect()
+        info_query = Iq(stanza_type="set",
+                        from_jid="user1@test.com",
+                        to_jid="jcl.test.com")
+        command_node = info_query.set_new_content(command.COMMAND_NS, "command")
+        command_node.setProp("node",
+                             "http://jabber.org/protocol/admin#delete-welcome")
+        result = self.command_manager.apply_command_action(\
+            info_query,
+            "http://jabber.org/protocol/admin#delete-welcome",
+            "execute")
+        self.assertNotEquals(result, None)
+        self.assertEquals(len(result), 1)
+        xml_command = result[0].xpath_eval("c:command",
+                                           {"c": "http://jabber.org/protocol/commands"})[0]
+        self.assertEquals(xml_command.prop("status"), "completed")
+        self.assertNotEquals(xml_command.prop("sessionid"), None)
+        self.__check_actions(result[0])
+        self.comp.config.read(self.comp.config_file)
+        self.assertFalse(self.comp.config.has_option("component",
+                                                     "welcome_message"))
+        os.unlink(config_file)
 
 #     def test_execute_edit_admin(self):
 #         #TODO : implement command

@@ -829,16 +829,43 @@ class JCLCommandManager(CommandManager):
 
     def execute_delete_motd_1(self, info_query, session_context,
                               command_node, lang_class):
-        self.__logger.debug("Executing command 'del motd' step 1")
+        self.__logger.debug("Executing command 'delete motd' step 1")
         self.component.del_motd()
         command_node.setProp("status", STATUS_COMPLETED)
         return (None, [])
 
-    def execute_set_welcome(self, info_query):
-        return []
+    def execute_set_welcome_1(self, info_query, session_context,
+                              command_node, lang_class):
+        self.add_actions(command_node, [ACTION_NEXT])
+        result_form = Form(xmlnode_or_type="result",
+                           title="TODO",
+                           instructions="TODO")
+        result_form.add_field(field_type="hidden",
+                              name="FORM_TYPE",
+                              value="http://jabber.org/protocol/admin")
+        welcome_message = self.component.get_welcome_message()
+        result_form.add_field(name="welcome",
+                              field_type="text-multi",
+                              label="TODO",
+                              value=[welcome_message],
+                              required=True)
+        result_form.as_xml(command_node)
+        return (result_form, [])
 
-    def execute_delete_welcome(self, info_query):
-        return []
+    def execute_set_welcome_2(self, info_query, session_context,
+                              command_node, lang_class):
+        self.__logger.debug("Executing command 'set welcome' step 2")
+        welcome_message = session_context["welcome"][0]
+        self.component.set_welcome_message(welcome_message)
+        command_node.setProp("status", STATUS_COMPLETED)
+        return (None, [])
+
+    def execute_delete_welcome_1(self, info_query, session_context,
+                                 command_node, lang_class):
+        self.__logger.debug("Executing command 'delete welcome' step 1")
+        self.component.del_welcome_message()
+        command_node.setProp("status", STATUS_COMPLETED)
+        return (None, [])
 
     def execute_edit_admin(self, info_query):
         return []
