@@ -829,7 +829,10 @@ class JCLCommandManager(CommandManager):
 
     def execute_delete_motd_1(self, info_query, session_context,
                               command_node, lang_class):
-        return []
+        self.__logger.debug("Executing command 'del motd' step 1")
+        self.component.del_motd()
+        command_node.setProp("status", STATUS_COMPLETED)
+        return (None, [])
 
     def execute_set_welcome(self, info_query):
         return []

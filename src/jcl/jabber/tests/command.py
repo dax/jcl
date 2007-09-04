@@ -2452,14 +2452,53 @@ class JCLCommandManager_TestCase(JCLTestCase):
                           "Message Of The Day")
         os.unlink(config_file)
 
-#     def test_execute_delete_motd(self):
-#         #TODO : implement command
-#         info_query = Iq(stanza_type="set",
-#                         from_jid="user1@test.com",
-#                         to_jid="jcl.test.com")
-#         result = self.command_manager.execute_add_user(info_query)
-#         self.assertNotEquals(result, None)
-#         self.assertEquals(len(result), 1)
+    def test_execute_delete_motd(self):
+        self.comp.account_manager.account_classes = (ExampleAccount,
+                                                     Example2Account)
+        config_file = tempfile.mktemp(".conf", "jcltest", jcl.tests.DB_DIR)
+        self.comp.config_file = config_file
+        self.comp.config = ConfigParser()
+        self.comp.set_motd("test motd")
+        model.db_connect()
+        user1 = User(jid="test1@test.com")
+        account11 = ExampleAccount(user=user1,
+                                   name="account11",
+                                   jid="account11@jcl.test.com")
+        account11.status = account.ONLINE
+        account12 = Example2Account(user=user1,
+                                    name="account12",
+                                    jid="account12@jcl.test.com")
+        account12.status = "away"
+        user2 = User(jid="test2@test.com")
+        account21 = ExampleAccount(user=user2,
+                                   name="account21",
+                                   jid="account21@jcl.test.com")
+        account21.status = account.OFFLINE
+        account22 = ExampleAccount(user=user2,
+                                   name="account11",
+                                   jid="account11@jcl.test.com")
+        account22.status = account.OFFLINE
+        model.db_disconnect()
+        info_query = Iq(stanza_type="set",
+                        from_jid="user1@test.com",
+                        to_jid="jcl.test.com")
+        command_node = info_query.set_new_content(command.COMMAND_NS, "command")
+        command_node.setProp("node",
+                             "http://jabber.org/protocol/admin#delete-motd")
+        result = self.command_manager.apply_command_action(\
+            info_query,
+            "http://jabber.org/protocol/admin#delete-motd",
+            "execute")
+        self.assertNotEquals(result, None)
+        self.assertEquals(len(result), 1)
+        xml_command = result[0].xpath_eval("c:command",
+                                           {"c": "http://jabber.org/protocol/commands"})[0]
+        self.assertEquals(xml_command.prop("status"), "completed")
+        self.assertNotEquals(xml_command.prop("sessionid"), None)
+        self.__check_actions(result[0])
+        self.comp.config.read(self.comp.config_file)
+        self.assertFalse(self.comp.config.has_option("component", "motd"))
+        os.unlink(config_file)
 
 #     def test_execute_set_welcome(self):
 #         #TODO : implement command
