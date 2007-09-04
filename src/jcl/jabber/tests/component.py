@@ -2693,6 +2693,58 @@ class JCLComponent_TestCase(JCLTestCase):
                                                      "welcome_message"))
         os.unlink(config_file)
 
+    def test_get_admins(self):
+        config_file = tempfile.mktemp(".conf", "jcltest", jcl.tests.DB_DIR)
+        self.comp.config_file = config_file
+        self.comp.config = ConfigParser()
+        self.comp.config.read(self.comp.config_file)
+        self.comp.config.add_section("component")
+        self.comp.config.set("component", "admins", "admin1@test.com, admin2@test.com")
+        self.comp.config.write(open(self.comp.config_file, "w"))
+        admins = self.comp.get_admins()
+        self.assertEquals(len(admins), 2)
+        self.assertEquals(admins[0], "admin1@test.com")
+        self.assertEquals(admins[1], "admin2@test.com")
+        os.unlink(config_file)
+
+    def test_get_no_admins(self):
+        config_file = tempfile.mktemp(".conf", "jcltest", jcl.tests.DB_DIR)
+        self.comp.config_file = config_file
+        self.comp.config = ConfigParser()
+        self.comp.config.read(self.comp.config_file)
+        self.comp.config.write(open(self.comp.config_file, "w"))
+        admins = self.comp.get_admins()
+        self.assertEquals(admins, None)
+        os.unlink(config_file)
+
+    def test_set_new_admins(self):
+        config_file = tempfile.mktemp(".conf", "jcltest", jcl.tests.DB_DIR)
+        self.comp.config_file = config_file
+        self.comp.config = ConfigParser()
+        self.comp.set_admins(["admin1@test.com", "admin2@test.com"])
+        self.comp.config.read(self.comp.config_file)
+        self.assertTrue(self.comp.config.has_option("component",
+                                                    "admins"))
+        self.assertEquals(self.comp.config.get("component", "admins"),
+                          "admin1@test.com,admin2@test.com")
+        os.unlink(config_file)
+
+    def test_set_admins(self):
+        config_file = tempfile.mktemp(".conf", "jcltest", jcl.tests.DB_DIR)
+        self.comp.config_file = config_file
+        self.comp.config = ConfigParser()
+        self.comp.config.add_section("component")
+        self.comp.config.set("component", "admins",
+                             "admin1@test.com, admin2@test.com")
+        self.comp.config.write(open(self.comp.config_file, "w"))
+        self.comp.set_admins(["admin3@test.com", "admin4@test.com"])
+        self.comp.config.read(self.comp.config_file)
+        self.assertTrue(self.comp.config.has_option("component",
+                                                    "admins"))
+        self.assertEquals(self.comp.config.get("component", "admins"),
+                          "admin3@test.com,admin4@test.com")
+        os.unlink(config_file)
+
     ###########################################################################
     # 'handle_command' tests
     ###########################################################################

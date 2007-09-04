@@ -228,7 +228,7 @@ class JCLCommandManager(CommandManager):
     def __init__(self, component=None, account_manager=None):
         """
         JCLCommandManager constructor
-        Not implemented commands:
+        commands not implemented:
         'http://jabber.org/protocol/admin#user-stats',
         'http://jabber.org/protocol/admin#edit-blacklist',
         'http://jabber.org/protocol/admin#add-to-blacklist-in',
@@ -867,8 +867,31 @@ class JCLCommandManager(CommandManager):
         command_node.setProp("status", STATUS_COMPLETED)
         return (None, [])
 
-    def execute_edit_admin(self, info_query):
-        return []
+    def execute_edit_admin_1(self, info_query, session_context,
+                             command_node, lang_class):
+        self.add_actions(command_node, [ACTION_NEXT])
+        result_form = Form(xmlnode_or_type="result",
+                           title="TODO",
+                           instructions="TODO")
+        result_form.add_field(field_type="hidden",
+                              name="FORM_TYPE",
+                              value="http://jabber.org/protocol/admin")
+        admins = self.component.get_admins()
+        result_form.add_field(name="adminjids",
+                              field_type="jid-multi",
+                              label="TODO",
+                              values=admins,
+                              required=True)
+        result_form.as_xml(command_node)
+        return (result_form, [])
+
+    def execute_edit_admin_2(self, info_query, session_context,
+                             command_node, lang_class):
+        self.__logger.debug("Executing command 'edit admin' step 2")
+        admins = session_context["adminjids"]
+        self.component.set_admins(admins)
+        command_node.setProp("status", STATUS_COMPLETED)
+        return (None, [])
 
     def execute_restart(self, info_query):
         return []

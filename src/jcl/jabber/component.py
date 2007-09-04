@@ -34,6 +34,7 @@ import logging
 import signal
 import re
 import traceback
+import string
 
 from Queue import Queue
 
@@ -588,6 +589,18 @@ class JCLComponent(Component, object):
 
     def del_motd(self):
         self.del_config_parameter("component", "motd")
+
+    def get_admins(self):
+        admins_str = self.get_config_parameter("component",
+                                               "admins")
+        if admins_str is not None:
+            return map(string.strip,
+                       admins_str.split(','))
+        else:
+            return None
+
+    def set_admins(self, admins):
+        self.set_config_parameter("component", "admins", ",".join(admins))
 
     def get_welcome_message(self):
         return self.get_config_parameter("component", "welcome_message")
