@@ -597,7 +597,7 @@ class JCLComponent(Component, object):
             return map(string.strip,
                        admins_str.split(','))
         else:
-            return None
+            return []
 
     def set_admins(self, admins):
         self.set_config_parameter("component", "admins", ",".join(admins))

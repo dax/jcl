@@ -113,7 +113,7 @@ class Lang:
         get_gateway_desc = u"Please enter the email address of your contact"
         get_gateway_prompt = u"Email address"
 
-        command_list = u"List accounts"
+        command_get_disabled_users_num = u"get-disabled-users-num"
         command_add_user = u"Create new account"
         select_account_type = u"Select account type"
 
@@ -163,7 +163,7 @@ class Lang:
         get_gateway_desc = u"Entrer l'adresse email de votre contact"
         get_gateway_prompt = u"Adresse email"
 
-        command_list = u"Liste les comptes"
+        command_get_disabled_users_num = u"get_disabled_users_num"
         command_add_user = u"Créer un compte"
         select_account_type = u"Selectionner le type de comptes"
 

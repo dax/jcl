@@ -25,10 +25,12 @@ import os
 import tempfile
 from ConfigParser import ConfigParser
 
+from pyxmpp.jid import JID
 from pyxmpp.presence import Presence
 from pyxmpp.jabber.dataforms import Form
 from pyxmpp.iq import Iq
 from pyxmpp.message import Message
+from pyxmpp.jabber.disco import DiscoItems
 
 import jcl.tests
 from jcl.lang import Lang
@@ -50,6 +52,12 @@ class FieldNoType_TestCase(unittest.TestCase):
         field.complete_xml_element(fake_iq.xmlnode, None)
         self.assertFalse(fake_iq.xmlnode.hasProp("type"))
 
+class MockComponent(object):
+    jid = JID("jcl.test.com")
+
+    def get_admins(self):
+        return ["admin@test.com"]
+
 class CommandManager_TestCase(unittest.TestCase):
     def test_get_short_command_name_form_long_name(self):
         command_name = command.command_manager.get_short_command_name("http://jabber.org/protocol/admin#test-command")
@@ -58,6 +66,105 @@ class CommandManager_TestCase(unittest.TestCase):
     def test_get_short_command_name(self):
         command_name = command.command_manager.get_short_command_name("test-command")
         self.assertEquals(command_name, "test_command")
+
+    def test_list_commands(self):
+        command.command_manager.commands["command1"] = True
+        command.command_manager.commands["command2"] = False
+        command.command_manager.component = MockComponent()
+        disco_items = command.command_manager.list_commands(jid="user@test.com",
+                                                            disco_items=DiscoItems(),
+                                                            lang_class=Lang.en)
+        items = disco_items.get_items()
+        self.assertEquals(len(items), 1)
+        self.assertEquals(items[0].get_node(), "command2")
+        self.assertEquals(items[0].get_name(), "command2")
+
+    def test_list_commands_as_admin(self):
+        command.command_manager.commands = {}
+        command.command_manager.commands["command1"] = True
+        command.command_manager.commands["command2"] = False
+        command.command_manager.component = MockComponent()
+        disco_items = command.command_manager.list_commands(jid="admin@test.com",
+                                                            disco_items=DiscoItems(),
+                                                            lang_class=Lang.en)
+        items = disco_items.get_items()
+        self.assertEquals(len(items), 2)
+        self.assertEquals(items[0].get_node(), "command1")
+        self.assertEquals(items[0].get_name(), "command1")
+        self.assertEquals(items[1].get_node(), "command2")
+        self.assertEquals(items[1].get_name(), "command2")
+
+    def test_apply_admin_command_action_as_admin(self):
+        command.command_manager.commands["command1"] = True
+        command.command_manager.apply_execute_command = \
+            lambda iq, command_name: [] 
+        command.command_manager.component = MockComponent()
+        info_query = Iq(stanza_type="set",
+                        from_jid="admin@test.com",
+                        to_jid="jcl.test.com")
+        result = command.command_manager.apply_command_action(info_query,
+                                                              "command1",
+                                                              "execute")
+        self.assertEquals(result, [])
+
+    def test_apply_admin_command_action_as_user(self):
+        command.command_manager.commands["command1"] = True
+        command.command_manager.apply_execute_command = \
+            lambda iq, command_name: [] 
+        command.command_manager.component = MockComponent()
+        info_query = Iq(stanza_type="set",
+                        from_jid="user@test.com",
+                        to_jid="jcl.test.com")
+        result = command.command_manager.apply_command_action(info_query,
+                                                              "command1",
+                                                              "execute")
+        self.assertEquals(len(result), 1)
+        self.assertEquals(result[0].get_type(), "error")
+        self.assertEquals(result[0].xmlnode.children.name, "error")
+        self.assertEquals(result[0].xmlnode.children.prop("type"), "auth")
+        self.assertEquals(result[0].xmlnode.children.children.name, "forbidden")
+
+    def test_apply_non_admin_command_action_as_admin(self):
+        command.command_manager.commands["command1"] = False
+        command.command_manager.apply_execute_command = \
+            lambda iq, command_name: [] 
+        command.command_manager.component = MockComponent()
+        info_query = Iq(stanza_type="set",
+                        from_jid="admin@test.com",
+                        to_jid="jcl.test.com")
+        result = command.command_manager.apply_command_action(info_query,
+                                                              "command1",
+                                                              "execute")
+        self.assertEquals(result, [])
+
+    def test_apply_non_admin_command_action_as_user(self):
+        command.command_manager.commands["command1"] = False
+        command.command_manager.apply_execute_command = \
+            lambda iq, command_name: [] 
+        command.command_manager.component = MockComponent()
+        info_query = Iq(stanza_type="set",
+                        from_jid="user@test.com",
+                        to_jid="jcl.test.com")
+        result = command.command_manager.apply_command_action(info_query,
+                                                              "command1",
+                                                              "execute")
+        self.assertEquals(result, [])
+
+    def test_apply_command_non_existing_action(self):
+        command.command_manager.commands["command1"] = False
+        command.command_manager.component = MockComponent()
+        info_query = Iq(stanza_type="set",
+                        from_jid="user@test.com",
+                        to_jid="jcl.test.com")
+        result = command.command_manager.apply_command_action(info_query,
+                                                              "command1",
+                                                              "noexecute")
+        self.assertEquals(len(result), 1)
+        self.assertEquals(result[0].get_type(), "error")
+        self.assertEquals(result[0].xmlnode.children.name, "error")
+        self.assertEquals(result[0].xmlnode.children.prop("type"), "cancel")
+        self.assertEquals(result[0].xmlnode.children.children.name,
+                          "feature-not-implemented")
 
 class JCLCommandManager_TestCase(JCLTestCase):
     def setUp(self):
@@ -73,6 +180,7 @@ class JCLCommandManager_TestCase(JCLTestCase):
                                  "5347",
                                  self.config,
                                  self.config_file)
+        self.comp.set_admins(["admin@test.com"])
         self.command_manager = JCLCommandManager(self.comp,
                                                  self.comp.account_manager)
 
@@ -98,7 +206,7 @@ class JCLCommandManager_TestCase(JCLTestCase):
 
     def test_add_form_select_user_jids(self):
         info_query = Iq(stanza_type="set",
-                        from_jid="user1@test.com",
+                        from_jid="admin@test.com",
                         to_jid="jcl.test.com")
         command_node = info_query.set_new_content(command.COMMAND_NS, "command")
         self.command_manager.add_form_select_user_jids(command_node, Lang.en)
@@ -113,7 +221,7 @@ class JCLCommandManager_TestCase(JCLTestCase):
 
     def test_add_form_select_user_jid(self):
         info_query = Iq(stanza_type="set",
-                        from_jid="user1@test.com",
+                        from_jid="admin@test.com",
                         to_jid="jcl.test.com")
         command_node = info_query.set_new_content(command.COMMAND_NS, "command")
         self.command_manager.add_form_select_user_jid(command_node, Lang.en)
@@ -153,7 +261,7 @@ class JCLCommandManager_TestCase(JCLTestCase):
                                     jid="account32@jcl.test.com")
         model.db_disconnect()
         info_query = Iq(stanza_type="set",
-                        from_jid="user1@test.com",
+                        from_jid="admin@test.com",
                         to_jid="jcl.test.com")
         command_node = info_query.set_new_content(command.COMMAND_NS, "command")
         session_context = {}
@@ -221,7 +329,7 @@ class JCLCommandManager_TestCase(JCLTestCase):
                                     jid="account32@jcl.test.com")
         model.db_disconnect()
         info_query = Iq(stanza_type="set",
-                        from_jid="user1@test.com",
+                        from_jid="admin@test.com",
                         to_jid="jcl.test.com")
         command_node = info_query.set_new_content(command.COMMAND_NS, "command")
         session_context = {}
@@ -284,7 +392,7 @@ class JCLCommandManager_TestCase(JCLTestCase):
                                     jid="account32@jcl.test.com")
         model.db_disconnect()
         info_query = Iq(stanza_type="set",
-                        from_jid="user1@test.com",
+                        from_jid="admin@test.com",
                         to_jid="jcl.test.com")
         command_node = info_query.set_new_content(command.COMMAND_NS, "command")
         session_context = {}
@@ -318,7 +426,7 @@ class JCLCommandManager_TestCase(JCLTestCase):
         self.comp.account_manager.account_classes = (ExampleAccount,
                                                      Example2Account)
         info_query = Iq(stanza_type="set",
-                        from_jid="user1@test.com",
+                        from_jid="admin@test.com",
                         to_jid="jcl.test.com")
         command_node = info_query.set_new_content(command.COMMAND_NS, "command")
         command_node.setProp("node", "http://jabber.org/protocol/admin#add-user")
@@ -353,7 +461,7 @@ class JCLCommandManager_TestCase(JCLTestCase):
 
         # Second step
         info_query = Iq(stanza_type="set",
-                        from_jid="user1@test.com",
+                        from_jid="admin@test.com",
                         to_jid="jcl.test.com")
         command_node = info_query.set_new_content(command.COMMAND_NS, "command")
         command_node.setProp("node", "http://jabber.org/protocol/admin#add-user")
@@ -388,7 +496,7 @@ class JCLCommandManager_TestCase(JCLTestCase):
 
         # Third step
         info_query = Iq(stanza_type="set",
-                        from_jid="user1@test.com",
+                        from_jid="admin@test.com",
                         to_jid="jcl.test.com")
         command_node = info_query.set_new_content(command.COMMAND_NS, "command")
         command_node.setProp("node", "http://jabber.org/protocol/admin#add-user")
@@ -446,15 +554,13 @@ class JCLCommandManager_TestCase(JCLTestCase):
         self.assertTrue(isinstance(iq_result, Iq))
         self.assertEquals(iq_result.get_node().prop("type"), "result")
         self.assertEquals(iq_result.get_from(), "jcl.test.com")
-        self.assertEquals(iq_result.get_to(), "user1@test.com")
-
+        self.assertEquals(iq_result.get_to(), "admin@test.com")
         presence_component = stanza_sent[1]
         self.assertTrue(isinstance(presence_component, Presence))
         self.assertEquals(presence_component.get_from(), "jcl.test.com")
         self.assertEquals(presence_component.get_to(), "user2@test.com")
         self.assertEquals(presence_component.get_node().prop("type"),
                           "subscribe")
-
         message = stanza_sent[2]
         self.assertTrue(isinstance(message, Message))
         self.assertEquals(message.get_from(), "jcl.test.com")
@@ -463,7 +569,6 @@ class JCLCommandManager_TestCase(JCLTestCase):
                           _account.get_new_message_subject(Lang.en))
         self.assertEquals(message.get_body(),
                           _account.get_new_message_body(Lang.en))
-
         presence_account = stanza_sent[3]
         self.assertTrue(isinstance(presence_account, Presence))
         self.assertEquals(presence_account.get_from(), "account1@jcl.test.com")
@@ -475,7 +580,7 @@ class JCLCommandManager_TestCase(JCLTestCase):
         self.comp.account_manager.account_classes = (ExampleAccount,
                                                      Example2Account)
         info_query = Iq(stanza_type="set",
-                        from_jid="user1@test.com",
+                        from_jid="admin@test.com",
                         to_jid="jcl.test.com")
         command_node = info_query.set_new_content(command.COMMAND_NS, "command")
         command_node.setProp("node", "http://jabber.org/protocol/admin#add-user")
@@ -510,7 +615,7 @@ class JCLCommandManager_TestCase(JCLTestCase):
 
         # Second step
         info_query = Iq(stanza_type="set",
-                        from_jid="user1@test.com",
+                        from_jid="admin@test.com",
                         to_jid="jcl.test.com")
         command_node = info_query.set_new_content(command.COMMAND_NS, "command")
         command_node.setProp("node", "http://jabber.org/protocol/admin#add-user")
@@ -545,7 +650,7 @@ class JCLCommandManager_TestCase(JCLTestCase):
 
         # First step again
         info_query = Iq(stanza_type="set",
-                        from_jid="user1@test.com",
+                        from_jid="admin@test.com",
                         to_jid="jcl.test.com")
         command_node = info_query.set_new_content(command.COMMAND_NS, "command")
         command_node.setProp("node", "http://jabber.org/protocol/admin#add-user")
@@ -605,7 +710,7 @@ class JCLCommandManager_TestCase(JCLTestCase):
         self.comp.account_manager.account_classes = (ExampleAccount,
                                                      Example2Account)
         info_query = Iq(stanza_type="set",
-                        from_jid="user1@test.com",
+                        from_jid="admin@test.com",
                         to_jid="jcl.test.com")
         command_node = info_query.set_new_content(command.COMMAND_NS, "command")
         command_node.setProp("node", "http://jabber.org/protocol/admin#add-user")
@@ -640,7 +745,7 @@ class JCLCommandManager_TestCase(JCLTestCase):
 
         # Second step
         info_query = Iq(stanza_type="set",
-                        from_jid="user1@test.com",
+                        from_jid="admin@test.com",
                         to_jid="jcl.test.com")
         command_node = info_query.set_new_content(command.COMMAND_NS, "command")
         command_node.setProp("node", "http://jabber.org/protocol/admin#add-user")
@@ -657,7 +762,6 @@ class JCLCommandManager_TestCase(JCLTestCase):
         self.assertEquals(xml_command.prop("status"), "canceled")
         self.assertEquals(xml_command.prop("sessionid"), session_id)
         self.assertEquals(xml_command.children, None)
-
 
     def test_execute_delete_user(self):
         self.comp.account_manager.account_classes = (ExampleAccount,
@@ -686,7 +790,7 @@ class JCLCommandManager_TestCase(JCLTestCase):
                                     jid="account32@jcl.test.com")
         model.db_disconnect()
         info_query = Iq(stanza_type="set",
-                        from_jid="user1@test.com",
+                        from_jid="admin@test.com",
                         to_jid="jcl.test.com")
         command_node = info_query.set_new_content(command.COMMAND_NS, "command")
         command_node.setProp("node", "http://jabber.org/protocol/admin#delete-user")
@@ -703,7 +807,7 @@ class JCLCommandManager_TestCase(JCLTestCase):
 
         # Second step
         info_query = Iq(stanza_type="set",
-                        from_jid="user1@test.com",
+                        from_jid="admin@test.com",
                         to_jid="jcl.test.com")
         command_node = info_query.set_new_content(command.COMMAND_NS, "command")
         command_node.setProp("node", "http://jabber.org/protocol/admin#delete-user")
@@ -731,7 +835,7 @@ class JCLCommandManager_TestCase(JCLTestCase):
 
         # Third step
         info_query = Iq(stanza_type="set",
-                        from_jid="user1@test.com",
+                        from_jid="admin@test.com",
                         to_jid="jcl.test.com")
         command_node = info_query.set_new_content(command.COMMAND_NS, "command")
         command_node.setProp("node", "http://jabber.org/protocol/admin#delete-user")
@@ -777,7 +881,7 @@ class JCLCommandManager_TestCase(JCLTestCase):
         self.assertTrue(isinstance(iq_result, Iq))
         self.assertEquals(iq_result.get_node().prop("type"), "result")
         self.assertEquals(iq_result.get_from(), "jcl.test.com")
-        self.assertEquals(iq_result.get_to(), "user1@test.com")
+        self.assertEquals(iq_result.get_to(), "admin@test.com")
         presence_component = stanza_sent[1]
         self.assertTrue(isinstance(presence_component, Presence))
         self.assertEquals(presence_component.get_from(), "account11@jcl.test.com")
@@ -836,7 +940,7 @@ class JCLCommandManager_TestCase(JCLTestCase):
         account32.enabled = False
         model.db_disconnect()
         info_query = Iq(stanza_type="set",
-                        from_jid="user1@test.com",
+                        from_jid="admin@test.com",
                         to_jid="jcl.test.com")
         command_node = info_query.set_new_content(command.COMMAND_NS, "command")
         command_node.setProp("node", "http://jabber.org/protocol/admin#disable-user")
@@ -853,7 +957,7 @@ class JCLCommandManager_TestCase(JCLTestCase):
 
         # Second step
         info_query = Iq(stanza_type="set",
-                        from_jid="user1@test.com",
+                        from_jid="admin@test.com",
                         to_jid="jcl.test.com")
         command_node = info_query.set_new_content(command.COMMAND_NS, "command")
         command_node.setProp("node", "http://jabber.org/protocol/admin#disable-user")
@@ -885,7 +989,7 @@ class JCLCommandManager_TestCase(JCLTestCase):
 
         # Third step
         info_query = Iq(stanza_type="set",
-                        from_jid="user1@test.com",
+                        from_jid="admin@test.com",
                         to_jid="jcl.test.com")
         command_node = info_query.set_new_content(command.COMMAND_NS, "command")
         command_node.setProp("node", "http://jabber.org/protocol/admin#disable-user")
@@ -944,7 +1048,7 @@ class JCLCommandManager_TestCase(JCLTestCase):
         account32.enabled = True
         model.db_disconnect()
         info_query = Iq(stanza_type="set",
-                        from_jid="user1@test.com",
+                        from_jid="admin@test.com",
                         to_jid="jcl.test.com")
         command_node = info_query.set_new_content(command.COMMAND_NS, "command")
         command_node.setProp("node", "http://jabber.org/protocol/admin#reenable-user")
@@ -961,7 +1065,7 @@ class JCLCommandManager_TestCase(JCLTestCase):
 
         # Second step
         info_query = Iq(stanza_type="set",
-                        from_jid="user1@test.com",
+                        from_jid="admin@test.com",
                         to_jid="jcl.test.com")
         command_node = info_query.set_new_content(command.COMMAND_NS, "command")
         command_node.setProp("node", "http://jabber.org/protocol/admin#reenable-user")
@@ -993,7 +1097,7 @@ class JCLCommandManager_TestCase(JCLTestCase):
 
         # Third step
         info_query = Iq(stanza_type="set",
-                        from_jid="user1@test.com",
+                        from_jid="admin@test.com",
                         to_jid="jcl.test.com")
         command_node = info_query.set_new_content(command.COMMAND_NS, "command")
         command_node.setProp("node", "http://jabber.org/protocol/admin#reenable-user")
@@ -1048,7 +1152,7 @@ class JCLCommandManager_TestCase(JCLTestCase):
                                     jid="account32@jcl.test.com")
         model.db_disconnect()
         info_query = Iq(stanza_type="set",
-                        from_jid="user1@test.com",
+                        from_jid="admin@test.com",
                         to_jid="jcl.test.com")
         command_node = info_query.set_new_content(command.COMMAND_NS, "command")
         command_node.setProp("node", "http://jabber.org/protocol/admin#end-user-session")
@@ -1065,7 +1169,7 @@ class JCLCommandManager_TestCase(JCLTestCase):
 
         # Second step
         info_query = Iq(stanza_type="set",
-                        from_jid="user1@test.com",
+                        from_jid="admin@test.com",
                         to_jid="jcl.test.com")
         command_node = info_query.set_new_content(command.COMMAND_NS, "command")
         command_node.setProp("node", "http://jabber.org/protocol/admin#end-user-session")
@@ -1097,7 +1201,7 @@ class JCLCommandManager_TestCase(JCLTestCase):
 
         # Third step
         info_query = Iq(stanza_type="set",
-                        from_jid="user1@test.com",
+                        from_jid="admin@test.com",
                         to_jid="jcl.test.com")
         command_node = info_query.set_new_content(command.COMMAND_NS, "command")
         command_node.setProp("node", "http://jabber.org/protocol/admin#end-user-session")
@@ -1126,7 +1230,7 @@ class JCLCommandManager_TestCase(JCLTestCase):
         self.assertTrue(isinstance(iq_result, Iq))
         self.assertEquals(iq_result.get_node().prop("type"), "result")
         self.assertEquals(iq_result.get_from(), "jcl.test.com")
-        self.assertEquals(iq_result.get_to(), "user1@test.com")
+        self.assertEquals(iq_result.get_to(), "admin@test.com")
         presence_component = stanza_sent[1]
         self.assertTrue(isinstance(presence_component, Presence))
         self.assertEquals(presence_component.get_from(), "account11@jcl.test.com")
@@ -1161,7 +1265,7 @@ class JCLCommandManager_TestCase(JCLTestCase):
                                    jid="account11@jcl.test.com")
         model.db_disconnect()
         info_query = Iq(stanza_type="set",
-                        from_jid="user1@test.com",
+                        from_jid="admin@test.com",
                         to_jid="jcl.test.com")
         command_node = info_query.set_new_content(command.COMMAND_NS, "command")
         command_node.setProp("node", "http://jabber.org/protocol/admin#get-user-password")
@@ -1178,7 +1282,7 @@ class JCLCommandManager_TestCase(JCLTestCase):
 
         # Second step
         info_query = Iq(stanza_type="set",
-                        from_jid="user1@test.com",
+                        from_jid="admin@test.com",
                         to_jid="jcl.test.com")
         command_node = info_query.set_new_content(command.COMMAND_NS, "command")
         command_node.setProp("node", "http://jabber.org/protocol/admin#get-user-password")
@@ -1206,7 +1310,7 @@ class JCLCommandManager_TestCase(JCLTestCase):
 
         # Third step
         info_query = Iq(stanza_type="set",
-                        from_jid="user1@test.com",
+                        from_jid="admin@test.com",
                         to_jid="jcl.test.com")
         command_node = info_query.set_new_content(command.COMMAND_NS, "command")
         command_node.setProp("node", "http://jabber.org/protocol/admin#get-user-password")
@@ -1233,7 +1337,7 @@ class JCLCommandManager_TestCase(JCLTestCase):
         self.assertTrue(isinstance(iq_result, Iq))
         self.assertEquals(iq_result.get_node().prop("type"), "result")
         self.assertEquals(iq_result.get_from(), "jcl.test.com")
-        self.assertEquals(iq_result.get_to(), "user1@test.com")
+        self.assertEquals(iq_result.get_to(), "admin@test.com")
         fields = iq_result.xpath_eval("c:command/data:x/data:field",
                                       {"c": "http://jabber.org/protocol/commands",
                                        "data": "jabber:x:data"})
@@ -1273,7 +1377,7 @@ class JCLCommandManager_TestCase(JCLTestCase):
                                    jid="account11@jcl.test.com")
         model.db_disconnect()
         info_query = Iq(stanza_type="set",
-                        from_jid="user1@test.com",
+                        from_jid="admin@test.com",
                         to_jid="jcl.test.com")
         command_node = info_query.set_new_content(command.COMMAND_NS, "command")
         command_node.setProp("node", "http://jabber.org/protocol/admin#change-user-password")
@@ -1290,7 +1394,7 @@ class JCLCommandManager_TestCase(JCLTestCase):
 
         # Second step
         info_query = Iq(stanza_type="set",
-                        from_jid="user1@test.com",
+                        from_jid="admin@test.com",
                         to_jid="jcl.test.com")
         command_node = info_query.set_new_content(command.COMMAND_NS, "command")
         command_node.setProp("node", "http://jabber.org/protocol/admin#change-user-password")
@@ -1322,7 +1426,7 @@ class JCLCommandManager_TestCase(JCLTestCase):
 
         # Third step
         info_query = Iq(stanza_type="set",
-                        from_jid="user1@test.com",
+                        from_jid="admin@test.com",
                         to_jid="jcl.test.com")
         command_node = info_query.set_new_content(command.COMMAND_NS, "command")
         command_node.setProp("node", "http://jabber.org/protocol/admin#change-user-password")
@@ -1388,7 +1492,7 @@ class JCLCommandManager_TestCase(JCLTestCase):
                             account=account22)
         model.db_disconnect()
         info_query = Iq(stanza_type="set",
-                        from_jid="user1@test.com",
+                        from_jid="admin@test.com",
                         to_jid="jcl.test.com")
         command_node = info_query.set_new_content(command.COMMAND_NS, "command")
         command_node.setProp("node", "http://jabber.org/protocol/admin#get-user-roster")
@@ -1405,7 +1509,7 @@ class JCLCommandManager_TestCase(JCLTestCase):
 
         # Second step
         info_query = Iq(stanza_type="set",
-                        from_jid="user1@test.com",
+                        from_jid="admin@test.com",
                         to_jid="jcl.test.com")
         command_node = info_query.set_new_content(command.COMMAND_NS, "command")
         command_node.setProp("node", "http://jabber.org/protocol/admin#get-user-roster")
@@ -1472,7 +1576,7 @@ class JCLCommandManager_TestCase(JCLTestCase):
                                    jid="account11@jcl.test.com")
         model.db_disconnect()
         info_query = Iq(stanza_type="set",
-                        from_jid="user1@test.com",
+                        from_jid="admin@test.com",
                         to_jid="jcl.test.com")
         command_node = info_query.set_new_content(command.COMMAND_NS, "command")
         command_node.setProp("node", "http://jabber.org/protocol/admin#get-user-lastlogin")
@@ -1489,7 +1593,7 @@ class JCLCommandManager_TestCase(JCLTestCase):
 
         # Second step
         info_query = Iq(stanza_type="set",
-                        from_jid="user1@test.com",
+                        from_jid="admin@test.com",
                         to_jid="jcl.test.com")
         command_node = info_query.set_new_content(command.COMMAND_NS, "command")
         command_node.setProp("node", "http://jabber.org/protocol/admin#get-user-lastlogin")
@@ -1517,7 +1621,7 @@ class JCLCommandManager_TestCase(JCLTestCase):
 
         # Third step
         info_query = Iq(stanza_type="set",
-                        from_jid="user1@test.com",
+                        from_jid="admin@test.com",
                         to_jid="jcl.test.com")
         command_node = info_query.set_new_content(command.COMMAND_NS, "command")
         command_node.setProp("node", "http://jabber.org/protocol/admin#get-user-lastlogin")
@@ -1574,7 +1678,7 @@ class JCLCommandManager_TestCase(JCLTestCase):
                                    jid="account11@jcl.test.com")
         model.db_disconnect()
         info_query = Iq(stanza_type="set",
-                        from_jid="user1@test.com",
+                        from_jid="admin@test.com",
                         to_jid="jcl.test.com")
         command_node = info_query.set_new_content(command.COMMAND_NS, "command")
         command_node.setProp("node", "http://jabber.org/protocol/admin#get-registered-users-num")
@@ -1618,7 +1722,7 @@ class JCLCommandManager_TestCase(JCLTestCase):
         account22.enabled = False
         model.db_disconnect()
         info_query = Iq(stanza_type="set",
-                        from_jid="user1@test.com",
+                        from_jid="admin@test.com",
                         to_jid="jcl.test.com")
         command_node = info_query.set_new_content(command.COMMAND_NS, "command")
         command_node.setProp("node", "http://jabber.org/protocol/admin#get-disabled-users-num")
@@ -1663,7 +1767,7 @@ class JCLCommandManager_TestCase(JCLTestCase):
         account22.status = "chat"
         model.db_disconnect()
         info_query = Iq(stanza_type="set",
-                        from_jid="user1@test.com",
+                        from_jid="admin@test.com",
                         to_jid="jcl.test.com")
         command_node = info_query.set_new_content(command.COMMAND_NS, "command")
         command_node.setProp("node", "http://jabber.org/protocol/admin#get-online-users-num")
@@ -1705,7 +1809,7 @@ class JCLCommandManager_TestCase(JCLTestCase):
                                    jid="account11@jcl.test.com")
         model.db_disconnect()
         info_query = Iq(stanza_type="set",
-                        from_jid="user1@test.com",
+                        from_jid="admin@test.com",
                         to_jid="jcl.test.com")
         command_node = info_query.set_new_content(command.COMMAND_NS, "command")
         command_node.setProp("node", "http://jabber.org/protocol/admin#get-registered-users-list")
@@ -1755,7 +1859,7 @@ class JCLCommandManager_TestCase(JCLTestCase):
                            jid="account2" + str(i) + "@jcl.test.com")
         model.db_disconnect()
         info_query = Iq(stanza_type="set",
-                        from_jid="user1@test.com",
+                        from_jid="admin@test.com",
                         to_jid="jcl.test.com")
         command_node = info_query.set_new_content(command.COMMAND_NS, "command")
         command_node.setProp("node", "http://jabber.org/protocol/admin#get-registered-users-list")
@@ -1794,7 +1898,7 @@ class JCLCommandManager_TestCase(JCLTestCase):
 
         # Second step
         info_query = Iq(stanza_type="set",
-                        from_jid="user1@test.com",
+                        from_jid="admin@test.com",
                         to_jid="jcl.test.com")
         command_node = info_query.set_new_content(command.COMMAND_NS, "command")
         command_node.setProp("node",
@@ -1871,7 +1975,7 @@ class JCLCommandManager_TestCase(JCLTestCase):
         account22.enabled = False
         model.db_disconnect()
         info_query = Iq(stanza_type="set",
-                        from_jid="user1@test.com",
+                        from_jid="admin@test.com",
                         to_jid="jcl.test.com")
         command_node = info_query.set_new_content(command.COMMAND_NS, "command")
         command_node.setProp("node",
@@ -1925,7 +2029,7 @@ class JCLCommandManager_TestCase(JCLTestCase):
             _account.enabled = False
         model.db_disconnect()
         info_query = Iq(stanza_type="set",
-                        from_jid="user1@test.com",
+                        from_jid="admin@test.com",
                         to_jid="jcl.test.com")
         command_node = info_query.set_new_content(command.COMMAND_NS, "command")
         command_node.setProp("node",
@@ -1966,7 +2070,7 @@ class JCLCommandManager_TestCase(JCLTestCase):
 
         # Second step
         info_query = Iq(stanza_type="set",
-                        from_jid="user1@test.com",
+                        from_jid="admin@test.com",
                         to_jid="jcl.test.com")
         command_node = info_query.set_new_content(command.COMMAND_NS, "command")
         command_node.setProp("node",
@@ -2042,7 +2146,7 @@ class JCLCommandManager_TestCase(JCLTestCase):
         account22.status = "xa"
         model.db_disconnect()
         info_query = Iq(stanza_type="set",
-                        from_jid="user1@test.com",
+                        from_jid="admin@test.com",
                         to_jid="jcl.test.com")
         command_node = info_query.set_new_content(command.COMMAND_NS, "command")
         command_node.setProp("node",
@@ -2096,7 +2200,7 @@ class JCLCommandManager_TestCase(JCLTestCase):
             _account.status = "away"
         model.db_disconnect()
         info_query = Iq(stanza_type="set",
-                        from_jid="user1@test.com",
+                        from_jid="admin@test.com",
                         to_jid="jcl.test.com")
         command_node = info_query.set_new_content(command.COMMAND_NS, "command")
         command_node.setProp("node",
@@ -2137,7 +2241,7 @@ class JCLCommandManager_TestCase(JCLTestCase):
 
         # Second step
         info_query = Iq(stanza_type="set",
-                        from_jid="user1@test.com",
+                        from_jid="admin@test.com",
                         to_jid="jcl.test.com")
         command_node = info_query.set_new_content(command.COMMAND_NS, "command")
         command_node.setProp("node",
@@ -2213,7 +2317,7 @@ class JCLCommandManager_TestCase(JCLTestCase):
         account22.status = "xa"
         model.db_disconnect()
         info_query = Iq(stanza_type="set",
-                        from_jid="user1@test.com",
+                        from_jid="admin@test.com",
                         to_jid="jcl.test.com")
         command_node = info_query.set_new_content(command.COMMAND_NS, "command")
         command_node.setProp("node",
@@ -2239,7 +2343,7 @@ class JCLCommandManager_TestCase(JCLTestCase):
 
         # Second step
         info_query = Iq(stanza_type="set",
-                        from_jid="user1@test.com",
+                        from_jid="admin@test.com",
                         to_jid="jcl.test.com")
         command_node = info_query.set_new_content(command.COMMAND_NS, "command")
         command_node.setProp("node",
@@ -2297,7 +2401,7 @@ class JCLCommandManager_TestCase(JCLTestCase):
         account22.status = account.OFFLINE
         model.db_disconnect()
         info_query = Iq(stanza_type="set",
-                        from_jid="user1@test.com",
+                        from_jid="admin@test.com",
                         to_jid="jcl.test.com")
         command_node = info_query.set_new_content(command.COMMAND_NS, "command")
         command_node.setProp("node",
@@ -2325,7 +2429,7 @@ class JCLCommandManager_TestCase(JCLTestCase):
 
         # Second step
         info_query = Iq(stanza_type="set",
-                        from_jid="user1@test.com",
+                        from_jid="admin@test.com",
                         to_jid="jcl.test.com")
         command_node = info_query.set_new_content(command.COMMAND_NS, "command")
         command_node.setProp("node",
@@ -2361,9 +2465,6 @@ class JCLCommandManager_TestCase(JCLTestCase):
     def test_execute_edit_motd(self):
         self.comp.account_manager.account_classes = (ExampleAccount,
                                                      Example2Account)
-        config_file = tempfile.mktemp(".conf", "jcltest", jcl.tests.DB_DIR)
-        self.comp.config_file = config_file
-        self.comp.config = ConfigParser()
         self.comp.set_motd("test motd")
         model.db_connect()
         user1 = User(jid="test1@test.com")
@@ -2386,7 +2487,7 @@ class JCLCommandManager_TestCase(JCLTestCase):
         account22.status = account.OFFLINE
         model.db_disconnect()
         info_query = Iq(stanza_type="set",
-                        from_jid="user1@test.com",
+                        from_jid="admin@test.com",
                         to_jid="jcl.test.com")
         command_node = info_query.set_new_content(command.COMMAND_NS, "command")
         command_node.setProp("node",
@@ -2414,7 +2515,7 @@ class JCLCommandManager_TestCase(JCLTestCase):
 
         # Second step
         info_query = Iq(stanza_type="set",
-                        from_jid="user1@test.com",
+                        from_jid="admin@test.com",
                         to_jid="jcl.test.com")
         command_node = info_query.set_new_content(command.COMMAND_NS, "command")
         command_node.setProp("node",
@@ -2450,14 +2551,10 @@ class JCLCommandManager_TestCase(JCLTestCase):
         self.assertTrue(self.comp.config.has_option("component", "motd"))
         self.assertEquals(self.comp.config.get("component", "motd"),
                           "Message Of The Day")
-        os.unlink(config_file)
 
     def test_execute_delete_motd(self):
         self.comp.account_manager.account_classes = (ExampleAccount,
                                                      Example2Account)
-        config_file = tempfile.mktemp(".conf", "jcltest", jcl.tests.DB_DIR)
-        self.comp.config_file = config_file
-        self.comp.config = ConfigParser()
         self.comp.set_motd("test motd")
         model.db_connect()
         user1 = User(jid="test1@test.com")
@@ -2480,7 +2577,7 @@ class JCLCommandManager_TestCase(JCLTestCase):
         account22.status = account.OFFLINE
         model.db_disconnect()
         info_query = Iq(stanza_type="set",
-                        from_jid="user1@test.com",
+                        from_jid="admin@test.com",
                         to_jid="jcl.test.com")
         command_node = info_query.set_new_content(command.COMMAND_NS, "command")
         command_node.setProp("node",
@@ -2498,14 +2595,10 @@ class JCLCommandManager_TestCase(JCLTestCase):
         self.__check_actions(result[0])
         self.comp.config.read(self.comp.config_file)
         self.assertFalse(self.comp.config.has_option("component", "motd"))
-        os.unlink(config_file)
 
     def test_execute_set_welcome(self):
         self.comp.account_manager.account_classes = (ExampleAccount,
                                                      Example2Account)
-        config_file = tempfile.mktemp(".conf", "jcltest", jcl.tests.DB_DIR)
-        self.comp.config_file = config_file
-        self.comp.config = ConfigParser()
         self.comp.set_welcome_message("Welcome Message")
         model.db_connect()
         user1 = User(jid="test1@test.com")
@@ -2528,7 +2621,7 @@ class JCLCommandManager_TestCase(JCLTestCase):
         account22.status = account.OFFLINE
         model.db_disconnect()
         info_query = Iq(stanza_type="set",
-                        from_jid="user1@test.com",
+                        from_jid="admin@test.com",
                         to_jid="jcl.test.com")
         command_node = info_query.set_new_content(command.COMMAND_NS, "command")
         command_node.setProp("node",
@@ -2556,7 +2649,7 @@ class JCLCommandManager_TestCase(JCLTestCase):
 
         # Second step
         info_query = Iq(stanza_type="set",
-                        from_jid="user1@test.com",
+                        from_jid="admin@test.com",
                         to_jid="jcl.test.com")
         command_node = info_query.set_new_content(command.COMMAND_NS, "command")
         command_node.setProp("node",
@@ -2587,14 +2680,10 @@ class JCLCommandManager_TestCase(JCLTestCase):
         self.assertTrue(self.comp.config.has_option("component", "welcome_message"))
         self.assertEquals(self.comp.config.get("component", "welcome_message"),
                           "New Welcome Message")
-        os.unlink(config_file)
 
     def test_execute_delete_welcome(self):
         self.comp.account_manager.account_classes = (ExampleAccount,
                                                      Example2Account)
-        config_file = tempfile.mktemp(".conf", "jcltest", jcl.tests.DB_DIR)
-        self.comp.config_file = config_file
-        self.comp.config = ConfigParser()
         self.comp.set_motd("test motd")
         model.db_connect()
         user1 = User(jid="test1@test.com")
@@ -2617,7 +2706,7 @@ class JCLCommandManager_TestCase(JCLTestCase):
         account22.status = account.OFFLINE
         model.db_disconnect()
         info_query = Iq(stanza_type="set",
-                        from_jid="user1@test.com",
+                        from_jid="admin@test.com",
                         to_jid="jcl.test.com")
         command_node = info_query.set_new_content(command.COMMAND_NS, "command")
         command_node.setProp("node",
@@ -2636,14 +2725,10 @@ class JCLCommandManager_TestCase(JCLTestCase):
         self.comp.config.read(self.comp.config_file)
         self.assertFalse(self.comp.config.has_option("component",
                                                      "welcome_message"))
-        os.unlink(config_file)
 
     def test_execute_edit_admin(self):
         self.comp.account_manager.account_classes = (ExampleAccount,
                                                      Example2Account)
-        config_file = tempfile.mktemp(".conf", "jcltest", jcl.tests.DB_DIR)
-        self.comp.config_file = config_file
-        self.comp.config = ConfigParser()
         self.comp.set_admins(["admin1@test.com", "admin2@test.com"])
         model.db_connect()
         user1 = User(jid="test1@test.com")
@@ -2666,7 +2751,7 @@ class JCLCommandManager_TestCase(JCLTestCase):
         account22.status = account.OFFLINE
         model.db_disconnect()
         info_query = Iq(stanza_type="set",
-                        from_jid="user1@test.com",
+                        from_jid="admin1@test.com",
                         to_jid="jcl.test.com")
         command_node = info_query.set_new_content(command.COMMAND_NS, "command")
         command_node.setProp("node",
@@ -2696,7 +2781,7 @@ class JCLCommandManager_TestCase(JCLTestCase):
 
         # Second step
         info_query = Iq(stanza_type="set",
-                        from_jid="user1@test.com",
+                        from_jid="admin1@test.com",
                         to_jid="jcl.test.com")
         command_node = info_query.set_new_content(command.COMMAND_NS, "command")
         command_node.setProp("node",
@@ -2727,12 +2812,11 @@ class JCLCommandManager_TestCase(JCLTestCase):
         self.assertTrue(self.comp.config.has_option("component", "admins"))
         self.assertEquals(self.comp.config.get("component", "admins"),
                           "admin3@test.com,admin4@test.com")
-        os.unlink(config_file)
 
 #     def test_execute_restart(self):
 #         #TODO : implement command
 #         info_query = Iq(stanza_type="set",
-#                         from_jid="user1@test.com",
+#                         from_jid="admin@test.com",
 #                         to_jid="jcl.test.com")
 #         result = self.command_manager.execute_add_user(info_query)
 #         self.assertNotEquals(result, None)
@@ -2741,7 +2825,7 @@ class JCLCommandManager_TestCase(JCLTestCase):
 #     def test_execute_shutdown(self):
 #         #TODO : implement command
 #         info_query = Iq(stanza_type="set",
-#                         from_jid="user1@test.com",
+#                         from_jid="admin@test.com",
 #                         to_jid="jcl.test.com")
 #         result = self.command_manager.execute_add_user(info_query)
 #         self.assertNotEquals(result, None)

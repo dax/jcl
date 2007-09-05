@@ -61,7 +61,7 @@ class CommandManager(object):
         self.__logger = logging.getLogger("jcl.jabber.command.CommandManager")
         self.component = component
         self.account_manager = account_manager
-        self.commands = []
+        self.commands = {}
         self.command_re = re.compile("([^#]*#)?(.*)")
         self.sessions = {}
 
@@ -83,15 +83,18 @@ class CommandManager(object):
             command_desc = short_command_name
         return command_desc
 
-    def list_commands(self, disco_items, lang_class):
+    def list_commands(self, jid, disco_items, lang_class):
         """Return DiscoItem for each supported commands"""
-        for command_name in self.commands:
-            command_desc = self.get_command_desc(command_name,
-                                                 lang_class)
-            DiscoItem(disco_items,
-                      self.component.jid,
-                      command_name,
-                      command_desc)
+        for command_name in self.commands.keys():
+            must_be_admin = self.commands[command_name]
+            if not must_be_admin or \
+               (must_be_admin and unicode(jid) in self.component.get_admins()):
+                command_desc = self.get_command_desc(command_name,
+                                                     lang_class)
+                DiscoItem(disco_items,
+                          self.component.jid,
+                          command_name,
+                          command_desc)
         return disco_items
 
     def get_command_info(self, disco_info, command_name, lang_class):
@@ -105,14 +108,21 @@ class CommandManager(object):
 
     def apply_command_action(self, info_query, command_name, action):
         """Apply action on command"""
-        short_command_name = self.get_short_command_name(command_name)
-        action_command_method = "apply_" + action + "_command"
-        if hasattr(self, action_command_method):
-            return getattr(self, action_command_method)(info_query,
-                                                        short_command_name)
+        must_be_admin = self.commands[command_name]
+        if not must_be_admin or \
+            (must_be_admin and
+             unicode(info_query.get_from()) in self.component.get_admins()):
+            short_command_name = self.get_short_command_name(command_name)
+            action_command_method = "apply_" + action + "_command"
+            if hasattr(self, action_command_method):
+                return getattr(self, action_command_method)(info_query,
+                                                            short_command_name)
+            else:
+                return [info_query.make_error_response(\
+                    "feature-not-implemented")]
         else:
             return [info_query.make_error_response(\
-                "feature-not-implemented")]
+                    "forbidden")]
 
     def apply_execute_command(self, info_query, short_command_name):
         return self.execute_multi_step_command(\
@@ -243,31 +253,30 @@ class JCLCommandManager(CommandManager):
         """
         CommandManager.__init__(self, component, account_manager)
         self.__logger = logging.getLogger("jcl.jabber.command.JCLCommandManager")
-        self.commands.extend(["list",
-                              "http://jabber.org/protocol/admin#add-user",
-                              "http://jabber.org/protocol/admin#delete-user",
-                              "http://jabber.org/protocol/admin#disable-user",
-                              "http://jabber.org/protocol/admin#reenable-user",
-                              "http://jabber.org/protocol/admin#end-user-session",
-                              "http://jabber.org/protocol/admin#get-user-password",
-                              "http://jabber.org/protocol/admin#change-user-password",
-                              "http://jabber.org/protocol/admin#get-user-roster",
-                              "http://jabber.org/protocol/admin#get-user-lastlogin",
-                              "http://jabber.org/protocol/admin#get-registered-users-num",
-                              "http://jabber.org/protocol/admin#get-disabled-users-num",
-                              "http://jabber.org/protocol/admin#get-online-users-num",
-                              "http://jabber.org/protocol/admin#get-registered-users-list",
-                              "http://jabber.org/protocol/admin#get-disabled-users-list",
-                              "http://jabber.org/protocol/admin#get-online-users-lists",
-                              "http://jabber.org/protocol/admin#announce",
-                              "http://jabber.org/protocol/admin#set-motd",
-                              "http://jabber.org/protocol/admin#edit-motd",
-                              "http://jabber.org/protocol/admin#delete-motd",
-                              "http://jabber.org/protocol/admin#set-welcome",
-                              "http://jabber.org/protocol/admin#delete-welcome",
-                              "http://jabber.org/protocol/admin#edit-admin",
-                              "http://jabber.org/protocol/admin#restart",
-                              "http://jabber.org/protocol/admin#shutdown"])
+        self.commands["http://jabber.org/protocol/admin#add-user"] = True
+        self.commands["http://jabber.org/protocol/admin#delete-user"] = True
+        self.commands["http://jabber.org/protocol/admin#disable-user"] = True
+        self.commands["http://jabber.org/protocol/admin#reenable-user"] = True
+        self.commands["http://jabber.org/protocol/admin#end-user-session"] = True
+        self.commands["http://jabber.org/protocol/admin#get-user-password"] = True
+        self.commands["http://jabber.org/protocol/admin#change-user-password"] = True
+        self.commands["http://jabber.org/protocol/admin#get-user-roster"] = True
+        self.commands["http://jabber.org/protocol/admin#get-user-lastlogin"] = True
+        self.commands["http://jabber.org/protocol/admin#get-registered-users-num"] = True
+        self.commands["http://jabber.org/protocol/admin#get-disabled-users-num"] = True
+        self.commands["http://jabber.org/protocol/admin#get-online-users-num"] = True
+        self.commands["http://jabber.org/protocol/admin#get-registered-users-list"] = True
+        self.commands["http://jabber.org/protocol/admin#get-disabled-users-list"] = True
+        self.commands["http://jabber.org/protocol/admin#get-online-users-list"] = True
+        self.commands["http://jabber.org/protocol/admin#announce"] = True
+        self.commands["http://jabber.org/protocol/admin#set-motd"] = True
+        self.commands["http://jabber.org/protocol/admin#edit-motd"] = True
+        self.commands["http://jabber.org/protocol/admin#delete-motd"] = True
+        self.commands["http://jabber.org/protocol/admin#set-welcome"] = True
+        self.commands["http://jabber.org/protocol/admin#delete-welcome"] = True
+        self.commands["http://jabber.org/protocol/admin#edit-admin"] = True
+        self.commands["http://jabber.org/protocol/admin#restart"] = True
+        self.commands["http://jabber.org/protocol/admin#shutdown"] = True
 
     def get_name_and_jid(self, mixed_name_and_jid):
         return mixed_name_and_jid.split("/", 1)[:2]
@@ -404,23 +413,6 @@ class JCLCommandManager(CommandManager):
         return (self.add_form_select_account(session_context, command_node,
                                              lang_class, format_as_xml),
                 [])
-
-    def execute_list_1(self, info_query, session_context,
-                       command_node, lang_class):
-        """Execute command 'list'. List accounts"""
-        self.__logger.debug("Executing 'list' command")
-        result_form = Form(xmlnode_or_type="result",
-                           title="Registered account") # TODO : add to Lang
-        result_form.reported_fields.append(FieldNoType(name="name",
-                                                       label="Account name")) # TODO: add to Lang
-        bare_from_jid = unicode(info_query.get_from().bare())
-        for _account in account.get_accounts(bare_from_jid):
-            fields = [FieldNoType(name="name",
-                                  value=_account.name)]
-            result_form.add_item(fields)
-        result_form.as_xml(command_node)
-        command_node.setProp("status", STATUS_COMPLETED)
-        return (result_form, [])
 
     def execute_add_user_1(self, info_query, session_context,
                            command_node, lang_class):
@@ -942,6 +934,7 @@ class CommandDiscoGetItemsHandler(DiscoHandler):
         """
         if not disco_obj:
             disco_obj = DiscoItems()
-        return [command_manager.list_commands(disco_items=disco_obj,
+        return [command_manager.list_commands(jid=info_query.get_from(),
+                                              disco_items=disco_obj,
                                               lang_class=lang_class)]
 

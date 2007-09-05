@@ -535,7 +535,8 @@ class JCLComponent_TestCase(JCLTestCase):
         info_query = Iq(stanza_type="get",
                         from_jid="user1@test.com",
                         to_jid="jcl.test.com")
-        disco_info = self.comp.disco_get_info("list", info_query)
+        disco_info = self.comp.disco_get_info("http://jabber.org/protocol/admin#get-disabled-users-num",
+                                              info_query)
         self.assertEquals(len(self.comp.stream.sent), 0)
         self.assertTrue(disco_info.has_feature("http://jabber.org/protocol/commands"))
         self.assertEquals(len(disco_info.get_identities()), 1)
@@ -544,7 +545,7 @@ class JCLComponent_TestCase(JCLTestCase):
         self.assertEquals(disco_info.get_identities()[0].get_type(),
                           "command-node")
         self.assertEquals(disco_info.get_identities()[0].get_name(),
-                          Lang.en.command_list)
+                          Lang.en.command_get_disabled_users_num)
 
     ###########################################################################
     # 'disco_get_items' tests
@@ -742,15 +743,17 @@ class JCLComponent_TestCase(JCLTestCase):
     def test_disco_get_items_list_commands(self):
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
+        config_file = tempfile.mktemp(".conf", "jcltest", jcl.tests.DB_DIR)
+        self.comp.config = ConfigParser()
+        self.comp.config_file = config_file
+        self.comp.config.read(config_file)
+        self.comp.set_admins(["admin@test.com"])
         info_query = Iq(stanza_type="get",
-                        from_jid="user1@test.com",
+                        from_jid="admin@test.com",
                         to_jid="jcl.test.com")
         disco_items = self.comp.disco_get_items("http://jabber.org/protocol/commands",
                                                 info_query)
-        self.assertEquals(len(disco_items.get_items()), 25)
-        item = disco_items.get_items()[0]
-        self.assertEquals(item.get_node(), "list")
-        self.assertEquals(item.get_name(), Lang.en.command_list)
+        self.assertEquals(len(disco_items.get_items()), 24)
 
     ###########################################################################
     # 'handle_get_version' tests
@@ -2714,7 +2717,7 @@ class JCLComponent_TestCase(JCLTestCase):
         self.comp.config.read(self.comp.config_file)
         self.comp.config.write(open(self.comp.config_file, "w"))
         admins = self.comp.get_admins()
-        self.assertEquals(admins, None)
+        self.assertEquals(admins, [])
         os.unlink(config_file)
 
     def test_set_new_admins(self):
@@ -2751,11 +2754,17 @@ class JCLComponent_TestCase(JCLTestCase):
     def test_handle_command_execute_list(self):
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
+        config_file = tempfile.mktemp(".conf", "jcltest", jcl.tests.DB_DIR)
+        self.comp.config = ConfigParser()
+        self.comp.config_file = config_file
+        self.comp.config.read(config_file)
+        self.comp.set_admins(["admin@test.com"])
         model.db_connect()
         user1 = User(jid="user1@test.com")
         account11 = ExampleAccount(user=user1,
                                    name="account11",
                                    jid="account11@jcl.test.com")
+        account11.enabled = False
         account12 = Example2Account(user=user1,
                                     name="account12",
                                     jid="account12@jcl.test.com")
@@ -2764,11 +2773,11 @@ class JCLComponent_TestCase(JCLTestCase):
                                   jid="account2@jcl.test.com")
         model.db_disconnect()
         info_query = Iq(stanza_type="set",
-                        from_jid="user1@test.com",
+                        from_jid="admin@test.com",
                         to_jid="jcl.test.com")
         command_node = info_query.set_new_content("http://jabber.org/protocol/commands",
                                                   "command")
-        command_node.setProp("node", "list")
+        command_node.setProp("node", "http://jabber.org/protocol/admin#get-disabled-users-num")
         command_node.setProp("action", "execute")
         self.comp.handle_command(info_query)
         result = self.comp.stream.sent
@@ -2778,10 +2787,13 @@ class JCLComponent_TestCase(JCLTestCase):
                                               {"c": "http://jabber.org/protocol/commands"})
         self.assertEquals(len(command_result), 1)
         self.assertEquals(command_result[0].prop("status"), "completed")
-        items = result[0].xpath_eval("c:command/data:x/data:item",
-                                     {"c": "http://jabber.org/protocol/commands",
-                                      "data": "jabber:x:data"})
-        self.assertEquals(len(items), 2)
+        fields = result[0].xpath_eval("c:command/data:x/data:field",
+                                      {"c": "http://jabber.org/protocol/commands",
+                                       "data": "jabber:x:data"})
+        self.assertEquals(len(fields), 2)
+        self.assertEquals(fields[1].prop("var"), "disabledusersnum")
+        self.assertEquals(fields[1].children.name, "value")
+        self.assertEquals(fields[1].children.content, "1")
 
 class Handler_TestCase(JCLTestCase):
     def setUp(self):
