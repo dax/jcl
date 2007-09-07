@@ -2913,14 +2913,104 @@ class JCLCommandManager_TestCase(JCLTestCase):
         self.assertTrue(self.comp.restart)
         self.assertFalse(self.comp.running)
 
-#     def test_execute_shutdown(self):
-#         #TODO : implement command
-#         info_query = Iq(stanza_type="set",
-#                         from_jid="admin@test.com",
-#                         to_jid="jcl.test.com")
-#         result = self.command_manager.execute_add_user(info_query)
-#         self.assertNotEquals(result, None)
-#         self.assertEquals(len(result), 1)
+    def test_execute_shutdown(self):
+        self.comp.account_manager.account_classes = (ExampleAccount,
+                                                     Example2Account)
+        self.comp.running = True
+        model.db_connect()
+        user1 = User(jid="test1@test.com")
+        account11 = ExampleAccount(user=user1,
+                                   name="account11",
+                                   jid="account11@jcl.test.com")
+        account11.status = account.ONLINE
+        account12 = Example2Account(user=user1,
+                                    name="account12",
+                                    jid="account12@jcl.test.com")
+        account12.status = "away"
+        user2 = User(jid="test2@test.com")
+        account21 = ExampleAccount(user=user2,
+                                   name="account21",
+                                   jid="account21@jcl.test.com")
+        account22 = ExampleAccount(user=user2,
+                                   name="account11",
+                                   jid="account11@jcl.test.com")
+        account22.status = "xa"
+        model.db_disconnect()
+        info_query = Iq(stanza_type="set",
+                        from_jid="admin@test.com",
+                        to_jid="jcl.test.com")
+        command_node = info_query.set_new_content(command.COMMAND_NS, "command")
+        command_node.setProp("node",
+                             "http://jabber.org/protocol/admin#shutdown")
+        result = self.command_manager.apply_command_action(\
+            info_query,
+            "http://jabber.org/protocol/admin#shutdown",
+            "execute")
+        self.assertNotEquals(result, None)
+        self.assertEquals(len(result), 1)
+        xml_command = result[0].xpath_eval("c:command",
+                                           {"c": "http://jabber.org/protocol/commands"})[0]
+        self.assertEquals(xml_command.prop("status"), "executing")
+        self.assertNotEquals(xml_command.prop("sessionid"), None)
+        self.__check_actions(result[0], ["next"])
+        fields = result[0].xpath_eval("c:command/data:x/data:field",
+                                      {"c": "http://jabber.org/protocol/commands",
+                                       "data": "jabber:x:data"})
+        self.assertEquals(len(fields), 3)
+        self.assertEquals(fields[1].prop("var"), "delay")
+        self.assertEquals(fields[1].prop("type"), "list-multi")
+        self.assertEquals(fields[2].prop("var"), "announcement")
+        self.assertEquals(fields[2].prop("type"), "text-multi")
+
+        # Second step
+        info_query = Iq(stanza_type="set",
+                        from_jid="admin@test.com",
+                        to_jid="jcl.test.com")
+        command_node = info_query.set_new_content(command.COMMAND_NS, "command")
+        command_node.setProp("node",
+                             "http://jabber.org/protocol/admin#shutdown")
+        session_id = xml_command.prop("sessionid")
+        command_node.setProp("sessionid", session_id)
+        command_node.setProp("action", "next")
+        submit_form = Form(xmlnode_or_type="submit")
+        submit_form.add_field(field_type="list-multi",
+                              name="delay",
+                              value=[0])
+        submit_form.add_field(field_type="text-multi",
+                              name="announcement",
+                              value=["service will be shut in 0 second"])
+        submit_form.as_xml(command_node)
+        result = self.command_manager.apply_command_action(\
+            info_query,
+            "http://jabber.org/protocol/admin#shutdown",
+            "execute")
+        self.assertNotEquals(result, None)
+        self.assertEquals(len(result), 3)
+        xml_command = result[0].xpath_eval("c:command",
+                                           {"c": "http://jabber.org/protocol/commands"})[0]
+        self.assertEquals(xml_command.prop("status"), "completed")
+        self.assertEquals(xml_command.prop("sessionid"), session_id)
+        self.__check_actions(result[0])
+        context_session = self.command_manager.sessions[session_id][1]
+        self.assertEquals(context_session["announcement"],
+                          ["service will be shut in 0 second"])
+        self.assertEquals(context_session["delay"],
+                          ["0"])
+        self.assertEquals(result[1].get_from(), "jcl.test.com")
+        self.assertEquals(result[1].get_to(), "test1@test.com")
+        self.assertEquals(result[1].get_body(), "service will be shut in 0 second")
+        self.assertEquals(result[2].get_from(), "jcl.test.com")
+        self.assertEquals(result[2].get_to(), "test2@test.com")
+        self.assertEquals(result[2].get_body(), "service will be shut in 0 second")
+        self.assertFalse(self.comp.restart)
+        self.assertTrue(self.comp.running)
+        threads = threading.enumerate()
+        self.assertEquals(len(threads), 2)
+        threading.Event().wait(1)
+        threads = threading.enumerate()
+        self.assertEquals(len(threads), 1)
+        self.assertFalse(self.comp.restart)
+        self.assertFalse(self.comp.running)
 
 def suite():
     test_suite = unittest.TestSuite()
