@@ -136,6 +136,31 @@ class JCLRunner_TestCase(unittest.TestCase):
         model.db_disconnect()
         os.unlink(db_path)
         self.assertFalse(os.access("/tmp/jcl.pid", os.F_OK))
+
+    def test__run_restart(self):
+        self.runner.pid_file = "/tmp/jcl.pid"
+        db_path = tempfile.mktemp("db", "jcltest", DB_DIR)
+        db_url = "sqlite://" + db_path
+        self.runner.db_url = db_url
+        self.i = 0
+        def restart(self):
+            self.i += 1
+            yield True
+            self.i += 1
+            yield False
+            self.i += 1
+        restart_generator = restart(self)
+        self.runner._run(lambda : restart_generator.next())
+        model.db_connect()
+        # dropTable should succeed because tables should exist
+        Account.dropTable()
+        PresenceAccount.dropTable()
+        User.dropTable()
+        LegacyJID.dropTable()
+        model.db_disconnect()
+        os.unlink(db_path)
+        self.assertFalse(os.access("/tmp/jcl.pid", os.F_OK))
+        self.assertEquals(self.i, 2)
         
     def test__get_help(self):
         self.assertNotEquals(self.runner._get_help(), None)

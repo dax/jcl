@@ -133,6 +133,7 @@ class JCLComponent(Component, object):
         self.lang = lang
         self.running = False
         self.wait_event = threading.Event()
+        self._restart = False
 
         signal.signal(signal.SIGINT, self.signal_handler)
         signal.signal(signal.SIGTERM, self.signal_handler)
@@ -168,6 +169,16 @@ class JCLComponent(Component, object):
             timer_thread.join(JCLComponent.timeout)
             self.disconnect()
             self.__logger.debug("Exitting normally")
+        return self._restart
+
+    def _get_restart(self):
+        return self._restart
+
+    def _set_restart(self, __restart):
+        self.running = not __restart
+        self._restart = __restart
+
+    restart = property(_get_restart, _set_restart)
 
     ###########################################################################
     # Handlers
@@ -183,7 +194,7 @@ class JCLComponent(Component, object):
                    and self.stream.socket is not None):
                 self.wait_event.wait(self.time_unit)
                 self.handle_tick()
-                self.__logger.debug("Resetting alarm signal")
+                self.__logger.debug(".")
         except Exception, exception:
             type, value, stack = sys.exc_info()
             self.__logger.error("Error in timer thread\n%s\n%s"

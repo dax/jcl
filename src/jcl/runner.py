@@ -194,7 +194,9 @@ class JCLRunner(object):
             model.db_disconnect()
             self.logger.debug(self.component_name + " v" +
                               self.component_version + " is starting ...")
-            run_func()
+            restart = True
+            while restart:
+                restart = run_func()
             self.logger.debug(self.component_name + " is exiting")
         finally:
             if os.path.exists(self.pid_file):
@@ -209,6 +211,6 @@ class JCLRunner(object):
                                      lang=Lang(self.language),
                                      config=self.config,
                                      config_file=self.config_file)
-            component.run()
+            return component.run()
         self._run(run_func)
 

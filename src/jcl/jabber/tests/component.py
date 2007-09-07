@@ -242,7 +242,25 @@ class JCLComponent_TestCase(JCLTestCase):
         # Tests in subclasses might be more precise
         self.comp.stream = MockStreamNoConnect()
         self.comp.stream_class = MockStreamNoConnect
-        self.comp.run()
+        result = self.comp.run()
+        self.assertFalse(result)
+        self.assertTrue(self.comp.stream.connection_started)
+        threads = threading.enumerate()
+        self.assertEquals(len(threads), 1)
+        self.assertTrue(self.comp.stream.connection_stopped)
+        if self.comp.queue.qsize():
+            raise self.comp.queue.get(0)
+
+    def test_run_restart(self):
+        """Test main loop execution with restart"""
+        self.comp.time_unit = 1
+        # Do not loop, handle_tick is virtual
+        # Tests in subclasses might be more precise
+        self.comp.stream = MockStreamNoConnect()
+        self.comp.stream_class = MockStreamNoConnect
+        self.comp.restart = True
+        result = self.comp.run()
+        self.assertTrue(result)
         self.assertTrue(self.comp.stream.connection_started)
         threads = threading.enumerate()
         self.assertEquals(len(threads), 1)
@@ -258,7 +276,6 @@ class JCLComponent_TestCase(JCLTestCase):
         self.comp.stream = MockStreamRaiseException()
         self.comp.stream_class = MockStreamRaiseException
         self.comp.handle_tick = do_nothing
-
         try:
             self.comp.run()
         except Exception, e:
