@@ -117,9 +117,103 @@ class Language_TestCase(unittest.TestCase):
         self.assertNotEquals(self.lang_class.get_gateway_desc, None)
         self.assertNotEquals(self.lang_class.get_gateway_prompt, None)
 
-        self.assertNotEquals(self.lang_class.command_get_disabled_users_num, None)
+        self.assertNotEquals(self.lang_class.command_get_disabled_users_num,
+                             None)
+
         self.assertNotEquals(self.lang_class.command_add_user, None)
-        self.assertNotEquals(self.lang_class.select_account_type, None)
+        self.assertNotEquals(self.lang_class.command_add_user_1_description,
+                             None)
+        self.assertNotEquals(self.lang_class.field_account_type, None)
+
+        self.assertNotEquals(self.lang_class.command_delete_user, None)
+        self.assertNotEquals(self.lang_class.command_delete_user_1_description,
+                             None)
+        self.assertNotEquals(self.lang_class.command_delete_user_2_description,
+                             None)
+        self.assertNotEquals(self.lang_class.field_users_jids, None)
+        self.assertNotEquals(self.lang_class.field_account, None)
+        self.assertNotEquals(self.lang_class.field_accounts, None)
+
+        self.assertNotEquals(self.lang_class.command_disable_user, None)
+        self.assertNotEquals(self.lang_class.command_disable_user_1_description,
+                             None)
+        self.assertNotEquals(self.lang_class.command_disable_user_2_description,
+                             None)
+
+        self.assertNotEquals(self.lang_class.command_reenable_user, None)
+        self.assertNotEquals(self.lang_class.command_reenable_user_1_description,
+                             None)
+        self.assertNotEquals(self.lang_class.command_reenable_user_2_description,
+                             None)
+
+        self.assertNotEquals(self.lang_class.command_end_user_session, None)
+        self.assertNotEquals(self.lang_class.command_end_user_session_1_description,
+                             None)
+        self.assertNotEquals(self.lang_class.command_end_user_session_2_description,
+                             None)
+
+        self.assertNotEquals(self.lang_class.command_get_user_password, None)
+        self.assertNotEquals(self.lang_class.command_get_user_password_1_description,
+                             None)
+        self.assertNotEquals(self.lang_class.command_get_user_password_2_description,
+                             None)
+
+        self.assertNotEquals(self.lang_class.command_change_user_password,
+                             None)
+        self.assertNotEquals(self.lang_class.command_change_user_password_1_description,
+                             None)
+        self.assertNotEquals(self.lang_class.command_change_user_password_2_description,
+                             None)
+
+        self.assertNotEquals(self.lang_class.command_get_user_roster, None)
+        self.assertNotEquals(self.lang_class.command_get_user_roster_1_description,
+                             None)
+
+        self.assertNotEquals(self.lang_class.command_get_user_lastlogin,
+                             None)
+        self.assertNotEquals(self.lang_class.command_get_user_lastlogin_1_description,
+                             None)
+        self.assertNotEquals(self.lang_class.command_get_user_lastlogin_2_description,
+                             None)
+
+        self.assertNotEquals(self.lang_class.field_registered_users_num, None)
+        self.assertNotEquals(self.lang_class.field_disabled_users_num, None)
+        self.assertNotEquals(self.lang_class.field_online_users_num, None)
+
+        self.assertNotEquals(self.lang_class.field_max_items, None)
+        self.assertNotEquals(self.lang_class.field_registered_users_list, None)
+        self.assertNotEquals(self.lang_class.field_disabled_users_list, None)
+        self.assertNotEquals(self.lang_class.field_online_users_list, None)
+
+        self.assertNotEquals(self.lang_class.command_announce, None)
+        self.assertNotEquals(self.lang_class.command_announce_1_description, None)
+        self.assertNotEquals(self.lang_class.field_announcement, None)
+
+        self.assertNotEquals(self.lang_class.command_set_motd, None)
+        self.assertNotEquals(self.lang_class.command_set_motd_1_description, None)
+        self.assertNotEquals(self.lang_class.field_motd, None)
+
+        self.assertNotEquals(self.lang_class.command_edit_motd, None)
+
+        self.assertNotEquals(self.lang_class.command_delete_motd, None)
+
+        self.assertNotEquals(self.lang_class.command_set_welcome, None)
+        self.assertNotEquals(self.lang_class.command_set_welcome_1_description, None)
+        self.assertNotEquals(self.lang_class.field_welcome, None)
+
+        self.assertNotEquals(self.lang_class.command_delete_welcome, None)
+
+        self.assertNotEquals(self.lang_class.command_edit_admin, None)
+        self.assertNotEquals(self.lang_class.command_edit_admin_1_description, None)
+        self.assertNotEquals(self.lang_class.field_admin_jids, None)
+
+        self.assertNotEquals(self.lang_class.command_restart, None)
+        self.assertNotEquals(self.lang_class.command_restart_1_description, None)
+        self.assertNotEquals(self.lang_class.field_restart_delay, None)
+
+        self.assertNotEquals(self.lang_class.command_shutdown, None)
+        self.assertNotEquals(self.lang_class.command_shutdown_1_description, None)
+        self.assertNotEquals(self.lang_class.field_shutdown_delay, None)
 
         self.assertNotEquals(self.lang_class.welcome_message_subject, None)
 
@@ -140,16 +234,16 @@ class Language_pl_TestCase(Language_TestCase):
         self.lang_class = Lang.pl
 
 def suite():
-    suite = unittest.TestSuite()
-    suite.addTest(unittest.makeSuite(Lang_TestCase, 'test'))
-    suite.addTest(unittest.makeSuite(Language_TestCase, 'test'))
-    suite.addTest(unittest.makeSuite(Language_fr_TestCase, 'test'))
+    test_suite = unittest.TestSuite()
+    test_suite.addTest(unittest.makeSuite(Lang_TestCase, 'test'))
+    test_suite.addTest(unittest.makeSuite(Language_TestCase, 'test'))
+    test_suite.addTest(unittest.makeSuite(Language_fr_TestCase, 'test'))
 #    suite.addTest(unittest.makeSuite(Language_nl_TestCase, 'test'))
 #    suite.addTest(unittest.makeSuite(Language_es_TestCase, 'test'))
 #    suite.addTest(unittest.makeSuite(Language_pl_TestCase, 'test'))
 #    suite.addTest(unittest.makeSuite(Language_cs_TestCase, 'test'))
 #    suite.addTest(unittest.makeSuite(Language_ru_TestCase, 'test'))
-    return suite
+    return test_suite
 
 if __name__ == '__main__':
     unittest.main(defaultTest='suite')

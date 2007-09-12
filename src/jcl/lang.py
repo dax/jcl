@@ -104,7 +104,7 @@ class Lang:
         field_dnd_action_0 = field_action_0
         field_offline_action_0 = field_action_0
 
-        field_user_jid = u"User JID"
+        field_user_jid = u"User Jabber ID"
         field_password = u"Password"
 
         error_subject = u"Error"
@@ -113,9 +113,107 @@ class Lang:
         get_gateway_desc = u"Please enter the email address of your contact"
         get_gateway_prompt = u"Email address"
 
-        command_get_disabled_users_num = u"get-disabled-users-num"
+        command_get_disabled_users_num = u"Get number of disabled accounts"
         command_add_user = u"Create new account"
-        select_account_type = u"Select account type"
+        command_add_user_1_description = u"Select an account type"
+        field_account_type = u"Account type"
+
+        command_delete_user = u"Delete accounts"
+        command_delete_user_1_description = \
+            u"Fill out this form with user(s) Jabber ID(s) to search account(s) to delete"
+        command_delete_user_2_description = u"Select account(s) to delete"
+        field_users_jids = u"User(s) Jabber ID(s)"
+        field_account = u"Account"
+        field_accounts = u"Accounts"
+
+        command_disable_user = u"Disable accounts"
+        command_disable_user_1_description = \
+            u"Fill out this form with user(s) Jabber ID(s) to search account(s) to disable"
+        command_disable_user_2_description = u"Select account(s) to disable"
+
+        command_reenable_user = u"Re-Enable accounts"
+        command_reenable_user_1_description = \
+            u"Fill out this form with user(s) Jabber ID(s) to search account(s) to re-enable"
+        command_reenable_user_2_description = u"Select account(s) to re-enable"
+
+        command_end_user_session = u"End users sessions"
+        command_end_user_session_1_description = \
+            u"Fill out this form with user(s) Jabber ID(s) to search account(s) to end session"
+        command_end_user_session_2_description = \
+            u"Select account(s) to end their session"
+
+        command_get_user_password = u"Get user&apos;s password"
+        command_get_user_password_1_description = \
+            u"Fill out this form with user Jabber ID to search account" \
+            u" for which to retrieve password"
+        command_get_user_password_2_description = \
+            u"Select account for which to retrieve password"
+
+        command_change_user_password = u"Changing user&apos;s password"
+        command_change_user_password_1_description = \
+            u"Fill out this form with user Jabber ID to search account" \
+            u" for which to change password"
+        command_change_user_password_2_description = \
+            u"Select account for which to change password"
+
+        command_get_user_roster = u"Get user&apos;s accounts"
+        command_get_user_roster_1_description = \
+            u"Fill out this form with user Jabber ID for which to retrieve accounts"
+
+        command_get_user_lastlogin = u"Get user&apos;s last login time"
+        command_get_user_lastlogin_1_description = \
+            u"Fill out this form with user Jabber ID to search account" \
+            u" for which to retrieve last login time"
+        command_get_user_lastlogin_2_description = \
+            u"Select account for which to retrieve last login time"
+
+        field_registered_users_num = u"The number of registered accounts"
+        field_disabled_users_num = u"The number of disabled accounts"
+        field_online_users_num = u"The number of online accounts"
+
+        field_max_items = u"Maximum number of items to show"
+        field_registered_users_list = u"The list of registered accounts"
+        field_disabled_users_list = u"The list of disabled accounts"
+        field_online_users_list = u"The list of online accounts"
+
+        command_announce = u"Make an annoucement"
+        command_announce_1_description = \
+            u"Fill out this form with the announce to send to online users"
+        field_announcement = u"Announcement"
+
+        command_set_motd = u"Set the Message Of The Day"
+        command_set_motd_1_description = \
+            u"Fill out this form with the Message Of The Day to send to all" \
+            u" registered users"
+        field_motd = u"Message Of The Day"
+
+        command_edit_motd = u"Edit the Message Of The Day"
+
+        command_delete_motd = u"Delete the Message Of The Day"
+
+        command_set_welcome = u"Set Welcome Message"
+        command_set_welcome_1_description = \
+            u"Fill out this form with the Welcome Message to send to all" \
+            u" new registered users"
+        field_welcome = u"Welcome Message"
+
+        command_delete_welcome = u"Delete Welcome Message"
+
+        command_edit_admin = u"Edit the admin list"
+        command_edit_admin_1_description = \
+            u"Fill out this form to edit the list of users who have " \
+            u"administrative privileges."
+        field_admin_jids = u"The admin list"
+
+        command_restart = u"Restart the service"
+        command_restart_1_description = \
+            u"Fill out this form to restart the service."
+        field_restart_delay = u"Delay before restarting the service"
+
+        command_shutdown = u"Shut down the service"
+        command_shutdown_1_description = \
+            u"Fill out this form to shut down the service."
+        field_shutdown_delay = u"Delay before shutting down the service"
 
         welcome_message_subject = u"Welcome"
 
@@ -163,9 +261,118 @@ class Lang:
         get_gateway_desc = u"Entrer l'adresse email de votre contact"
         get_gateway_prompt = u"Adresse email"
 
-        command_get_disabled_users_num = u"get_disabled_users_num"
-        command_add_user = u"Créer un compte"
-        select_account_type = u"Selectionner le type de comptes"
+        command_get_disabled_users_num = u"Récupérer le nombre de comptes " \
+                                         u"désactivés"
+        command_add_user = u"Créer un nouveau compte"
+        command_add_user_1_description = u"Selectionner un type de compte"
+        field_account_type = u"Type de compte"
+
+        command_delete_user = u"Supprimer des comptes"
+        command_delete_user_1_description = \
+            u"Remplir ce formulaire avec le(s) Jabber ID(s) utilisateur(s) pour" \
+            u" rechercher le(s) compte(s) à supprimer"
+        command_delete_user_2_description = u"Sélectionner le(s) compte(s) à " \
+            u"supprimer"
+        field_users_jids = u"Jabber ID(s) utilisateur(s)"
+        field_account = u"Compte"
+        field_accounts = u"Comptes"
+
+        command_disable_user = u"Désactiver des comptes"
+        command_disable_user_1_description = \
+            u"Remplir ce formulaire avec le(s) Jabber ID(s) utilisateur(s) " \
+            u"pour rechercher le(s) compte(s) à désactiver"
+        command_disable_user_2_description = u"Sélectionner le(s) compte(s) à" \
+                                             u" désactiver"
+
+        command_reenable_user = u"Réactiver des comptes"
+        command_reenable_user_1_description = \
+            u"Remplir ce formulaire avec le(s) Jabber ID(s) utilisateur(s) " \
+            u"pour rechercher le(s) compte(s) à réactiver"
+        command_reenable_user_2_description = u"Sélectionner le(s) compte(s)" \
+                                              u" à réactiver"
+
+        command_end_user_session = u"Terminer des sessions utilisateurs"
+        command_end_user_session_1_description = \
+            u"Remplir ce formulaire avec le(s) Jabber ID(s) utilisateur(s)" \
+            u" pour rechercher le(s) session(s) à terminer"
+        command_end_user_session_2_description = \
+            u"Sélectionner le(s) compte(s) des sessions à terminer"
+
+        command_get_user_password = u"Récupérer le mot de passe d'un compte"
+        command_get_user_password_1_description = \
+            u"Remplir ce formulaire avec le(s) Jabber ID(s) utilisateur(s)" \
+            u" pour rechercher le(s) compte(s) pour récupérer leur mot de passe"
+        command_get_user_password_2_description = \
+            u"Sélectionner le(s) compte(s) pour récupérer leur mot de passe"
+
+        command_change_user_password = u"Changer le mot de passe d'un compte"
+        command_change_user_password_1_description = \
+            u"Remplir ce formulaire avec le(s) Jabber ID(s) utilisateur(s)" \
+            u" pour rechercher le(s) compte(s) pour changer leur mot de passe"
+        command_change_user_password_2_description = \
+            u"Sélectionner le(s) compte(s) pour changer leur mot de passe"
+
+        command_get_user_roster = u"Récupérer les comptes utilisateurs"
+        command_get_user_roster_1_description = \
+            u"Remplir ce formulaire avec le(s) Jabber ID(s) utilisateur(s)" \
+            u" pour rechercher le(s) compte(s) à récupérer"
+
+        command_get_user_lastlogin = u"Récupérer la date de derniere connexion"
+        command_get_user_lastlogin_1_description = \
+            u"Remplir ce formulaire avec le(s) Jabber ID(s) utilisateur(s)" \
+            u" pour rechercher le(s) compte(s) pour récupérer leur dernière " \
+            u"date de connexion"
+        command_get_user_lastlogin_2_description = \
+            u"Sélectionner le compte pour récupérer la date de dernière connexion"
+
+        field_registered_users_num = u"Le nombre de comptes enregistrés"
+        field_disabled_users_num = u"Le nombre de comptes désactivés"
+        field_online_users_num = u"Le nombre de comptes connectés"
+
+        field_max_items = u"Maximum d'éléments à récupérer"
+        field_registered_users_list = u"La liste des comptes enregistrés"
+        field_disabled_users_list = u"La liste des comptes désactivés"
+        field_online_users_list = u"La liste des comptes connectés"
+
+        command_announce = u"Faire une annonce"
+        command_announce_1_description = \
+            u"Remplir ce formulaire avec le(s) Jabber ID(s) utilisateur(s)" \
+            u" à qui envoyer l'annonce"
+        field_announcement = u"Annonce"
+
+        command_set_motd = u"Écrire le Message Du Jour"
+        command_set_motd_1_description = \
+            u"Remplir ce formulaire avec le Message Du Jour à envoyer à tous" \
+            u" les utilisateurs enregistrés"
+        field_motd = u"Message Du Jour"
+
+        command_edit_motd = u"Editer le Message Du Jour"
+
+        command_delete_motd = u"Supprimer le Message Du Jour"
+
+        command_set_welcome = u"Écrire le message de bienvenue"
+        command_set_welcome_1_description = \
+            u"Remplir ce formulaire avec le message de bienvenue à envoyer à" \
+            u" tous les nouveaux utilisateurs"
+        field_welcome = u"Message de bienvenue"
+
+        command_delete_welcome = u"Supprimer le message de bienvenue"
+
+        command_edit_admin = u"Editer la liste des administrateurs"
+        command_edit_admin_1_description = \
+            u"Remplir ce formulaire pour éditer la liste des utilisateurs qui" \
+            u" ont les privilèges d'administration du service."
+        field_admin_jids = u"La liste des administrateur"
+
+        command_restart = u"Redémarrer le service"
+        command_restart_1_description = \
+            u"Remplir ce formulaire pour redémarrer le service."
+        field_restart_delay = u"Délai avant de redémarrer le service"
+
+        command_shutdown = u"Arrêter le service"
+        command_shutdown_1_description = \
+            u"Remplir ce formulaire pour arrêter le service."
+        field_shutdown_delay = u"Délai avant d'arrêter le service"
 
         welcome_message_subject = u"Bienvenue"
 

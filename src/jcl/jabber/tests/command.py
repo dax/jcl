@@ -98,7 +98,7 @@ class CommandManager_TestCase(unittest.TestCase):
     def test_apply_admin_command_action_as_admin(self):
         command.command_manager.commands["command1"] = True
         command.command_manager.apply_execute_command = \
-            lambda iq, command_name: [] 
+            lambda iq, command_name: []
         command.command_manager.component = MockComponent()
         info_query = Iq(stanza_type="set",
                         from_jid="admin@test.com",
@@ -111,7 +111,7 @@ class CommandManager_TestCase(unittest.TestCase):
     def test_apply_admin_command_action_as_user(self):
         command.command_manager.commands["command1"] = True
         command.command_manager.apply_execute_command = \
-            lambda iq, command_name: [] 
+            lambda iq, command_name: []
         command.command_manager.component = MockComponent()
         info_query = Iq(stanza_type="set",
                         from_jid="user@test.com",
@@ -128,7 +128,7 @@ class CommandManager_TestCase(unittest.TestCase):
     def test_apply_non_admin_command_action_as_admin(self):
         command.command_manager.commands["command1"] = False
         command.command_manager.apply_execute_command = \
-            lambda iq, command_name: [] 
+            lambda iq, command_name: []
         command.command_manager.component = MockComponent()
         info_query = Iq(stanza_type="set",
                         from_jid="admin@test.com",
@@ -141,7 +141,7 @@ class CommandManager_TestCase(unittest.TestCase):
     def test_apply_non_admin_command_action_as_user(self):
         command.command_manager.commands["command1"] = False
         command.command_manager.apply_execute_command = \
-            lambda iq, command_name: [] 
+            lambda iq, command_name: []
         command.command_manager.component = MockComponent()
         info_query = Iq(stanza_type="set",
                         from_jid="user@test.com",
@@ -205,12 +205,14 @@ class JCLCommandManager_TestCase(JCLTestCase):
                 self.assertEquals(children.name, action)
                 children = children.next
 
-    def test_add_form_select_user_jids(self):
+    def test_add_form_select_users_jids(self):
         info_query = Iq(stanza_type="set",
                         from_jid="admin@test.com",
                         to_jid="jcl.test.com")
         command_node = info_query.set_new_content(command.COMMAND_NS, "command")
-        self.command_manager.add_form_select_user_jids(command_node, Lang.en)
+        self.command_manager.add_form_select_users_jids(command_node, "title",
+                                                        "description",
+                                                        Lang.en.field_users_jids)
         user_jid_field = info_query.xpath_eval("c:command/data:x/data:field[1]",
                                                {"c": "http://jabber.org/protocol/commands",
                                                 "data": "jabber:x:data"})
@@ -218,14 +220,16 @@ class JCLCommandManager_TestCase(JCLTestCase):
         self.assertEquals(len(user_jid_field), 1)
         self.assertEquals(user_jid_field[0].prop("var"), "user_jids")
         self.assertEquals(user_jid_field[0].prop("type"), "jid-multi")
-        self.assertEquals(user_jid_field[0].prop("label"), Lang.en.field_user_jid)
+        self.assertEquals(user_jid_field[0].prop("label"), Lang.en.field_users_jids)
 
     def test_add_form_select_user_jid(self):
         info_query = Iq(stanza_type="set",
                         from_jid="admin@test.com",
                         to_jid="jcl.test.com")
         command_node = info_query.set_new_content(command.COMMAND_NS, "command")
-        self.command_manager.add_form_select_user_jid(command_node, Lang.en)
+        self.command_manager.add_form_select_user_jid(command_node, "title",
+                                                      "description",
+                                                      Lang.en.field_user_jid)
         user_jid_field = info_query.xpath_eval("c:command/data:x/data:field[1]",
                                                {"c": "http://jabber.org/protocol/commands",
                                                 "data": "jabber:x:data"})
@@ -269,14 +273,15 @@ class JCLCommandManager_TestCase(JCLTestCase):
         session_context["user_jids"] = ["test1@test.com", "test2@test.com"]
         self.command_manager.add_form_select_accounts(session_context,
                                                       command_node,
-                                                      Lang.en)
+                                                      Lang.en,
+                                                      "title", "description")
         fields = info_query.xpath_eval("c:command/data:x/data:field",
                                        {"c": "http://jabber.org/protocol/commands",
                                         "data": "jabber:x:data"})
         self.assertEquals(len(fields), 1)
         self.assertEquals(fields[0].prop("var"), "account_names")
         self.assertEquals(fields[0].prop("type"), "list-multi")
-        self.assertEquals(fields[0].prop("label"), "Account")
+        self.assertEquals(fields[0].prop("label"), Lang.en.field_accounts)
         options = info_query.xpath_eval("c:command/data:x/data:field[1]/data:option",
                                         {"c": "http://jabber.org/protocol/commands",
                                          "data": "jabber:x:data"})
@@ -338,6 +343,7 @@ class JCLCommandManager_TestCase(JCLTestCase):
         self.command_manager.add_form_select_accounts(session_context,
                                                       command_node,
                                                       Lang.en,
+                                                      "title", "description",
                                                       Account.q.enabled==True)
         fields = info_query.xpath_eval("c:command/data:x/data:field",
                                        {"c": "http://jabber.org/protocol/commands",
@@ -345,7 +351,7 @@ class JCLCommandManager_TestCase(JCLTestCase):
         self.assertEquals(len(fields), 1)
         self.assertEquals(fields[0].prop("var"), "account_names")
         self.assertEquals(fields[0].prop("type"), "list-multi")
-        self.assertEquals(fields[0].prop("label"), "Account")
+        self.assertEquals(fields[0].prop("label"), Lang.en.field_accounts)
         options = info_query.xpath_eval("c:command/data:x/data:field[1]/data:option",
                                         {"c": "http://jabber.org/protocol/commands",
                                          "data": "jabber:x:data"})
@@ -400,14 +406,15 @@ class JCLCommandManager_TestCase(JCLTestCase):
         session_context["user_jid"] = ["test1@test.com"]
         self.command_manager.add_form_select_account(session_context,
                                                      command_node,
-                                                     Lang.en)
+                                                     Lang.en,
+                                                     "title", "description")
         fields = info_query.xpath_eval("c:command/data:x/data:field",
                                        {"c": "http://jabber.org/protocol/commands",
                                         "data": "jabber:x:data"})
         self.assertEquals(len(fields), 1)
         self.assertEquals(fields[0].prop("var"), "account_name")
         self.assertEquals(fields[0].prop("type"), "list-single")
-        self.assertEquals(fields[0].prop("label"), "Account")
+        self.assertEquals(fields[0].prop("label"), Lang.en.field_account)
         options = info_query.xpath_eval("c:command/data:x/data:field[1]/data:option",
                                         {"c": "http://jabber.org/protocol/commands",
                                          "data": "jabber:x:data"})
