@@ -215,6 +215,14 @@ class Language_TestCase(unittest.TestCase):
         self.assertNotEquals(self.lang_class.command_shutdown_1_description, None)
         self.assertNotEquals(self.lang_class.field_shutdown_delay, None)
 
+        self.assertNotEquals(self.lang_class.field_30_sec, None)
+        self.assertNotEquals(self.lang_class.field_60_sec, None)
+        self.assertNotEquals(self.lang_class.field_90_sec, None)
+        self.assertNotEquals(self.lang_class.field_120_sec, None)
+        self.assertNotEquals(self.lang_class.field_180_sec, None)
+        self.assertNotEquals(self.lang_class.field_240_sec, None)
+        self.assertNotEquals(self.lang_class.field_300_sec, None)
+
         self.assertNotEquals(self.lang_class.welcome_message_subject, None)
 
 class Language_fr_TestCase(Language_TestCase):

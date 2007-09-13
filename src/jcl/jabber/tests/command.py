@@ -2894,7 +2894,25 @@ class JCLCommandManager_TestCase(JCLTestCase):
                                        "data": "jabber:x:data"})
         self.assertEquals(len(fields), 3)
         self.assertEquals(fields[1].prop("var"), "delay")
-        self.assertEquals(fields[1].prop("type"), "list-multi")
+        self.assertEquals(fields[1].prop("type"), "list-single")
+        delay_options = result[0].xpath_eval("c:command/data:x/data:field[2]/data:option",
+                                             {"c": "http://jabber.org/protocol/commands",
+                                              "data": "jabber:x:data"})
+        self.assertEquals(len(delay_options), 7)
+        self.assertEquals(delay_options[0].children.name, "value")
+        self.assertEquals(delay_options[0].children.content, "30")
+        self.assertEquals(delay_options[1].children.name, "value")
+        self.assertEquals(delay_options[1].children.content, "60")
+        self.assertEquals(delay_options[2].children.name, "value")
+        self.assertEquals(delay_options[2].children.content, "90")
+        self.assertEquals(delay_options[3].children.name, "value")
+        self.assertEquals(delay_options[3].children.content, "120")
+        self.assertEquals(delay_options[4].children.name, "value")
+        self.assertEquals(delay_options[4].children.content, "180")
+        self.assertEquals(delay_options[5].children.name, "value")
+        self.assertEquals(delay_options[5].children.content, "240")
+        self.assertEquals(delay_options[6].children.name, "value")
+        self.assertEquals(delay_options[6].children.content, "300")
         self.assertEquals(fields[2].prop("var"), "announcement")
         self.assertEquals(fields[2].prop("type"), "text-multi")
 
@@ -2993,7 +3011,25 @@ class JCLCommandManager_TestCase(JCLTestCase):
                                        "data": "jabber:x:data"})
         self.assertEquals(len(fields), 3)
         self.assertEquals(fields[1].prop("var"), "delay")
-        self.assertEquals(fields[1].prop("type"), "list-multi")
+        self.assertEquals(fields[1].prop("type"), "list-single")
+        delay_options = result[0].xpath_eval("c:command/data:x/data:field[2]/data:option",
+                                             {"c": "http://jabber.org/protocol/commands",
+                                              "data": "jabber:x:data"})
+        self.assertEquals(len(delay_options), 7)
+        self.assertEquals(delay_options[0].children.name, "value")
+        self.assertEquals(delay_options[0].children.content, "30")
+        self.assertEquals(delay_options[1].children.name, "value")
+        self.assertEquals(delay_options[1].children.content, "60")
+        self.assertEquals(delay_options[2].children.name, "value")
+        self.assertEquals(delay_options[2].children.content, "90")
+        self.assertEquals(delay_options[3].children.name, "value")
+        self.assertEquals(delay_options[3].children.content, "120")
+        self.assertEquals(delay_options[4].children.name, "value")
+        self.assertEquals(delay_options[4].children.content, "180")
+        self.assertEquals(delay_options[5].children.name, "value")
+        self.assertEquals(delay_options[5].children.content, "240")
+        self.assertEquals(delay_options[6].children.name, "value")
+        self.assertEquals(delay_options[6].children.content, "300")
         self.assertEquals(fields[2].prop("var"), "announcement")
         self.assertEquals(fields[2].prop("type"), "text-multi")
 
@@ -3008,9 +3044,9 @@ class JCLCommandManager_TestCase(JCLTestCase):
         command_node.setProp("sessionid", session_id)
         command_node.setProp("action", "next")
         submit_form = Form(xmlnode_or_type="submit")
-        submit_form.add_field(field_type="list-multi",
+        submit_form.add_field(field_type="list-single",
                               name="delay",
-                              value=[0])
+                              value=0)
         submit_form.add_field(field_type="text-multi",
                               name="announcement",
                               value=["service will be shut in 0 second"])

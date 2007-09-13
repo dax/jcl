@@ -215,6 +215,14 @@ class Lang:
             u"Fill out this form to shut down the service."
         field_shutdown_delay = u"Delay before shutting down the service"
 
+        field_30_sec = u"30 seconds"
+        field_60_sec = u"60 seconds"
+        field_90_sec = u"90 seconds"
+        field_120_sec = u"120 seconds"
+        field_180_sec = u"180 seconds"
+        field_240_sec = u"240 seconds"
+        field_300_sec = u"300 seconds"
+
         welcome_message_subject = u"Welcome"
 
     class fr:
@@ -373,6 +381,14 @@ class Lang:
         command_shutdown_1_description = \
             u"Remplir ce formulaire pour arrêter le service."
         field_shutdown_delay = u"Délai avant d'arrêter le service"
+
+        field_30_sec = u"30 secondes"
+        field_60_sec = u"60 secondes"
+        field_90_sec = u"90 secondes"
+        field_120_sec = u"120 secondes"
+        field_180_sec = u"180 secondes"
+        field_240_sec = u"240 secondes"
+        field_300_sec = u"300 secondes"
 
         welcome_message_subject = u"Bienvenue"
 
