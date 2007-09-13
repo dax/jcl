@@ -363,7 +363,7 @@ class JCLCommandManager(CommandManager):
         return result_form
 
     def add_form_select_max(self, command_node, lang_class):
-        self.add_actions(command_node, [ACTION_NEXT])
+        self.add_actions(command_node, [ACTION_COMPLETE])
         result_form = Form(xmlnode_or_type="result")
         result_form.add_field(field_type="hidden",
                               name="FORM_TYPE",
@@ -880,7 +880,7 @@ class JCLCommandManager(CommandManager):
     ###########################################################################
     def execute_announce_1(self, info_query, session_context,
                            command_node, lang_class):
-        self.add_actions(command_node, [ACTION_NEXT])
+        self.add_actions(command_node, [ACTION_COMPLETE])
         result_form = Form(xmlnode_or_type="result",
                            title=lang_class.command_announce,
                            instructions=lang_class.command_announce_1_description)
@@ -915,7 +915,7 @@ class JCLCommandManager(CommandManager):
     ###########################################################################
     def execute_set_motd_1(self, info_query, session_context,
                            command_node, lang_class, motd=""):
-        self.add_actions(command_node, [ACTION_NEXT])
+        self.add_actions(command_node, [ACTION_COMPLETE])
         result_form = Form(xmlnode_or_type="result",
                            title=lang_class.command_set_motd,
                            instructions=lang_class.command_set_motd_1_description)
@@ -981,7 +981,7 @@ class JCLCommandManager(CommandManager):
     ###########################################################################
     def execute_set_welcome_1(self, info_query, session_context,
                               command_node, lang_class):
-        self.add_actions(command_node, [ACTION_NEXT])
+        self.add_actions(command_node, [ACTION_COMPLETE])
         result_form = Form(xmlnode_or_type="result",
                            title=lang_class.command_set_welcome,
                            instructions=lang_class.command_set_welcome_1_description)
@@ -1020,7 +1020,7 @@ class JCLCommandManager(CommandManager):
     ###########################################################################
     def execute_edit_admin_1(self, info_query, session_context,
                              command_node, lang_class):
-        self.add_actions(command_node, [ACTION_NEXT])
+        self.add_actions(command_node, [ACTION_COMPLETE])
         result_form = Form(xmlnode_or_type="result",
                            title=lang_class.command_edit_admin,
                            instructions=lang_class.command_edit_admin_1_description)
@@ -1049,7 +1049,7 @@ class JCLCommandManager(CommandManager):
     ###########################################################################
     def execute_restart_1(self, info_query, session_context,
                           command_node, lang_class):
-        self.add_actions(command_node, [ACTION_NEXT])
+        self.add_actions(command_node, [ACTION_COMPLETE])
         result_form = Form(xmlnode_or_type="result",
                            title=lang_class.command_restart,
                            instructions=lang_class.command_restart_1_description)
@@ -1110,7 +1110,7 @@ class JCLCommandManager(CommandManager):
     ###########################################################################
     def execute_shutdown_1(self, info_query, session_context,
                            command_node, lang_class):
-        self.add_actions(command_node, [ACTION_NEXT])
+        self.add_actions(command_node, [ACTION_COMPLETE])
         result_form = Form(xmlnode_or_type="result",
                            title=lang_class.command_shutdown,
                            instructions=lang_class.command_shutdown_1_description)
