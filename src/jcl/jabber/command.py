@@ -1083,19 +1083,20 @@ class JCLCommandManager(CommandManager):
     def execute_restart_2(self, info_query, session_context,
                           command_node, lang_class):
         self.__logger.debug("Executing command 'restart' step 2")
-        announcement = session_context["announcement"][0]
         delay = int(session_context["delay"][0])
-        if announcement is not None and announcement != "":
-            users = account.get_all_users(\
-                filter=AND(Account.q.userID == User.q.id,
-                           Account.q._status != account.OFFLINE),
-                distinct=True)
-            result = []
-            for user in users:
-                result.append(Message(from_jid=self.component.jid,
-                                      to_jid=user.jid,
-                                      body=announcement))
-                command_node.setProp("status", STATUS_COMPLETED)
+        result = []
+        if session_context.has_key("announcement"):
+            announcement = session_context["announcement"][0]
+            if announcement is not None and announcement != "":
+                users = account.get_all_users(\
+                    filter=AND(Account.q.userID == User.q.id,
+                               Account.q._status != account.OFFLINE),
+                    distinct=True)
+                for user in users:
+                    result.append(Message(from_jid=self.component.jid,
+                                          to_jid=user.jid,
+                                          body=announcement))
+        command_node.setProp("status", STATUS_COMPLETED)
         def delayed_restart(self, delay):
             threading.Event().wait(delay)
             self.component.restart = True
@@ -1143,19 +1144,20 @@ class JCLCommandManager(CommandManager):
     def execute_shutdown_2(self, info_query, session_context,
                            command_node, lang_class):
         self.__logger.debug("Executing command 'shutdown' step 2")
-        announcement = session_context["announcement"][0]
         delay = int(session_context["delay"][0])
-        if announcement is not None and announcement != "":
-            users = account.get_all_users(\
-                filter=AND(Account.q.userID == User.q.id,
-                           Account.q._status != account.OFFLINE),
-                distinct=True)
-            result = []
-            for user in users:
-                result.append(Message(from_jid=self.component.jid,
-                                      to_jid=user.jid,
-                                      body=announcement))
-                command_node.setProp("status", STATUS_COMPLETED)
+        result = []
+        if session_context.has_key("announcement"):
+            announcement = session_context["announcement"][0]
+            if announcement is not None and announcement != "":
+                users = account.get_all_users(\
+                    filter=AND(Account.q.userID == User.q.id,
+                               Account.q._status != account.OFFLINE),
+                    distinct=True)
+                for user in users:
+                    result.append(Message(from_jid=self.component.jid,
+                                          to_jid=user.jid,
+                                          body=announcement))
+        command_node.setProp("status", STATUS_COMPLETED)
         def delayed_restart(self, delay):
             threading.Event().wait(delay)
             self.component.running = False

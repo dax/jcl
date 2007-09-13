@@ -2849,7 +2849,7 @@ class JCLCommandManager_TestCase(JCLTestCase):
         self.assertEquals(self.comp.config.get("component", "admins"),
                           "admin3@test.com,admin4@test.com")
 
-    def test_execute_restart(self):
+    def _common_execute_restart(self):
         self.comp.account_manager.account_classes = (ExampleAccount,
                                                      Example2Account)
         self.comp.running = True
@@ -2930,6 +2930,11 @@ class JCLCommandManager_TestCase(JCLTestCase):
         submit_form.add_field(field_type="list-multi",
                               name="delay",
                               value=[0])
+        return (submit_form, command_node, info_query, xml_command, session_id)
+
+    def test_execute_restart(self):
+        (submit_form, command_node, info_query,
+         xml_command, session_id) = self._common_execute_restart()
         submit_form.add_field(field_type="text-multi",
                               name="announcement",
                               value=["service will be restarted in 0 second"])
@@ -2966,7 +2971,36 @@ class JCLCommandManager_TestCase(JCLTestCase):
         self.assertTrue(self.comp.restart)
         self.assertFalse(self.comp.running)
 
-    def test_execute_shutdown(self):
+    def test_execute_restart_no_announcement(self):
+        (submit_form, command_node, info_query,
+         xml_command, session_id) = self._common_execute_restart()
+        submit_form.as_xml(command_node)
+        result = self.command_manager.apply_command_action(\
+            info_query,
+            "http://jabber.org/protocol/admin#restart",
+            "execute")
+        self.assertNotEquals(result, None)
+        self.assertEquals(len(result), 1)
+        xml_command = result[0].xpath_eval("c:command",
+                                           {"c": "http://jabber.org/protocol/commands"})[0]
+        self.assertEquals(xml_command.prop("status"), "completed")
+        self.assertEquals(xml_command.prop("sessionid"), session_id)
+        self.__check_actions(result[0])
+        context_session = self.command_manager.sessions[session_id][1]
+        self.assertFalse(context_session.has_key("announcement"))
+        self.assertEquals(context_session["delay"],
+                          ["0"])
+        self.assertFalse(self.comp.restart)
+        self.assertTrue(self.comp.running)
+        threads = threading.enumerate()
+        self.assertEquals(len(threads), 2)
+        threading.Event().wait(1)
+        threads = threading.enumerate()
+        self.assertEquals(len(threads), 1)
+        self.assertTrue(self.comp.restart)
+        self.assertFalse(self.comp.running)
+
+    def _common_execute_shutdown(self):
         self.comp.account_manager.account_classes = (ExampleAccount,
                                                      Example2Account)
         self.comp.running = True
@@ -3047,6 +3081,11 @@ class JCLCommandManager_TestCase(JCLTestCase):
         submit_form.add_field(field_type="list-single",
                               name="delay",
                               value=0)
+        return (submit_form, command_node, info_query, xml_command, session_id)
+
+    def test_execute_shutdown(self):
+        (submit_form, command_node, info_query,
+         xml_command, session_id) = self._common_execute_shutdown()
         submit_form.add_field(field_type="text-multi",
                               name="announcement",
                               value=["service will be shut in 0 second"])
@@ -3073,6 +3112,35 @@ class JCLCommandManager_TestCase(JCLTestCase):
         self.assertEquals(result[2].get_from(), "jcl.test.com")
         self.assertEquals(result[2].get_to(), "test2@test.com")
         self.assertEquals(result[2].get_body(), "service will be shut in 0 second")
+        self.assertFalse(self.comp.restart)
+        self.assertTrue(self.comp.running)
+        threads = threading.enumerate()
+        self.assertEquals(len(threads), 2)
+        threading.Event().wait(1)
+        threads = threading.enumerate()
+        self.assertEquals(len(threads), 1)
+        self.assertFalse(self.comp.restart)
+        self.assertFalse(self.comp.running)
+
+    def test_execute_shutdown_no_announcement(self):
+        (submit_form, command_node, info_query,
+         xml_command, session_id) = self._common_execute_shutdown()
+        submit_form.as_xml(command_node)
+        result = self.command_manager.apply_command_action(\
+            info_query,
+            "http://jabber.org/protocol/admin#shutdown",
+            "execute")
+        self.assertNotEquals(result, None)
+        self.assertEquals(len(result), 1)
+        xml_command = result[0].xpath_eval("c:command",
+                                           {"c": "http://jabber.org/protocol/commands"})[0]
+        self.assertEquals(xml_command.prop("status"), "completed")
+        self.assertEquals(xml_command.prop("sessionid"), session_id)
+        self.__check_actions(result[0])
+        context_session = self.command_manager.sessions[session_id][1]
+        self.assertFalse(context_session.has_key("announcement"))
+        self.assertEquals(context_session["delay"],
+                          ["0"])
         self.assertFalse(self.comp.restart)
         self.assertTrue(self.comp.running)
         threads = threading.enumerate()
