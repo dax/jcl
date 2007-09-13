@@ -2329,7 +2329,7 @@ class JCLCommandManager_TestCase(JCLTestCase):
         self.assertEquals(values[24].content,
                           "test1@test.com (account1112 ExampleAccount)")
 
-    def test_execute_announce(self):
+    def _common_execute_announce(self):
         self.comp.account_manager.account_classes = (ExampleAccount,
                                                      Example2Account)
         model.db_connect()
@@ -2386,6 +2386,11 @@ class JCLCommandManager_TestCase(JCLTestCase):
         session_id = xml_command.prop("sessionid")
         command_node.setProp("sessionid", session_id)
         command_node.setProp("action", "next")
+        return (command_node, info_query, xml_command, session_id)
+
+    def test_execute_announce(self):
+        (command_node, info_query, xml_command,
+         session_id) = self._common_execute_announce()
         submit_form = Form(xmlnode_or_type="submit")
         submit_form.add_field(field_type="text-multi",
                               name="announcement",
@@ -2411,6 +2416,25 @@ class JCLCommandManager_TestCase(JCLTestCase):
         self.assertEquals(result[2].get_from(), "jcl.test.com")
         self.assertEquals(result[2].get_to(), "test2@test.com")
         self.assertEquals(result[2].get_body(), "test announce")
+
+    def test_execute_announce_no_announcement(self):
+        (command_node, info_query, xml_command,
+         session_id) = self._common_execute_announce()
+        submit_form = Form(xmlnode_or_type="submit")
+        submit_form.as_xml(command_node)
+        result = self.command_manager.apply_command_action(\
+            info_query,
+            "http://jabber.org/protocol/admin#announce",
+            "execute")
+        self.assertNotEquals(result, None)
+        self.assertEquals(len(result), 1)
+        xml_command = result[0].xpath_eval("c:command",
+                                           {"c": "http://jabber.org/protocol/commands"})[0]
+        self.assertEquals(xml_command.prop("status"), "completed")
+        self.assertEquals(xml_command.prop("sessionid"), session_id)
+        self.__check_actions(result[0])
+        context_session = self.command_manager.sessions[session_id][1]
+        self.assertFalse(context_session.has_key("announcement"))
 
     def test_execute_set_motd(self):
         self.comp.account_manager.account_classes = (ExampleAccount,
