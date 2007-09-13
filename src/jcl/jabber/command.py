@@ -86,10 +86,11 @@ class CommandManager(object):
 
     def list_commands(self, jid, disco_items, lang_class):
         """Return DiscoItem for each supported commands"""
+        bare_from_jid = unicode(jid.bare())
         for command_name in self.commands.keys():
             must_be_admin = self.commands[command_name]
             if not must_be_admin or \
-               (must_be_admin and unicode(jid) in self.component.get_admins()):
+               (must_be_admin and bare_from_jid in self.component.get_admins()):
                 command_desc = self.get_command_desc(command_name,
                                                      lang_class)
                 DiscoItem(disco_items,
@@ -112,7 +113,7 @@ class CommandManager(object):
         must_be_admin = self.commands[command_name]
         if not must_be_admin or \
             (must_be_admin and
-             unicode(info_query.get_from()) in self.component.get_admins()):
+             unicode(info_query.get_from().bare()) in self.component.get_admins()):
             short_command_name = self.get_short_command_name(command_name)
             action_command_method = "apply_" + action + "_command"
             if hasattr(self, action_command_method):

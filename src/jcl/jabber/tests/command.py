@@ -72,7 +72,7 @@ class CommandManager_TestCase(unittest.TestCase):
         command.command_manager.commands["command1"] = True
         command.command_manager.commands["command2"] = False
         command.command_manager.component = MockComponent()
-        disco_items = command.command_manager.list_commands(jid="user@test.com",
+        disco_items = command.command_manager.list_commands(jid=JID("user@test.com"),
                                                             disco_items=DiscoItems(),
                                                             lang_class=Lang.en)
         items = disco_items.get_items()
@@ -85,7 +85,22 @@ class CommandManager_TestCase(unittest.TestCase):
         command.command_manager.commands["command1"] = True
         command.command_manager.commands["command2"] = False
         command.command_manager.component = MockComponent()
-        disco_items = command.command_manager.list_commands(jid="admin@test.com",
+        disco_items = command.command_manager.list_commands(jid=JID("admin@test.com"),
+                                                            disco_items=DiscoItems(),
+                                                            lang_class=Lang.en)
+        items = disco_items.get_items()
+        self.assertEquals(len(items), 2)
+        self.assertEquals(items[0].get_node(), "command1")
+        self.assertEquals(items[0].get_name(), "command1")
+        self.assertEquals(items[1].get_node(), "command2")
+        self.assertEquals(items[1].get_name(), "command2")
+
+    def test_list_commands_as_admin_fulljid(self):
+        command.command_manager.commands = {}
+        command.command_manager.commands["command1"] = True
+        command.command_manager.commands["command2"] = False
+        command.command_manager.component = MockComponent()
+        disco_items = command.command_manager.list_commands(jid=JID("admin@test.com/full"),
                                                             disco_items=DiscoItems(),
                                                             lang_class=Lang.en)
         items = disco_items.get_items()
@@ -102,6 +117,19 @@ class CommandManager_TestCase(unittest.TestCase):
         command.command_manager.component = MockComponent()
         info_query = Iq(stanza_type="set",
                         from_jid="admin@test.com",
+                        to_jid="jcl.test.com")
+        result = command.command_manager.apply_command_action(info_query,
+                                                              "command1",
+                                                              "execute")
+        self.assertEquals(result, [])
+
+    def test_apply_admin_command_action_as_admin_fulljid(self):
+        command.command_manager.commands["command1"] = True
+        command.command_manager.apply_execute_command = \
+            lambda iq, command_name: []
+        command.command_manager.component = MockComponent()
+        info_query = Iq(stanza_type="set",
+                        from_jid="admin@test.com/full",
                         to_jid="jcl.test.com")
         result = command.command_manager.apply_command_action(info_query,
                                                               "command1",
