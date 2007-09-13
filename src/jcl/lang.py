@@ -308,17 +308,17 @@ class Lang:
 
         command_get_user_password = u"Récupérer le mot de passe d'un compte"
         command_get_user_password_1_description = \
-            u"Remplir ce formulaire avec le(s) Jabber ID(s) utilisateur(s)" \
-            u" pour rechercher le(s) compte(s) pour récupérer leur mot de passe"
+            u"Remplir ce formulaire avec le Jabber ID utilisateur" \
+            u" pour rechercher le compte pour récupérer leur mot de passe"
         command_get_user_password_2_description = \
-            u"Sélectionner le(s) compte(s) pour récupérer leur mot de passe"
+            u"Sélectionner le compte pour récupérer leur mot de passe"
 
         command_change_user_password = u"Changer le mot de passe d'un compte"
         command_change_user_password_1_description = \
-            u"Remplir ce formulaire avec le(s) Jabber ID(s) utilisateur(s)" \
-            u" pour rechercher le(s) compte(s) pour changer leur mot de passe"
+            u"Remplir ce formulaire avec le Jabber ID utilisateur" \
+            u" pour rechercher le compte pour changer leur mot de passe"
         command_change_user_password_2_description = \
-            u"Sélectionner le(s) compte(s) pour changer leur mot de passe"
+            u"Sélectionner le compte pour changer leur mot de passe"
 
         command_get_user_roster = u"Récupérer les comptes utilisateurs"
         command_get_user_roster_1_description = \

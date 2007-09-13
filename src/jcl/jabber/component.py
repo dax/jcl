@@ -57,7 +57,8 @@ from jcl.jabber.command import CommandDiscoGetItemsHandler, \
 from jcl.jabber.presence import AccountPresenceAvailableHandler, \
      RootPresenceAvailableHandler, AccountPresenceUnavailableHandler, \
      RootPresenceUnavailableHandler, AccountPresenceSubscribeHandler, \
-     RootPresenceSubscribeHandler, AccountPresenceUnsubscribeHandler
+     RootPresenceSubscribeHandler, AccountPresenceUnsubscribeHandler, \
+     RootPresenceUnsubscribeHandler
 from jcl.jabber.register import RootSetRegisterHandler, \
      AccountSetRegisterHandler, AccountTypeSetRegisterHandler
 import jcl.model as model
@@ -110,7 +111,8 @@ class JCLComponent(Component, object):
         self.msg_handlers = []
         self.presence_subscribe_handlers = [[AccountPresenceSubscribeHandler(self),
                                              RootPresenceSubscribeHandler(self)]]
-        self.presence_unsubscribe_handlers = [[AccountPresenceUnsubscribeHandler(self)]]
+        self.presence_unsubscribe_handlers = [[AccountPresenceUnsubscribeHandler(self),
+                                               RootPresenceUnsubscribeHandler(self)]]
         self.presence_available_handlers = [[AccountPresenceAvailableHandler(self),
                                              RootPresenceAvailableHandler(self)]]
         self.presence_unavailable_handlers = [[AccountPresenceUnavailableHandler(self),
@@ -448,7 +450,7 @@ class JCLComponent(Component, object):
         remove = info_query.xpath_eval("r:query/r:remove",
                                        {"r" : "jabber:iq:register"})
         if remove:
-            result = self.account_manager.remove_all_accounts(unicode(from_jid.bare()))
+            result = self.account_manager.remove_all_accounts(from_jid)
             self.send_stanzas(result)
             return 1
 
@@ -720,16 +722,9 @@ class AccountManager(object):
         model.db_connect()
         result = []
         for _account in account.get_accounts(user_jid):
-            self.__logger.debug("Deleting " + _account.name
-                                + " for " + unicode(user_jid))
-            # get_jid
-            result.append(Presence(from_jid=_account.jid,
-                                   to_jid=user_jid,
-                                   stanza_type="unsubscribe"))
-            result.append(Presence(from_jid=_account.jid,
-                                   to_jid=user_jid,
-                                   stanza_type="unsubscribed"))
-            _account.destroySelf()
+            result.extend(self.remove_account(_account, user_jid, False))
+        user = account.get_user(unicode(user_jid.bare()))
+        user.destroySelf()
         result.append(Presence(from_jid=self.component.jid,
                                to_jid=user_jid,
                                stanza_type="unsubscribe"))
@@ -746,7 +741,7 @@ class AccountManager(object):
         else:
             return []
 
-    def remove_account(self, _account, user_jid):
+    def remove_account(self, _account, user_jid, remove_user=True):
         self.__logger.debug("Deleting account: " + str(_account))
         result = []
         model.db_connect()
@@ -757,6 +752,12 @@ class AccountManager(object):
                                to_jid=user_jid,
                                stanza_type="unsubscribed"))
         _account.destroySelf()
+        if remove_user:
+            bare_user_jid = unicode(user_jid.bare())
+            accounts_count = account.get_accounts_count(bare_user_jid)
+            if accounts_count == 0:
+                user = account.get_user(bare_user_jid)
+                user.destroySelf()
         model.db_disconnect()
         return result
 
@@ -841,7 +842,10 @@ class AccountManager(object):
         bare_from_jid = unicode(from_jid.bare())
         first_account = (account.get_accounts_count(bare_from_jid) == 0)
         model.db_connect()
-        _account = account_class(user=User(jid=unicode(bare_from_jid)),
+        user = account.get_user(bare_from_jid)
+        if user is None:
+            user = User(jid=bare_from_jid)
+        _account = account_class(user=user,
                                  name=account_name,
                                  jid=self.get_account_jid(account_name))
         model.db_disconnect()

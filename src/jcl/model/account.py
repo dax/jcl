@@ -70,7 +70,6 @@ def get_user(bare_from_jid, user_class=User):
     result = None
     model.db_connect()
     users = user_class.select(User.q.jid == bare_from_jid)
-    model.db_disconnect()
     if users.count() > 0:
         result = users[0]
     return result

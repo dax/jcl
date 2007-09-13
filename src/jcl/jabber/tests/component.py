@@ -1352,15 +1352,15 @@ class JCLComponent_TestCase(JCLTestCase):
         self.comp.stream_class = MockStream
         self.comp.account_manager.account_classes = (ExampleAccount,)
         x_data = Form("submit")
-        x_data.add_field(name = "name", \
-                         value = "account1", \
-                         field_type = "text-single")
-        x_data.add_field(name = "login", \
-                         value = "mylogin", \
-                         field_type = "text-single")
-        iq_set = Iq(stanza_type = "set", \
-                    from_jid = "user1@test.com", \
-                    to_jid = "jcl.test.com")
+        x_data.add_field(name="name",
+                         value="account1",
+                         field_type="text-single")
+        x_data.add_field(name="login",
+                         value="mylogin",
+                         field_type="text-single")
+        iq_set = Iq(stanza_type="set",
+                    from_jid="user1@test.com",
+                    to_jid="jcl.test.com")
         query = iq_set.new_query("jabber:iq:register")
         x_data.as_xml(query)
         self.comp.handle_set_register(iq_set)
@@ -1376,6 +1376,67 @@ class JCLComponent_TestCase(JCLTestCase):
         self.assertTrue(_account.store_password)
         self.assertEquals(_account.test_enum, "choice2")
         self.assertEquals(_account.test_int, 44)
+        model.db_disconnect()
+
+    def test_handle_set_register_user_already_exists(self):
+        self.comp.stream = MockStream()
+        self.comp.stream_class = MockStream
+        self.comp.account_manager.account_classes = (ExampleAccount,)
+        x_data = Form("submit")
+        x_data.add_field(name="name",
+                         value="account1",
+                         field_type="text-single")
+        x_data.add_field(name="login",
+                         value="mylogin1",
+                         field_type="text-single")
+        iq_set = Iq(stanza_type="set",
+                    from_jid="user1@test.com",
+                    to_jid="jcl.test.com")
+        query = iq_set.new_query("jabber:iq:register")
+        x_data.as_xml(query)
+        self.comp.handle_set_register(iq_set)
+
+        model.db_connect()
+        _account = account.get_account("user1@test.com", "account1")
+        self.assertNotEquals(_account, None)
+        self.assertEquals(_account.user.jid, "user1@test.com")
+        self.assertEquals(_account.name, "account1")
+        self.assertEquals(_account.jid, "account1@jcl.test.com")
+        self.assertEquals(_account.login, "mylogin1")
+        self.assertEquals(_account.password, None)
+        self.assertTrue(_account.store_password)
+        self.assertEquals(_account.test_enum, "choice2")
+        self.assertEquals(_account.test_int, 44)
+        model.db_disconnect()
+
+        x_data = Form("submit")
+        x_data.add_field(name="name",
+                         value="account2",
+                         field_type="text-single")
+        x_data.add_field(name="login",
+                         value="mylogin2",
+                         field_type="text-single")
+        iq_set = Iq(stanza_type="set",
+                    from_jid="user1@test.com",
+                    to_jid="jcl.test.com")
+        query = iq_set.new_query("jabber:iq:register")
+        x_data.as_xml(query)
+        self.comp.handle_set_register(iq_set)
+
+        model.db_connect()
+        _account = account.get_account("user1@test.com", "account2")
+        self.assertNotEquals(_account, None)
+        self.assertEquals(_account.user.jid, "user1@test.com")
+        self.assertEquals(_account.name, "account2")
+        self.assertEquals(_account.jid, "account2@jcl.test.com")
+        self.assertEquals(_account.login, "mylogin2")
+        self.assertEquals(_account.password, None)
+        self.assertTrue(_account.store_password)
+        self.assertEquals(_account.test_enum, "choice2")
+        self.assertEquals(_account.test_int, 44)
+
+        users = account.get_all_users(filter=(User.q.jid == "user1@test.com"))
+        self.assertEquals(users.count(), 1)
         model.db_disconnect()
 
     def test_handle_set_register_new_name_mandatory(self):
@@ -1538,6 +1599,8 @@ class JCLComponent_TestCase(JCLTestCase):
 
         model.db_connect()
         self.assertEquals(account.get_accounts_count("user1@test.com"),
+                          0)
+        self.assertEquals(account.get_all_users(filter=(User.q.jid == "user1@test.com")).count(),
                           0)
         accounts = account.get_accounts("user2@test.com")
         i = 0
@@ -2369,6 +2432,111 @@ class JCLComponent_TestCase(JCLTestCase):
                           1)
         self.assertEquals(account.get_all_accounts_count(),
                           2)
+        self.assertEquals(account.get_all_users(filter=(User.q.jid == "user1@test.com")).count(),
+                          1)
+        model.db_disconnect()
+
+    def test_handle_presence_unsubscribe_to_last_account(self):
+        self.comp.stream = MockStream()
+        self.comp.stream_class = MockStream
+        model.db_connect()
+        user1 = User(jid="user1@test.com")
+        account11 = Account(user=user1,
+                            name="account11",
+                            jid="account11@jcl.test.com")
+        account2 = Account(user=User(jid="user2@test.com"),
+                           name="account2",
+                           jid="account2@jcl.test.com")
+        model.db_disconnect()
+        self.comp.handle_presence_unsubscribe(Presence(\
+            stanza_type="unsubscribe",
+            from_jid="user1@test.com",
+            to_jid="account11@jcl.test.com"))
+        presence_sent = self.comp.stream.sent
+        self.assertEqual(len(presence_sent), 2)
+        presence = presence_sent[0]
+        self.assertEqual(presence.get_from(), "account11@jcl.test.com")
+        self.assertEqual(presence.get_to(), "user1@test.com")
+        self.assertEqual(presence.xpath_eval("@type")[0].get_content(),
+                         "unsubscribe")
+        presence = presence_sent[1]
+        self.assertEqual(presence.get_from(), "account11@jcl.test.com")
+        self.assertEqual(presence.get_to(), "user1@test.com")
+        self.assertEqual(presence.xpath_eval("@type")[0].get_content(),
+                         "unsubscribed")
+        model.db_connect()
+        self.assertEquals(account.get_account("user1@test.com", "account11"),
+                          None)
+        self.assertEquals(account.get_accounts_count("user1@test.com"),
+                          0)
+        self.assertEquals(account.get_all_accounts_count(),
+                          1)
+        self.assertEquals(account.get_all_users(filter=(User.q.jid == "user1@test.com")).count(),
+                          0)
+        model.db_disconnect()
+
+    def test_handle_presence_unsubscribe_to_root(self):
+        self.comp.stream = MockStream()
+        self.comp.stream_class = MockStream
+        model.db_connect()
+        user1 = User(jid="user1@test.com")
+        account11 = Account(user=user1,
+                            name="account11",
+                            jid="account11@jcl.test.com")
+        account12 = Account(user=user1,
+                            name="account12",
+                            jid="account12@jcl.test.com")
+        account2 = Account(user=User(jid="user2@test.com"),
+                           name="account2",
+                           jid="account2@jcl.test.com")
+        model.db_disconnect()
+        self.comp.handle_presence_unsubscribe(Presence(\
+            stanza_type="unsubscribe",
+            from_jid="user1@test.com",
+            to_jid="jcl.test.com"))
+        presence_sent = self.comp.stream.sent
+        self.assertEqual(len(presence_sent), 6)
+        presence = presence_sent[0]
+        self.assertEqual(presence.get_from(), "account11@jcl.test.com")
+        self.assertEqual(presence.get_to(), "user1@test.com")
+        self.assertEqual(presence.xpath_eval("@type")[0].get_content(),
+                         "unsubscribe")
+        presence = presence_sent[1]
+        self.assertEqual(presence.get_from(), "account11@jcl.test.com")
+        self.assertEqual(presence.get_to(), "user1@test.com")
+        self.assertEqual(presence.xpath_eval("@type")[0].get_content(),
+                         "unsubscribed")
+        presence = presence_sent[2]
+        self.assertEqual(presence.get_from(), "account12@jcl.test.com")
+        self.assertEqual(presence.get_to(), "user1@test.com")
+        self.assertEqual(presence.xpath_eval("@type")[0].get_content(),
+                         "unsubscribe")
+        presence = presence_sent[3]
+        self.assertEqual(presence.get_from(), "account12@jcl.test.com")
+        self.assertEqual(presence.get_to(), "user1@test.com")
+        self.assertEqual(presence.xpath_eval("@type")[0].get_content(),
+                         "unsubscribed")
+        presence = presence_sent[4]
+        self.assertEqual(presence.get_from(), "jcl.test.com")
+        self.assertEqual(presence.get_to(), "user1@test.com")
+        self.assertEqual(presence.xpath_eval("@type")[0].get_content(),
+                         "unsubscribe")
+        presence = presence_sent[5]
+        self.assertEqual(presence.get_from(), "jcl.test.com")
+        self.assertEqual(presence.get_to(), "user1@test.com")
+        self.assertEqual(presence.xpath_eval("@type")[0].get_content(),
+                         "unsubscribed")
+        model.db_connect()
+        self.assertEquals(account.get_account("user1@test.com", "account11"),
+                          None)
+        self.assertEquals(account.get_account("user1@test.com", "account12"),
+                          None)
+        self.assertEquals(account.get_accounts_count("user1@test.com"),
+                          0)
+        self.assertEquals(account.get_all_accounts_count(),
+                          1)
+        self.assertEquals(account.get_all_users(filter=(User.q.jid == "user1@test.com")).count(),
+                          0)
         model.db_disconnect()
 
     def test_handle_presence_unsubscribe_to_registered_handlers(self):

@@ -164,3 +164,14 @@ class AccountPresenceUnsubscribeHandler(Handler):
         from_jid = stanza.get_from()
         _account = data
         return self.component.account_manager.remove_account(_account, from_jid)
+
+class RootPresenceUnsubscribeHandler(Handler):
+    """"""
+
+    filter = jabber.get_accounts_root_filter
+
+    def handle(self, stanza, lang_class, data):
+        """Handle \"unsubscribe\" iq sent to account JID"""
+        from_jid = stanza.get_from()
+        _account = data
+        return self.component.account_manager.remove_all_accounts(from_jid)

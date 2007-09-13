@@ -516,7 +516,7 @@ class JCLCommandManager(CommandManager):
         result = []
         for account_name in session_context["account_names"]:
             name, user_jid = self.get_name_and_jid(account_name)
-            result += self.account_manager.remove_account_from_name(user_jid,
+            result += self.account_manager.remove_account_from_name(JID(user_jid),
                                                                     name)
         command_node.setProp("status", STATUS_COMPLETED)
         return (None, result)
@@ -944,10 +944,9 @@ class JCLCommandManager(CommandManager):
         motd = self.component.get_motd()
         if motd is not None:
             for user in users:
+                user.has_received_motd = False
                 for _account in user.accounts:
-                    if _account.status == account.OFFLINE:
-                        user.has_received_motd = False
-                    else:
+                    if _account.status != account.OFFLINE:
                         user.has_received_motd = True
                 if user.has_received_motd:
                     result.append(Message(from_jid=self.component.jid,
