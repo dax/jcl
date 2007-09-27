@@ -937,8 +937,7 @@ class JCLCommandManager(CommandManager):
         motd = session_context["motd"][0]
         self.component.set_motd(motd)
         users = account.get_all_users(\
-            filter=AND(Account.q.userID == User.q.id,
-                       Account.q._status != account.OFFLINE),
+            filter=AND(Account.q.userID == User.q.id),
             distinct=True)
         result = []
         motd = self.component.get_motd()

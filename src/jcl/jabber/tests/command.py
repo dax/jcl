@@ -2536,6 +2536,7 @@ class JCLCommandManager_TestCase(JCLTestCase):
                                     jid="account12@jcl.test.com")
         account12.status = "away"
         user2 = User(jid="test2@test.com")
+        user2.has_received_motd = True
         account21 = ExampleAccount(user=user2,
                                    name="account21",
                                    jid="account21@jcl.test.com")
