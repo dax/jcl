@@ -117,9 +117,6 @@ class Language_TestCase(unittest.TestCase):
         self.assertNotEquals(self.lang_class.get_gateway_desc, None)
         self.assertNotEquals(self.lang_class.get_gateway_prompt, None)
 
-        self.assertNotEquals(self.lang_class.command_get_disabled_users_num,
-                             None)
-
         self.assertNotEquals(self.lang_class.command_add_user, None)
         self.assertNotEquals(self.lang_class.command_add_user_1_description,
                              None)
@@ -174,6 +171,20 @@ class Language_TestCase(unittest.TestCase):
         self.assertNotEquals(self.lang_class.command_get_user_lastlogin_1_description,
                              None)
         self.assertNotEquals(self.lang_class.command_get_user_lastlogin_2_description,
+                             None)
+
+        self.assertNotEquals(self.lang_class.command_get_registered_users_num,
+                             None)
+        self.assertNotEquals(self.lang_class.command_get_disabled_users_num,
+                             None)
+        self.assertNotEquals(self.lang_class.command_get_online_users_num,
+                             None)
+
+        self.assertNotEquals(self.lang_class.command_get_registered_users_list,
+                             None)
+        self.assertNotEquals(self.lang_class.command_get_disabled_users_list,
+                             None)
+        self.assertNotEquals(self.lang_class.command_get_online_users_list,
                              None)
 
         self.assertNotEquals(self.lang_class.field_registered_users_num, None)

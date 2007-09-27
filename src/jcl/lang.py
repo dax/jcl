@@ -113,7 +113,6 @@ class Lang:
         get_gateway_desc = u"Please enter the email address of your contact"
         get_gateway_prompt = u"Email address"
 
-        command_get_disabled_users_num = u"Get number of disabled accounts"
         command_add_user = u"Create new account"
         command_add_user_1_description = u"Select an account type"
         field_account_type = u"Account type"
@@ -166,6 +165,16 @@ class Lang:
             u" for which to retrieve last login time"
         command_get_user_lastlogin_2_description = \
             u"Select account for which to retrieve last login time"
+
+        command_get_registered_users_num = u"Get the number of " \
+                                           u"registered accounts"
+        command_get_disabled_users_num = u"Get the number of disabled accounts"
+        command_get_online_users_num = u"Get the number of online accounts"
+
+        command_get_registered_users_list = u"Get the list of " \
+                                           u"registered accounts"
+        command_get_disabled_users_list = u"Get the list of disabled accounts"
+        command_get_online_users_list = u"Get the list of online accounts"
 
         field_registered_users_num = u"The number of registered accounts"
         field_disabled_users_num = u"The number of disabled accounts"
@@ -269,8 +278,6 @@ class Lang:
         get_gateway_desc = u"Entrer l'adresse email de votre contact"
         get_gateway_prompt = u"Adresse email"
 
-        command_get_disabled_users_num = u"Récupérer le nombre de comptes " \
-                                         u"désactivés"
         command_add_user = u"Créer un nouveau compte"
         command_add_user_1_description = u"Selectionner un type de compte"
         field_account_type = u"Type de compte"
@@ -332,6 +339,20 @@ class Lang:
             u"date de connexion"
         command_get_user_lastlogin_2_description = \
             u"Sélectionner le compte pour récupérer la date de dernière connexion"
+
+        command_get_registered_users_num = u"Récupérer de nombre de comptes " \
+                                           u"enregistrés"
+        command_get_disabled_users_num = u"Récupérer le nombre de comptes " \
+                                         u"désactivés"
+        command_get_online_users_num = u"Récupérer le nombre de comptes " \
+                                       u"en ligne"
+
+        command_get_registered_users_list = u"Récupérer la liste des comptes " \
+                                           u"enregistrés"
+        command_get_disabled_users_list = u"Récupérer la list des comptes " \
+                                          u"désactivés"
+        command_get_online_users_list = u"Récupérer la list des comptes " \
+                                        u"en ligne"
 
         field_registered_users_num = u"Le nombre de comptes enregistrés"
         field_disabled_users_num = u"Le nombre de comptes désactivés"
