@@ -713,6 +713,10 @@ class JCLCommandManager(CommandManager):
         query = x_form.newChild(None, "query", None)
         roster_ns = query.newNs("jabber:iq:roster", None)
         query.setNs(roster_ns)
+        for _account in account.get_accounts(user_jid):
+            item = query.newChild(None, "item", None)
+            item.setProp("jid", _account.jid)
+            item.setProp("name", _account.name)
         for legacy_jid in account.get_legacy_jids(user_jid):
             item = query.newChild(None, "item", None)
             item.setProp("jid", legacy_jid.jid)

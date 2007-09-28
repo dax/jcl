@@ -1498,32 +1498,32 @@ class JCLCommandManager_TestCase(JCLTestCase):
                                    name="account11",
                                    jid="account11@jcl.test.com")
         ljid111 = LegacyJID(legacy_address="test111@test.com",
-                            jid="test111%test.com@test.com",
+                            jid="test111%test.com@jcl.test.com",
                             account=account11)
         ljid112 = LegacyJID(legacy_address="test112@test.com",
-                            jid="test112%test.com@test.com",
+                            jid="test112%test.com@jcl.test.com",
                             account=account11)
         account12 = Example2Account(user=user1,
                                     name="account12",
                                     jid="account12@jcl.test.com")
         ljid121 = LegacyJID(legacy_address="test121@test.com",
-                            jid="test121%test.com@test.com",
+                            jid="test121%test.com@jcl.test.com",
                             account=account12)
         user2 = User(jid="test2@test.com")
         account21 = ExampleAccount(user=user2,
                                    name="account21",
                                    jid="account21@jcl.test.com")
         ljid211 = LegacyJID(legacy_address="test211@test.com",
-                            jid="test211%test.com@test.com",
+                            jid="test211%test.com@jcl.test.com",
                             account=account21)
         ljid212 = LegacyJID(legacy_address="test212@test.com",
-                            jid="test212%test.com@test.com",
+                            jid="test212%test.com@jcl.test.com",
                             account=account21)
         account22 = ExampleAccount(user=user2,
                                    name="account11",
                                    jid="account11@jcl.test.com")
         ljid221 = LegacyJID(legacy_address="test221@test.com",
-                            jid="test221%test.com@test.com",
+                            jid="test221%test.com@jcl.test.com",
                             account=account22)
         model.db_disconnect()
         info_query = Iq(stanza_type="set",
@@ -1582,13 +1582,17 @@ class JCLCommandManager_TestCase(JCLTestCase):
                                      {"c": "http://jabber.org/protocol/commands",
                                       "data": "jabber:x:data",
                                       "roster": "jabber:iq:roster"})
-        self.assertEquals(len(items), 3)
-        self.assertEquals(items[0].prop("jid"), "test111%test.com@test.com")
-        self.assertEquals(items[0].prop("name"), "test111@test.com")
-        self.assertEquals(items[1].prop("jid"), "test112%test.com@test.com")
-        self.assertEquals(items[1].prop("name"), "test112@test.com")
-        self.assertEquals(items[2].prop("jid"), "test121%test.com@test.com")
-        self.assertEquals(items[2].prop("name"), "test121@test.com")
+        self.assertEquals(len(items), 5)
+        self.assertEquals(items[0].prop("jid"), "account11@jcl.test.com")
+        self.assertEquals(items[0].prop("name"), "account11")
+        self.assertEquals(items[1].prop("jid"), "account12@jcl.test.com")
+        self.assertEquals(items[1].prop("name"), "account12")
+        self.assertEquals(items[2].prop("jid"), "test111%test.com@jcl.test.com")
+        self.assertEquals(items[2].prop("name"), "test111@test.com")
+        self.assertEquals(items[3].prop("jid"), "test112%test.com@jcl.test.com")
+        self.assertEquals(items[3].prop("name"), "test112@test.com")
+        self.assertEquals(items[4].prop("jid"), "test121%test.com@jcl.test.com")
+        self.assertEquals(items[4].prop("name"), "test121@test.com")
 
     def test_execute_get_user_lastlogin(self):
         self.comp.account_manager.account_classes = (ExampleAccount,
