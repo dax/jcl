@@ -110,21 +110,25 @@ class CommandManager(object):
 
     def apply_command_action(self, info_query, command_name, action):
         """Apply action on command"""
-        must_be_admin = self.commands[command_name]
-        if not must_be_admin or \
-            (must_be_admin and
-             unicode(info_query.get_from().bare()) in self.component.get_admins()):
-            short_command_name = self.get_short_command_name(command_name)
-            action_command_method = "apply_" + action + "_command"
-            if hasattr(self, action_command_method):
-                return getattr(self, action_command_method)(info_query,
-                                                            short_command_name)
+        if self.commands.has_key(command_name):
+            must_be_admin = self.commands[command_name]
+            if not must_be_admin or \
+                   (must_be_admin and
+                    unicode(info_query.get_from().bare()) in self.component.get_admins()):
+                short_command_name = self.get_short_command_name(command_name)
+                action_command_method = "apply_" + action + "_command"
+                if hasattr(self, action_command_method):
+                    return getattr(self, action_command_method)(info_query,
+                                                                short_command_name)
+                else:
+                    return [info_query.make_error_response(\
+                        "feature-not-implemented")]
             else:
                 return [info_query.make_error_response(\
-                    "feature-not-implemented")]
+                    "forbidden")]
         else:
             return [info_query.make_error_response(\
-                    "forbidden")]
+                "feature-not-implemented")]
 
     def apply_execute_command(self, info_query, short_command_name):
         return self.execute_multi_step_command(\
@@ -260,8 +264,8 @@ class JCLCommandManager(CommandManager):
         self.commands["http://jabber.org/protocol/admin#disable-user"] = True
         self.commands["http://jabber.org/protocol/admin#reenable-user"] = True
         self.commands["http://jabber.org/protocol/admin#end-user-session"] = True
-        self.commands["http://jabber.org/protocol/admin#get-user-password"] = True
-        self.commands["http://jabber.org/protocol/admin#change-user-password"] = True
+        #self.commands["http://jabber.org/protocol/admin#get-user-password"] = True
+        #self.commands["http://jabber.org/protocol/admin#change-user-password"] = True
         self.commands["http://jabber.org/protocol/admin#get-user-roster"] = True
         self.commands["http://jabber.org/protocol/admin#get-user-lastlogin"] = True
         self.commands["http://jabber.org/protocol/admin#get-registered-users-num"] = True
