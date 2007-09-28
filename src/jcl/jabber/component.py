@@ -724,7 +724,8 @@ class AccountManager(object):
         for _account in account.get_accounts(user_jid):
             result.extend(self.remove_account(_account, user_jid, False))
         user = account.get_user(unicode(user_jid.bare()))
-        user.destroySelf()
+        if user is not None:
+            user.destroySelf()
         result.append(Presence(from_jid=self.component.jid,
                                to_jid=user_jid,
                                stanza_type="unsubscribe"))

@@ -33,7 +33,6 @@ from jcl.jabber.component import JCLComponent
 from jcl.lang import Lang
 import jcl.model as model
 from jcl.model import account
-from jcl.model.account import Account
 
 from pyxmpp.message import Message
 
@@ -152,8 +151,8 @@ class FeederHandler(Handler):
         Do nothing by default.
         """
         for _account in data:
-            for data in self.feeder.feed(_account):
-                if _account.enabled:
+            if _account.enabled:
+                for data in self.feeder.feed(_account):
                     self.sender.send(_account, data)
         return []
 
