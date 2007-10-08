@@ -291,7 +291,7 @@ class JCLCommandManager(CommandManager):
     def add_form_select_users_jids(self, command_node,
                                    form_title, form_desc,
                                    field_users_jids_label):
-        result_form = Form(xmlnode_or_type="result",
+        result_form = Form(xmlnode_or_type="form",
                            title=form_title,
                            instructions=form_desc)
         result_form.add_field(name="user_jids",
@@ -303,7 +303,7 @@ class JCLCommandManager(CommandManager):
     def add_form_select_user_jid(self, command_node,
                                  form_title, form_desc,
                                  field_user_jid_label):
-        result_form = Form(xmlnode_or_type="result",
+        result_form = Form(xmlnode_or_type="form",
                            title=form_title,
                            instructions=form_desc)
         result_form.add_field(name="user_jid",
@@ -334,7 +334,7 @@ class JCLCommandManager(CommandManager):
         Add a form to select accounts for user JIDs contained in
         session_context[\"user_jids\"]
         """
-        result_form = Form(xmlnode_or_type="result",
+        result_form = Form(xmlnode_or_type="form",
                            title=form_title,
                            instructions=form_desc)
         field = result_form.add_field(name="account_names",
@@ -354,7 +354,7 @@ class JCLCommandManager(CommandManager):
         Add a form to select account for user JIDs contained in
         session_context[\"user_jids\"]
         """
-        result_form = Form(xmlnode_or_type="result",
+        result_form = Form(xmlnode_or_type="form",
                            title=form_title,
                            instructions=form_desc)
         field = result_form.add_field(name="account_name",
@@ -368,7 +368,7 @@ class JCLCommandManager(CommandManager):
 
     def add_form_select_max(self, command_node, lang_class):
         self.add_actions(command_node, [ACTION_COMPLETE])
-        result_form = Form(xmlnode_or_type="result")
+        result_form = Form(xmlnode_or_type="form")
         result_form.add_field(field_type="hidden",
                               name="FORM_TYPE",
                               value="http://jabber.org/protocol/admin")
@@ -384,7 +384,7 @@ class JCLCommandManager(CommandManager):
     def add_form_list_accounts(self, command_node,
                                var_name, var_label,
                                filter=None, limit=None):
-        result_form = Form(xmlnode_or_type="result")
+        result_form = Form(xmlnode_or_type="form")
         result_form.add_field(field_type="hidden",
                               name="FORM_TYPE",
                               value="http://jabber.org/protocol/admin")
@@ -452,7 +452,7 @@ class JCLCommandManager(CommandManager):
                            command_node, lang_class):
         self.__logger.debug("Executing command 'add-user' step 1")
         self.add_actions(command_node, [ACTION_NEXT])
-        result_form = Form(xmlnode_or_type="result",
+        result_form = Form(xmlnode_or_type="form",
                            title=lang_class.command_add_user,
                            instructions=lang_class.command_add_user_1_description)
         field = result_form.add_field(name="account_type",
@@ -889,7 +889,7 @@ class JCLCommandManager(CommandManager):
     def execute_announce_1(self, info_query, session_context,
                            command_node, lang_class):
         self.add_actions(command_node, [ACTION_COMPLETE])
-        result_form = Form(xmlnode_or_type="result",
+        result_form = Form(xmlnode_or_type="form",
                            title=lang_class.command_announce,
                            instructions=lang_class.command_announce_1_description)
         result_form.add_field(field_type="hidden",
@@ -925,7 +925,7 @@ class JCLCommandManager(CommandManager):
     def execute_set_motd_1(self, info_query, session_context,
                            command_node, lang_class, motd=""):
         self.add_actions(command_node, [ACTION_COMPLETE])
-        result_form = Form(xmlnode_or_type="result",
+        result_form = Form(xmlnode_or_type="form",
                            title=lang_class.command_set_motd,
                            instructions=lang_class.command_set_motd_1_description)
         result_form.add_field(field_type="hidden",
@@ -989,7 +989,7 @@ class JCLCommandManager(CommandManager):
     def execute_set_welcome_1(self, info_query, session_context,
                               command_node, lang_class):
         self.add_actions(command_node, [ACTION_COMPLETE])
-        result_form = Form(xmlnode_or_type="result",
+        result_form = Form(xmlnode_or_type="form",
                            title=lang_class.command_set_welcome,
                            instructions=lang_class.command_set_welcome_1_description)
         result_form.add_field(field_type="hidden",
@@ -1028,7 +1028,7 @@ class JCLCommandManager(CommandManager):
     def execute_edit_admin_1(self, info_query, session_context,
                              command_node, lang_class):
         self.add_actions(command_node, [ACTION_COMPLETE])
-        result_form = Form(xmlnode_or_type="result",
+        result_form = Form(xmlnode_or_type="form",
                            title=lang_class.command_edit_admin,
                            instructions=lang_class.command_edit_admin_1_description)
         result_form.add_field(field_type="hidden",
@@ -1057,7 +1057,7 @@ class JCLCommandManager(CommandManager):
     def execute_restart_1(self, info_query, session_context,
                           command_node, lang_class):
         self.add_actions(command_node, [ACTION_COMPLETE])
-        result_form = Form(xmlnode_or_type="result",
+        result_form = Form(xmlnode_or_type="form",
                            title=lang_class.command_restart,
                            instructions=lang_class.command_restart_1_description)
         result_form.add_field(field_type="hidden",
@@ -1118,7 +1118,7 @@ class JCLCommandManager(CommandManager):
     def execute_shutdown_1(self, info_query, session_context,
                            command_node, lang_class):
         self.add_actions(command_node, [ACTION_COMPLETE])
-        result_form = Form(xmlnode_or_type="result",
+        result_form = Form(xmlnode_or_type="form",
                            title=lang_class.command_shutdown,
                            instructions=lang_class.command_shutdown_1_description)
         result_form.add_field(field_type="hidden",

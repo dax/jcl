@@ -241,6 +241,11 @@ class JCLCommandManager_TestCase(JCLTestCase):
         self.command_manager.add_form_select_users_jids(command_node, "title",
                                                         "description",
                                                         Lang.en.field_users_jids)
+        x_data = info_query.xpath_eval("c:command/data:x",
+                                       {"c": "http://jabber.org/protocol/commands",
+                                        "data": "jabber:x:data"})
+        self.assertEquals(len(x_data), 1)
+        self.assertEquals(x_data[0].prop("type"), "form")
         user_jid_field = info_query.xpath_eval("c:command/data:x/data:field[1]",
                                                {"c": "http://jabber.org/protocol/commands",
                                                 "data": "jabber:x:data"})
@@ -258,6 +263,11 @@ class JCLCommandManager_TestCase(JCLTestCase):
         self.command_manager.add_form_select_user_jid(command_node, "title",
                                                       "description",
                                                       Lang.en.field_user_jid)
+        x_data = info_query.xpath_eval("c:command/data:x",
+                                       {"c": "http://jabber.org/protocol/commands",
+                                        "data": "jabber:x:data"})
+        self.assertEquals(len(x_data), 1)
+        self.assertEquals(x_data[0].prop("type"), "form")
         user_jid_field = info_query.xpath_eval("c:command/data:x/data:field[1]",
                                                {"c": "http://jabber.org/protocol/commands",
                                                 "data": "jabber:x:data"})
@@ -303,6 +313,11 @@ class JCLCommandManager_TestCase(JCLTestCase):
                                                       command_node,
                                                       Lang.en,
                                                       "title", "description")
+        x_data = info_query.xpath_eval("c:command/data:x",
+                                       {"c": "http://jabber.org/protocol/commands",
+                                        "data": "jabber:x:data"})
+        self.assertEquals(len(x_data), 1)
+        self.assertEquals(x_data[0].prop("type"), "form")
         fields = info_query.xpath_eval("c:command/data:x/data:field",
                                        {"c": "http://jabber.org/protocol/commands",
                                         "data": "jabber:x:data"})
@@ -373,6 +388,11 @@ class JCLCommandManager_TestCase(JCLTestCase):
                                                       Lang.en,
                                                       "title", "description",
                                                       Account.q.enabled==True)
+        x_data = info_query.xpath_eval("c:command/data:x",
+                                       {"c": "http://jabber.org/protocol/commands",
+                                        "data": "jabber:x:data"})
+        self.assertEquals(len(x_data), 1)
+        self.assertEquals(x_data[0].prop("type"), "form")
         fields = info_query.xpath_eval("c:command/data:x/data:field",
                                        {"c": "http://jabber.org/protocol/commands",
                                         "data": "jabber:x:data"})
@@ -436,6 +456,11 @@ class JCLCommandManager_TestCase(JCLTestCase):
                                                      command_node,
                                                      Lang.en,
                                                      "title", "description")
+        x_data = info_query.xpath_eval("c:command/data:x",
+                                       {"c": "http://jabber.org/protocol/commands",
+                                        "data": "jabber:x:data"})
+        self.assertEquals(len(x_data), 1)
+        self.assertEquals(x_data[0].prop("type"), "form")
         fields = info_query.xpath_eval("c:command/data:x/data:field",
                                        {"c": "http://jabber.org/protocol/commands",
                                         "data": "jabber:x:data"})
@@ -476,6 +501,11 @@ class JCLCommandManager_TestCase(JCLTestCase):
         self.assertEquals(xml_command.prop("status"), "executing")
         self.assertNotEquals(xml_command.prop("sessionid"), None)
         self.__check_actions(result[0], ["next"])
+        x_data = result[0].xpath_eval("c:command/data:x",
+                                      {"c": "http://jabber.org/protocol/commands",
+                                       "data": "jabber:x:data"})
+        self.assertEquals(len(x_data), 1)
+        self.assertEquals(x_data[0].prop("type"), "form")
         options = result[0].xpath_eval("c:command/data:x/data:field[1]/data:option",
                                        {"c": "http://jabber.org/protocol/commands",
                                         "data": "jabber:x:data"})
@@ -522,6 +552,11 @@ class JCLCommandManager_TestCase(JCLTestCase):
         self.assertEquals(xml_command.prop("status"), "executing")
         self.assertEquals(xml_command.prop("sessionid"), session_id)
         self.__check_actions(result[0], ["prev", "complete"], 1)
+        x_data = result[0].xpath_eval("c:command/data:x",
+                                      {"c": "http://jabber.org/protocol/commands",
+                                       "data": "jabber:x:data"})
+        self.assertEquals(len(x_data), 1)
+        self.assertEquals(x_data[0].prop("type"), "form")
         fields = result[0].xpath_eval("c:command/data:x/data:field",
                                       {"c": "http://jabber.org/protocol/commands",
                                        "data": "jabber:x:data"})
@@ -1864,6 +1899,11 @@ class JCLCommandManager_TestCase(JCLTestCase):
         self.assertEquals(xml_command.prop("status"), "completed")
         self.assertNotEquals(xml_command.prop("sessionid"), None)
         self.__check_actions(result[0])
+        x_data = result[0].xpath_eval("c:command/data:x",
+                                      {"c": "http://jabber.org/protocol/commands",
+                                       "data": "jabber:x:data"})
+        self.assertEquals(len(x_data), 1)
+        self.assertEquals(x_data[0].prop("type"), "form")
         fields = result[0].xpath_eval("c:command/data:x/data:field",
                                       {"c": "http://jabber.org/protocol/commands",
                                        "data": "jabber:x:data"})
@@ -1914,6 +1954,11 @@ class JCLCommandManager_TestCase(JCLTestCase):
         self.assertEquals(xml_command.prop("status"), "executing")
         self.assertNotEquals(xml_command.prop("sessionid"), None)
         self.__check_actions(result[0], ["complete"])
+        x_data = result[0].xpath_eval("c:command/data:x",
+                                      {"c": "http://jabber.org/protocol/commands",
+                                       "data": "jabber:x:data"})
+        self.assertEquals(len(x_data), 1)
+        self.assertEquals(x_data[0].prop("type"), "form")
         fields = result[0].xpath_eval("c:command/data:x/data:field",
                                       {"c": "http://jabber.org/protocol/commands",
                                        "data": "jabber:x:data"})
@@ -2374,6 +2419,11 @@ class JCLCommandManager_TestCase(JCLTestCase):
         self.assertEquals(xml_command.prop("status"), "executing")
         self.assertNotEquals(xml_command.prop("sessionid"), None)
         self.__check_actions(result[0], ["complete"])
+        x_data = result[0].xpath_eval("c:command/data:x",
+                                      {"c": "http://jabber.org/protocol/commands",
+                                       "data": "jabber:x:data"})
+        self.assertEquals(len(x_data), 1)
+        self.assertEquals(x_data[0].prop("type"), "form")
         fields = result[0].xpath_eval("c:command/data:x/data:field",
                                       {"c": "http://jabber.org/protocol/commands",
                                        "data": "jabber:x:data"})
@@ -2482,6 +2532,11 @@ class JCLCommandManager_TestCase(JCLTestCase):
         self.assertEquals(xml_command.prop("status"), "executing")
         self.assertNotEquals(xml_command.prop("sessionid"), None)
         self.__check_actions(result[0], ["complete"])
+        x_data = result[0].xpath_eval("c:command/data:x",
+                                      {"c": "http://jabber.org/protocol/commands",
+                                       "data": "jabber:x:data"})
+        self.assertEquals(len(x_data), 1)
+        self.assertEquals(x_data[0].prop("type"), "form")
         fields = result[0].xpath_eval("c:command/data:x/data:field",
                                       {"c": "http://jabber.org/protocol/commands",
                                        "data": "jabber:x:data"})
@@ -2703,6 +2758,11 @@ class JCLCommandManager_TestCase(JCLTestCase):
         self.assertEquals(xml_command.prop("status"), "executing")
         self.assertNotEquals(xml_command.prop("sessionid"), None)
         self.__check_actions(result[0], ["complete"])
+        x_data = result[0].xpath_eval("c:command/data:x",
+                                      {"c": "http://jabber.org/protocol/commands",
+                                       "data": "jabber:x:data"})
+        self.assertEquals(len(x_data), 1)
+        self.assertEquals(x_data[0].prop("type"), "form")
         fields = result[0].xpath_eval("c:command/data:x/data:field",
                                       {"c": "http://jabber.org/protocol/commands",
                                        "data": "jabber:x:data"})
@@ -2833,6 +2893,11 @@ class JCLCommandManager_TestCase(JCLTestCase):
         self.assertEquals(xml_command.prop("status"), "executing")
         self.assertNotEquals(xml_command.prop("sessionid"), None)
         self.__check_actions(result[0], ["complete"])
+        x_data = result[0].xpath_eval("c:command/data:x",
+                                      {"c": "http://jabber.org/protocol/commands",
+                                       "data": "jabber:x:data"})
+        self.assertEquals(len(x_data), 1)
+        self.assertEquals(x_data[0].prop("type"), "form")
         fields = result[0].xpath_eval("c:command/data:x/data:field",
                                       {"c": "http://jabber.org/protocol/commands",
                                        "data": "jabber:x:data"})
@@ -2919,6 +2984,11 @@ class JCLCommandManager_TestCase(JCLTestCase):
         self.assertEquals(xml_command.prop("status"), "executing")
         self.assertNotEquals(xml_command.prop("sessionid"), None)
         self.__check_actions(result[0], ["complete"])
+        x_data = result[0].xpath_eval("c:command/data:x",
+                                      {"c": "http://jabber.org/protocol/commands",
+                                       "data": "jabber:x:data"})
+        self.assertEquals(len(x_data), 1)
+        self.assertEquals(x_data[0].prop("type"), "form")
         fields = result[0].xpath_eval("c:command/data:x/data:field",
                                       {"c": "http://jabber.org/protocol/commands",
                                        "data": "jabber:x:data"})
@@ -3070,6 +3140,11 @@ class JCLCommandManager_TestCase(JCLTestCase):
         self.assertEquals(xml_command.prop("status"), "executing")
         self.assertNotEquals(xml_command.prop("sessionid"), None)
         self.__check_actions(result[0], ["complete"])
+        x_data = result[0].xpath_eval("c:command/data:x",
+                                      {"c": "http://jabber.org/protocol/commands",
+                                       "data": "jabber:x:data"})
+        self.assertEquals(len(x_data), 1)
+        self.assertEquals(x_data[0].prop("type"), "form")
         fields = result[0].xpath_eval("c:command/data:x/data:field",
                                       {"c": "http://jabber.org/protocol/commands",
                                        "data": "jabber:x:data"})
