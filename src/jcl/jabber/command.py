@@ -86,11 +86,10 @@ class CommandManager(object):
 
     def list_commands(self, jid, disco_items, lang_class):
         """Return DiscoItem for each supported commands"""
-        bare_from_jid = unicode(jid.bare())
         for command_name in self.commands.keys():
             must_be_admin = self.commands[command_name]
             if not must_be_admin or \
-               (must_be_admin and bare_from_jid in self.component.get_admins()):
+               (must_be_admin and self.component.is_admin(jid)):
                 command_desc = self.get_command_desc(command_name,
                                                      lang_class)
                 DiscoItem(disco_items,
@@ -114,7 +113,7 @@ class CommandManager(object):
             must_be_admin = self.commands[command_name]
             if not must_be_admin or \
                    (must_be_admin and
-                    unicode(info_query.get_from().bare()) in self.component.get_admins()):
+                    self.component.is_admin(info_query.get_from())):
                 short_command_name = self.get_short_command_name(command_name)
                 action_command_method = "apply_" + action + "_command"
                 if hasattr(self, action_command_method):
@@ -266,7 +265,7 @@ class JCLCommandManager(CommandManager):
         """
         CommandManager.__init__(self, component, account_manager)
         self.__logger = logging.getLogger("jcl.jabber.command.JCLCommandManager")
-        self.commands["http://jabber.org/protocol/admin#add-user"] = True
+        self.commands["http://jabber.org/protocol/admin#add-user"] = False
         self.commands["http://jabber.org/protocol/admin#delete-user"] = True
         self.commands["http://jabber.org/protocol/admin#disable-user"] = True
         self.commands["http://jabber.org/protocol/admin#reenable-user"] = True
@@ -469,9 +468,10 @@ class JCLCommandManager(CommandManager):
                 self.component.account_manager.list_account_types(lang_class):
             field.add_option(label=type_label,
                              values=[account_type])
-        result_form.add_field(name="user_jid",
-                              field_type="jid-single",
-                              label=lang_class.field_user_jid)
+        if self.component.is_admin(info_query.get_from()):
+            result_form.add_field(name="user_jid",
+                                  field_type="jid-single",
+                                  label=lang_class.field_user_jid)
         result_form.as_xml(command_node)
         return (result_form, [])
 
@@ -479,6 +479,8 @@ class JCLCommandManager(CommandManager):
                            command_node, lang_class):
         self.__logger.debug("Executing command 'add-user' step 2")
         self.add_actions(command_node, [ACTION_PREVIOUS, ACTION_COMPLETE], 1)
+        if not self.component.is_admin(info_query.get_from()):
+            session_context["user_jid"] = [unicode(info_query.get_from().bare())]
         user_jid = session_context["user_jid"][0]
         account_type = session_context["account_type"][0]
         account_class = self.account_manager.get_account_class(account_type)

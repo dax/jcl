@@ -608,6 +608,13 @@ class JCLComponent(Component, object):
     def set_admins(self, admins):
         self.set_config_parameter("component", "admins", ",".join(admins))
 
+    def is_admin(self, jid):
+        if isinstance(jid, JID):
+            jid_str = unicode(jid.bare())
+        else:
+            jid_str = unicode(jid)
+        return jid_str in self.get_admins()
+
     def get_welcome_message(self):
         return self.get_config_parameter("component", "welcome_message")
 
