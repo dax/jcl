@@ -544,7 +544,7 @@ class JCLCommandManager_TestCase(JCLTestCase):
         submit_form.as_xml(command_node)
         result = self.command_manager.apply_command_action(info_query,
                                                            "http://jabber.org/protocol/admin#add-user",
-                                                           "execute")
+                                                           "next")
         self.assertNotEquals(result, None)
         self.assertEquals(len(result), 1)
         xml_command = result[0].xpath_eval("c:command",

@@ -121,12 +121,16 @@ class CommandManager(object):
                     return getattr(self, action_command_method)(info_query,
                                                                 short_command_name)
                 else:
+                    self.__logger.error("Action '" + str(action) + "' unknown")
                     return [info_query.make_error_response(\
                         "feature-not-implemented")]
             else:
+                self.__logger.error(unicode(info_query.get_from().bare()) + " must "
+                                    + "be in admin list")
                 return [info_query.make_error_response(\
                     "forbidden")]
         else:
+            self.__logger.error("Command " + str(command_name) + " not found")
             return [info_query.make_error_response(\
                 "feature-not-implemented")]
 
@@ -136,6 +140,8 @@ class CommandManager(object):
             short_command_name,
             lambda session_id: (self.sessions[session_id][0] + 1,
                                 self.sessions[session_id][1]))
+
+    apply_next_command = apply_execute_command
 
     def apply_prev_command(self, info_query, short_command_name):
         return self.execute_multi_step_command(\
@@ -205,6 +211,7 @@ class CommandManager(object):
 
     def execute_multi_step_command(self, info_query, short_node,
                                    update_step_func):
+        self.__logger.debug("Executing multi-step command " + str(short_node))
         (response,
          command_node,
          session_id) = self._create_response(info_query,

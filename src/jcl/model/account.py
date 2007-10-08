@@ -134,12 +134,23 @@ class Account(InheritableSQLObject):
     def get_error_status_msg(self, lang_class):
         return lang_class.account_error
 
-    get_online_status_msg = get_default_status_msg
-    get_chat_status_msg = get_default_status_msg
-    get_away_status_msg = get_default_status_msg
-    get_xa_status_msg = get_disabled_status_msg
-    get_dnd_status_msg = get_error_status_msg
-    get_offline_status_msg = get_default_status_msg
+    def get_online_status_msg(self, lang_class):
+        return self.get_default_status_msg(lang_class)
+
+    def get_chat_status_msg(self, lang_class):
+        return self.get_default_status_msg(lang_class)
+
+    def get_away_status_msg(self, lang_class):
+        return self.get_default_status_msg(lang_class)
+
+    def get_xa_status_msg(self, lang_class):
+        return self.get_disabled_status_msg(lang_class)
+
+    def get_dnd_status_msg(self, lang_class):
+        return self.get_error_status_msg(lang_class)
+
+    def get_offline_status_msg(self, lang_class):
+        return self.get_default_status_msg(lang_class)
 
     def get_status(self):
         """Return current Jabber status"""
