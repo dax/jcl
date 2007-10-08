@@ -38,7 +38,7 @@ class SetRegisterHandler(object):
         self.account_manager = component.account_manager
         self.__logger = logging.getLogger("jcl.jabber.SetRegisterHandler")
 
-    def filter(self, info_query, lang_class, node):
+    def filter(self, info_query, lang_class, x_data):
         """Filter requests to be handled"""
         return False
 
@@ -61,27 +61,38 @@ class SetRegisterHandler(object):
 
 class RootSetRegisterHandler(SetRegisterHandler):
 
-    filter = jabber.root_filter
-
     def __init__(self, component):
         SetRegisterHandler.__init__(self, component)
         self.__logger = logging.getLogger("jcl.jabber.RootSetRegisterHandler")
+
+    def filter(self, stanza, lang_class, x_data):
+        """"""
+        return jabber.root_filter(self, stanza, lang_class)
 
     def handle(self, info_query, lang_class, data, x_data):
         """"""
         self.__logger.debug("root_set_register")
         _account = None
+        if not "name" in x_data or x_data["name"].value == "":
+            # TODO : use handle_error
+            iq_error = info_query.make_error_response("not-acceptable")
+            text = iq_error.get_error().xmlnode.newTextChild(\
+                None,
+                "text",
+                lang_class.mandatory_field % ("name"))
+            text.setNs(text.newNs(error.STANZA_ERROR_NS, None))
+            return [iq_error]
         try:
-            info_querys = self.account_manager.create_default_account(\
-                x_data["name"].value,
-                info_query.get_from(),
-                lang_class,
-                x_data)
-            info_querys.insert(0, info_query.make_result_response())
+            info_queries = self.account_manager.create_default_account(\
+                    x_data["name"].value,
+                    info_query.get_from(),
+                    lang_class,
+                    x_data)
+            info_queries.insert(0, info_query.make_result_response())
         except FieldError, field_error:
             return self.handle_error(field_error,
                                      info_query, lang_class)
-        return info_querys
+        return info_queries
 
 class AccountSetRegisterHandler(SetRegisterHandler):
 
@@ -91,29 +102,35 @@ class AccountSetRegisterHandler(SetRegisterHandler):
         SetRegisterHandler.__init__(self, component)
         self.__logger = logging.getLogger("jcl.jabber.AccountSetRegisterHandler")
 
+    def filter(self, stanza, lang_class, x_data):
+        """"""
+        return jabber.account_filter(self, stanza, lang_class)
+
     def handle(self, info_query, lang_class, data, x_data):
         """"""
         self.__logger.debug("account_set_register")
         _account = None
         try:
-            info_querys = self.account_manager.update_account(\
+            info_queries = self.account_manager.update_account(\
                 x_data["name"].value,
                 info_query.get_from(),
                 lang_class,
                 x_data)
-            info_querys.insert(0, info_query.make_result_response())
+            info_queries.insert(0, info_query.make_result_response())
         except FieldError, field_error:
             return self.handle_error(field_error,
                                      info_query, lang_class)
-        return info_querys
+        return info_queries
 
 class AccountTypeSetRegisterHandler(SetRegisterHandler):
-
-    filter = jabber.account_type_filter
 
     def __init__(self, component):
         SetRegisterHandler.__init__(self, component)
         self.__logger = logging.getLogger("jcl.jabber.AccountTypeSetRegisterHandler")
+
+    def filter(self, stanza, lang_class, x_data):
+        """"""
+        return jabber.account_type_filter(self, stanza, lang_class)
 
     def handle(self, info_query, lang_class, data, x_data):
         """"""
@@ -121,14 +138,14 @@ class AccountTypeSetRegisterHandler(SetRegisterHandler):
         account_type = data
         _account = None
         try:
-            info_querys = self.account_manager.create_account_from_type(\
+            info_queries = self.account_manager.create_account_from_type(\
                 x_data["name"].value,
                 info_query.get_from(),
                 account_type,
                 lang_class,
                 x_data)
-            info_querys.insert(0, info_query.make_result_response())
+            info_queries.insert(0, info_query.make_result_response())
         except FieldError, field_error:
             return self.handle_error(field_error,
                                      info_query, lang_class)
-        return info_querys
+        return info_queries

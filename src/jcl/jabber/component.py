@@ -458,18 +458,11 @@ class JCLComponent(Component, object):
                                        {"jir" : "jabber:iq:register",
                                         "jxd" : "jabber:x:data"})[0]
         x_data = Form(x_node)
-        if not "name" in x_data or x_data["name"].value == "":
-            iq_error = info_query.make_error_response("not-acceptable")
-            text = iq_error.get_error().xmlnode.newTextChild(\
-                None,
-                "text",
-                lang_class.mandatory_field % ("name"))
-            text.setNs(text.newNs(error.STANZA_ERROR_NS, None))
-            self.stream.send(iq_error)
-            return
         return self.apply_registered_behavior(\
             self.set_register_handlers,
             info_query,
+            apply_filter_func=lambda filter_func, stanza, lang_class: \
+                filter_func(stanza, lang_class, x_data),
             apply_handle_func=lambda handle_func, stanza, lang_class, data, result: \
                 handle_func(stanza, lang_class, data, x_data))
 

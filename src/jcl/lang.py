@@ -72,10 +72,10 @@ class Lang:
 
     class en:
         component_name = u"Jabber Component Library generic component"
-        register_title = u"Connection registration"
-        register_instructions = u"Enter connection parameters"
+        register_title = u"Create new account"
+        register_instructions = u"Enter account parameters"
         message_status = u" accounts registered."
-        account_name = u"Connection name"
+        account_name = u"Account name"
 
         password_saved_for_session = u"Password will be kept during your " \
                                      u"Jabber session"
@@ -236,10 +236,10 @@ class Lang:
 
     class fr:
         component_name = u"composant générique Jabber Component Library"
-        register_title = u"Enregistrement d'une nouvelle connexion"
-        register_instructions = u"Entrer les paramètres de connexion"
+        register_title = u"Enregistrement d'un nouveau compte"
+        register_instructions = u"Entrer les paramètres du compte"
         message_status = u" comptes enregistrés."
-        account_name = u"Nom de la connexion"
+        account_name = u"Nom du compte"
 
         password_saved_for_session = u"Le mot de passe sera garder tout au " \
                                      u"long de la session Jabber."
