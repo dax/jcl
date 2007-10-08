@@ -82,8 +82,13 @@ class AccountPresenceHandler(Handler):
 
 class AccountPresenceAvailableHandler(AccountPresenceHandler):
     def get_account_presence(self, stanza, lang_class, _account):
+        show_status = account.ONLINE
+        if _account.in_error:
+            show_status = account.DND
+        elif not _account.enabled:
+            show_status = account.XA
         return self.component.account_manager.send_presence_available(_account,
-                                                                      stanza.get_show(),
+                                                                      show_status,
                                                                       lang_class)
 
 class RootPresenceHandler(AccountPresenceHandler):
@@ -109,7 +114,7 @@ class RootPresenceAvailableHandler(RootPresenceHandler, AccountPresenceAvailable
         from_jid = stanza.get_from()
         result = self.component.account_manager.send_root_presence(from_jid,
                                                                    "available",
-                                                                   stanza.get_show(),
+                                                                   "online",
                                                                    str(nb_accounts) +
                                                                    lang_class.message_status)
         user = account.get_user(unicode(from_jid.bare()))

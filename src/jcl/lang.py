@@ -234,6 +234,9 @@ class Lang:
 
         welcome_message_subject = u"Welcome"
 
+        account_disabled = u"This account is disabled"
+        account_error = u"This account has an error"
+
     class fr:
         component_name = u"composant générique Jabber Component Library"
         register_title = u"Enregistrement d'un nouveau compte"
@@ -412,6 +415,9 @@ class Lang:
         field_300_sec = u"300 secondes"
 
         welcome_message_subject = u"Bienvenue"
+
+        account_disabled = u"Ce compte est désactivé"
+        account_error = u"Ce compte est en erreur"
 
     class nl:
         # TODO: when finish, delete this line and uncomment in tests/lang.py the makeSuite(Language_nl_TestCase, 'test') line

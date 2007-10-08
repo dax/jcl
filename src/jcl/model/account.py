@@ -39,6 +39,8 @@ import jcl.model as model
 
 OFFLINE = "offline"
 ONLINE = "online"
+DND = "dnd"
+XA = "xa"
 
 def default_post_func(field_value, default_func, bare_from_jid):
     """Default post process function: do nothing"""
@@ -109,11 +111,35 @@ class Account(InheritableSQLObject):
 
     long_name = property(get_long_name)
 
-    def get_status_msg(self):
+    def get_status_msg(self, lang_class=Lang.en):
         """Return current status"""
+        mapping = {"online": self.get_online_status_msg,
+                   "chat": self.get_chat_status_msg,
+                   "away": self.get_away_status_msg,
+                   "xa": self.get_xa_status_msg,
+                   "dnd": self.get_dnd_status_msg,
+                   "offline": self.get_offline_status_msg}
+        if mapping.has_key(self.status):
+            return mapping[self.status](lang_class)
         return self.name
 
     status_msg = property(get_status_msg)
+
+    def get_default_status_msg(self, lang_class):
+        return self.name
+
+    def get_disabled_status_msg(self, lang_class):
+        return lang_class.account_disabled
+
+    def get_error_status_msg(self, lang_class):
+        return lang_class.account_error
+
+    get_online_status_msg = get_default_status_msg
+    get_chat_status_msg = get_default_status_msg
+    get_away_status_msg = get_default_status_msg
+    get_xa_status_msg = get_disabled_status_msg
+    get_dnd_status_msg = get_error_status_msg
+    get_offline_status_msg = get_default_status_msg
 
     def get_status(self):
         """Return current Jabber status"""

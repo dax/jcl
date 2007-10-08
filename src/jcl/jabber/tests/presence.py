@@ -31,7 +31,7 @@ from pyxmpp.message import Message
 from jcl.jabber.component import JCLComponent
 from jcl.jabber.presence import DefaultSubscribeHandler, \
      DefaultUnsubscribeHandler, DefaultPresenceHandler, \
-     RootPresenceAvailableHandler
+     RootPresenceAvailableHandler, AccountPresenceAvailableHandler
 from jcl.model.account import User, LegacyJID, Account
 from jcl.lang import Lang
 
@@ -179,6 +179,87 @@ class RootPresenceAvailableHandler_TestCase(JCLTestCase):
         self.assertTrue(isinstance(result[0], Presence))
         self.assertEquals(result[0].get_to(), "user1@test.com")
         self.assertEquals(result[0].get_from(), "jcl.test.com")
+        self.assertEquals(result[0].get_show(), "online")
+        self.assertEquals(result[0].get_status(), "2" + Lang.en.message_status)
+
+class AccountPresenceAvailableHandler_TestCase(JCLTestCase):
+    def setUp(self):
+        JCLTestCase.setUp(self, tables=[User, LegacyJID, Account])
+        self.config = ConfigParser()
+        self.config_file = tempfile.mktemp(".conf", "jcltest", "/tmp")
+        self.config.read(self.config_file)
+        self.config.add_section("component")
+        self.config.set("component", "motd", "Message Of The Day")
+        self.comp = JCLComponent("jcl.test.com",
+                                 "password",
+                                 "localhost",
+                                 "5347",
+                                 self.config)
+        self.handler = AccountPresenceAvailableHandler(self.comp)
+
+    def tearDown(self):
+        JCLTestCase.tearDown(self)
+        if os.path.exists(self.config_file):
+            os.unlink(self.config_file)
+
+    def test_get_account_presence(self):
+        user1 = User(jid="user1@test.com")
+        account11 = Account(user=user1,
+                            name="account11",
+                            jid="account11@jcl.test.com")
+        account12 = Account(user=user1,
+                            name="account12",
+                            jid="account12@jcl.test.com")
+        presence = Presence(stanza_type="available",
+                            from_jid="user1@test.com",
+                            to_jid="account11@jcl.test.com")
+        result = self.handler.get_account_presence(presence, Lang.en, account11)
+        self.assertEquals(len(result), 1)
+        self.assertTrue(isinstance(result[0], Presence))
+        self.assertEquals(result[0].get_to(), "user1@test.com")
+        self.assertEquals(result[0].get_from(), "account11@jcl.test.com")
+        self.assertEquals(result[0].get_show(), "online")
+        self.assertEquals(result[0].get_status(), "account11")
+
+    def test_get_disabled_account_presence(self):
+        user1 = User(jid="user1@test.com")
+        account11 = Account(user=user1,
+                            name="account11",
+                            jid="account11@jcl.test.com")
+        account11.enabled = False
+        account12 = Account(user=user1,
+                            name="account12",
+                            jid="account12@jcl.test.com")
+        presence = Presence(stanza_type="available",
+                            from_jid="user1@test.com",
+                            to_jid="account11@jcl.test.com")
+        result = self.handler.get_account_presence(presence, Lang.en, account11)
+        self.assertEquals(len(result), 1)
+        self.assertTrue(isinstance(result[0], Presence))
+        self.assertEquals(result[0].get_to(), "user1@test.com")
+        self.assertEquals(result[0].get_from(), "account11@jcl.test.com")
+        self.assertEquals(result[0].get_show(), "xa")
+        self.assertEquals(result[0].get_status(), Lang.en.account_disabled)
+
+    def test_get_inerror_account_presence(self):
+        user1 = User(jid="user1@test.com")
+        account11 = Account(user=user1,
+                            name="account11",
+                            jid="account11@jcl.test.com")
+        account11.in_error = True
+        account12 = Account(user=user1,
+                            name="account12",
+                            jid="account12@jcl.test.com")
+        presence = Presence(stanza_type="available",
+                            from_jid="user1@test.com",
+                            to_jid="account11@jcl.test.com")
+        result = self.handler.get_account_presence(presence, Lang.en, account11)
+        self.assertEquals(len(result), 1)
+        self.assertTrue(isinstance(result[0], Presence))
+        self.assertEquals(result[0].get_to(), "user1@test.com")
+        self.assertEquals(result[0].get_from(), "account11@jcl.test.com")
+        self.assertEquals(result[0].get_show(), "dnd")
+        self.assertEquals(result[0].get_status(), Lang.en.account_error)
 
 def suite():
     test_suite = unittest.TestSuite()
@@ -186,6 +267,7 @@ def suite():
     test_suite.addTest(unittest.makeSuite(DefaultUnsubscribeHandler_TestCase, 'test'))
     test_suite.addTest(unittest.makeSuite(DefaultPresenceHandler_TestCase, 'test'))
     test_suite.addTest(unittest.makeSuite(RootPresenceAvailableHandler_TestCase, 'test'))
+    test_suite.addTest(unittest.makeSuite(AccountPresenceAvailableHandler_TestCase, 'test'))
     return test_suite
 
 if __name__ == '__main__':
