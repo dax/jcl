@@ -96,8 +96,6 @@ class RootSetRegisterHandler(SetRegisterHandler):
 
 class AccountSetRegisterHandler(SetRegisterHandler):
 
-    filter = jabber.account_filter
-
     def __init__(self, component):
         SetRegisterHandler.__init__(self, component)
         self.__logger = logging.getLogger("jcl.jabber.AccountSetRegisterHandler")
