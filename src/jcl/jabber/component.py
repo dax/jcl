@@ -68,6 +68,508 @@ from jcl.lang import Lang
 
 VERSION = "0.1"
 
+class AccountManager(object):
+    """Implement component account behavior"""
+
+    def __init__(self, component):
+        """AccountManager constructor"""
+        self.__logger = logging.getLogger("jcl.jabber.JCLComponent")
+        self.regexp_type = re.compile("(.*)Account$")
+        self._account_classes = None
+        self.account_classes = (Account,)
+        self.component = component
+        self.account_types = []
+
+    def _get_account_classes(self):
+        """account_classes getter"""
+        return self._account_classes
+
+    def _set_account_classes(self, account_classes):
+        """account_classes setter"""
+        self._account_classes = account_classes
+        self.has_multiple_account_type = (len(self._account_classes) > 1)
+        self.account_types = []
+        for account_class in account_classes:
+            match = self.regexp_type.search(account_class.__name__)
+            if match is not None:
+                account_type = match.group(1)
+                self.account_types.append(account_type)
+            else:
+                self.__logger.error(account_class.__name__ +
+                                    " name not well formed")
+                self.account_types.append("")
+
+    account_classes = property(_get_account_classes, _set_account_classes)
+
+    ###### get_register handlers ######
+    def account_get_register(self, info_query,
+                             name,
+                             from_jid,
+                             account_type,
+                             lang_class):
+        """Handle get_register on an account.
+        Return a preinitialized form"""
+        info_query = info_query.make_result_response()
+        account_class = self.get_account_class(account_type)
+        model.db_connect()
+        _account = account.get_account(unicode(from_jid.bare()), name, account_class)
+        if _account is not None:
+            query = info_query.new_query("jabber:iq:register")
+            model.db_disconnect()
+            self.generate_registration_form_init(lang_class,
+                                                 _account).as_xml(query)
+        else:
+            model.db_disconnect()
+        return [info_query]
+
+    def _account_type_get_register(self, info_query, account_class, lang_class):
+        """Handle get_register for given account_class"""
+        info_query = info_query.make_result_response()
+        query = info_query.new_query("jabber:iq:register")
+        from_jid = info_query.get_from()
+        bare_from_jid = unicode(from_jid.bare())
+        self.generate_registration_form(lang_class,
+                                        account_class,
+                                        bare_from_jid).as_xml(query)
+        return [info_query]
+
+    def account_type_get_register(self, info_query, account_type, lang_class):
+        """Handle get_register on an account_type node"""
+        return self._account_type_get_register(\
+            info_query,
+            self.get_account_class(account_type),
+            lang_class)
+
+    def root_get_register(self, info_query, lang_class):
+        """Handle get_register on root node"""
+        if not self.has_multiple_account_type:
+            return self._account_type_get_register(info_query,
+                                                   self.account_classes[0],
+                                                   lang_class)
+
+    ###### set_register handlers ######
+    def remove_all_accounts(self, user_jid):
+        """Unsubscribe all accounts associated to 'user_jid' then delete
+        those accounts from the DataBase"""
+        model.db_connect()
+        result = []
+        for _account in account.get_accounts(user_jid):
+            result.extend(self.remove_account(_account, user_jid, False))
+        user = account.get_user(unicode(user_jid.bare()))
+        if user is not None:
+            user.destroySelf()
+        result.append(Presence(from_jid=self.component.jid,
+                               to_jid=user_jid,
+                               stanza_type="unsubscribe"))
+        result.append(Presence(from_jid=self.component.jid,
+                               to_jid=user_jid,
+                               stanza_type="unsubscribed"))
+        model.db_disconnect()
+        return result
+
+    def remove_account_from_name(self, user_jid, name):
+        _account = account.get_account(user_jid, name)
+        if _account is not None:
+            return self.remove_account(_account, user_jid)
+        else:
+            return []
+
+    def remove_account(self, _account, user_jid, remove_user=True):
+        self.__logger.debug("Deleting account: " + str(_account))
+        result = []
+        model.db_connect()
+        result.append(Presence(from_jid=_account.jid,
+                               to_jid=user_jid,
+                               stanza_type="unsubscribe"))
+        result.append(Presence(from_jid=_account.jid,
+                               to_jid=user_jid,
+                               stanza_type="unsubscribed"))
+        _account.destroySelf()
+        if remove_user:
+            bare_user_jid = unicode(user_jid.bare())
+            accounts_count = account.get_accounts_count(bare_user_jid)
+            if accounts_count == 0:
+                user = account.get_user(bare_user_jid)
+                user.destroySelf()
+        model.db_disconnect()
+        return result
+
+    def populate_account(self, _account, lang_class, x_data,
+                         new_account, first_account, from_jid=None):
+        """Populate given account"""
+        if from_jid is None:
+            from_jid = _account.user.jid
+        field = None
+        result = []
+        model.db_connect()
+        for (field, field_type, field_options, field_post_func,
+             field_default_func) in _account.get_register_fields():
+            if field is not None:
+                if field in x_data:
+                    value = x_data[field].value
+                else:
+                    value = None
+                setattr(_account, field,
+                        field_post_func(value, field_default_func,
+                                        unicode(from_jid.bare())))
+
+        if first_account:
+            # component subscribe user presence when registering the first
+            # account
+            result.append(Presence(from_jid=self.component.jid,
+                                   to_jid=from_jid,
+                                   stanza_type="subscribe"))
+            welcome_message = self.component.get_welcome_message()
+            if welcome_message is not None:
+                result.append(Message(from_jid=self.component.jid,
+                                      to_jid=from_jid,
+                                      body=welcome_message,
+                                      subject=lang_class.welcome_message_subject))
+        if new_account:
+            # subscribe to user presence if this is a new account
+            result.append(Message(\
+                    from_jid=self.component.jid,
+                    to_jid=from_jid,
+                    subject=_account.get_new_message_subject(lang_class),
+                    body=_account.get_new_message_body(lang_class)))
+            result.append(Presence(from_jid=_account.jid,
+                                   to_jid=from_jid,
+                                   stanza_type="subscribe"))
+        else:
+            result.append(Message(\
+                    from_jid=self.component.jid,
+                    to_jid=from_jid,
+                    subject=_account.get_update_message_subject(lang_class),
+                    body=_account.get_update_message_body(lang_class)))
+        model.db_disconnect()
+        return result
+
+    def update_account(self,
+                       account_name,
+                       from_jid,
+                       lang_class,
+                       x_data):
+        """Update account"""
+        self.__logger.debug("Updating account " + account_name)
+        bare_from_jid = unicode(from_jid.bare())
+        _account = account.get_account(bare_from_jid,
+                                       account_name)
+        if _account is not None:
+            return self.populate_account(_account, lang_class,
+                                         x_data,
+                                         new_account=False,
+                                         first_account=False,
+                                         from_jid=from_jid)
+        else:
+            self.__logger.error("Account " + account_name +
+                                " was not found, cannot update it")
+            return []
+
+    def create_account(self,
+                       account_name,
+                       from_jid,
+                       account_class,
+                       lang_class,
+                       x_data):
+        """Create new account from account_class"""
+        bare_from_jid = unicode(from_jid.bare())
+        first_account = (account.get_accounts_count(bare_from_jid) == 0)
+        model.db_connect()
+        user = account.get_user(bare_from_jid)
+        if user is None:
+            user = User(jid=bare_from_jid)
+        _account = account_class(user=user,
+                                 name=account_name,
+                                 jid=self.get_account_jid(account_name))
+        model.db_disconnect()
+        try:
+            return self.populate_account(_account, lang_class, x_data,
+                                         new_account=True,
+                                         first_account=first_account,
+                                         from_jid=from_jid)
+        except FieldError, field_error:
+            model.db_connect()
+            _account.destroySelf()
+            model.db_disconnect()
+            raise field_error
+
+    def create_account_from_type(self,
+                                 account_name,
+                                 from_jid,
+                                 account_type,
+                                 lang_class,
+                                 x_data):
+        """Create new account from its type name"""
+        account_class = self.get_account_class(account_type)
+        return self.create_account(account_name,
+                                   from_jid,
+                                   account_class,
+                                   lang_class,
+                                   x_data)
+
+    def create_default_account(self,
+                               account_name,
+                               bare_from_jid,
+                               lang_class,
+                               x_data):
+        """Create new account when managing only one account type"""
+        if not self.has_multiple_account_type:
+            return self.create_account(account_name, bare_from_jid,
+                                       self.account_classes[0],
+                                       lang_class, x_data)
+        else:
+            return []
+
+    ###### presence generic handlers ######
+    def send_presence_all(self, presence):
+        """Send presence to all account. Optimized to use only one sql
+        request"""
+        result = []
+        model.db_connect()
+        # Explicit reference to account table (clauseTables) to use
+        # "user_jid" column with Account subclasses
+        for user in account.get_all_users():
+            result.extend(self.send_presence(self.component.jid,
+                                             user.jid,
+                                             presence))
+        for _account in account.get_all_accounts():
+            result.extend(getattr(self, "send_presence_" +
+                                  presence)(_account))
+        model.db_disconnect()
+        return result
+
+
+    def probe_all_accounts_presence(self):
+        """Send presence probe to all registered accounts"""
+        return self.send_presence_all("probe")
+
+    ###### Utils methods ######
+    def list_accounts(self, bare_from_jid, account_class=None,
+                      account_type=""):
+        """List accounts in disco_items for given _account_class and user jid"""
+        if account_class is None:
+            account_class = self.account_classes[0]
+        if account_type is not None and account_type != "":
+            resource = "/" + account_type
+            account_type = account_type + "/"
+        else:
+            resource = ""
+        model.db_connect()
+        accounts = account.get_accounts(bare_from_jid, account_class)
+        if accounts.count() > 0:
+            for _account in accounts:
+                yield (_account, resource, account_type)
+        model.db_disconnect()
+
+    def list_account_types(self, lang_class):
+        """List account supported types"""
+        for account_type in self.account_types:
+            type_label_attr = "type_" + account_type.lower() + "_name"
+            if hasattr(lang_class, type_label_attr):
+                type_label = getattr(lang_class, type_label_attr)
+            else:
+                type_label = account_type
+            yield (account_type, type_label)
+        
+    def get_account_class(self, account_type=None,
+                          account_class_name=None):
+        """Return account class definition from declared classes in
+        account_classes from its class name"""
+        if account_type is not None:
+            account_class_name = account_type + "Account"
+        elif account_class_name is None:
+            self.__logger.error("account_type and account_class_name are None")
+            return None
+        self.__logger.debug("Looking for " + account_class_name)
+        for _account_class in self.account_classes:
+            if _account_class.__name__.lower() == account_class_name.lower():
+                self.__logger.debug(account_class_name + " found")
+                return _account_class
+        self.__logger.debug(account_class_name + " not found")
+        return None
+
+    def generate_registration_form(self, lang_class, _account_class, bare_from_jid):
+        """
+        Return register form based on language and account class
+        """
+        reg_form = Form(title=lang_class.register_title,
+                        instructions=lang_class.register_instructions)
+        # "name" field is mandatory
+        reg_form.add_field(field_type="text-single",
+                           label=lang_class.account_name,
+                           name="name",
+                           required=True)
+
+        for (field_name,
+             field_type,
+             field_options,
+             post_func,
+             default_func) in \
+                _account_class.get_register_fields():
+            if field_name is None:
+                # TODO : Add page when empty tuple given
+                pass
+
+            else:
+                lang_label_attr = "field_" + field_name
+                if hasattr(lang_class, lang_label_attr):
+                    label = getattr(lang_class, lang_label_attr)
+                else:
+                    label = field_name
+                self.__logger.debug("Adding field " + field_name + " to registration form")
+                field = reg_form.add_field(field_type=field_type,
+                                           label=label,
+                                           name=field_name,
+                                           value=default_func(bare_from_jid))
+                if field_options is not None:
+                    for option_value in field_options:
+                        lang_label_attr = "field_" + field_name + "_" + option_value
+                        if hasattr(lang_class, lang_label_attr):
+                            label = getattr(lang_class, lang_label_attr)
+                        else:
+                            label = option_value
+                        field.add_option(label=label,
+                                         values=[option_value])
+                try:
+                    post_func(None, default_func, bare_from_jid)
+                except:
+                    self.__logger.debug("Setting field " + field_name + " required")
+                    field.required = True
+        return reg_form
+
+    def generate_registration_form_init(self, lang_class, _account):
+        """
+        Return register form for an existing account (update)
+        """
+        reg_form = self.generate_registration_form(lang_class, _account.__class__,
+                                                   _account.user.jid)
+        reg_form["name"].value = _account.name
+        reg_form["name"].type = "hidden"
+        for field in reg_form.fields:
+            if hasattr(_account, field.name):
+                field.value = getattr(_account, field.name)
+        return reg_form
+
+    def get_account_jid(self, name):
+        """Compose account jid from account name"""
+        return name + u"@" + unicode(self.component.jid)
+
+    def send_presence_probe(self, _account):
+        """Send presence probe to account's user"""
+        return [Presence(from_jid=_account.jid,
+                         to_jid=_account.user.jid,
+                         stanza_type="probe")]
+
+    def send_presence_unavailable(self, _account):
+        """Send unavailable presence to account's user"""
+        model.db_connect()
+        _account.status = account.OFFLINE
+        result = [Presence(from_jid=_account.jid,
+                           to_jid=_account.user.jid,
+                           stanza_type="unavailable")]
+        model.db_disconnect()
+        return result
+
+    def send_root_presence(self, to_jid, presence_type,
+                            show=None, status=None):
+        result = self.send_presence(self.component.jid, to_jid,
+                                    presence_type, show=show,
+                                    status=status)
+        result.extend(self.send_root_presence_legacy(to_jid,
+                                                     presence_type,
+                                                     show=show,
+                                                     status=status))
+        return result
+
+    def send_presence(self, from_jid, to_jid, presence_type, status=None, show=None):
+        """Send presence stanza"""
+        return [Presence(from_jid=from_jid,
+                         to_jid=to_jid,
+                         status=status,
+                         show=show,
+                         stanza_type=presence_type)]
+
+    def send_presence_available(self, _account, show, lang_class):
+        """Send available presence to account's user and ask for password
+        if necessary"""
+        result = []
+        model.db_connect()
+        _account.default_lang_class = lang_class
+        old_status = _account.status
+        if show is None:
+            _account.status = account.ONLINE
+        else:
+            _account.status = show
+        result.append(Presence(from_jid=_account.jid,
+                               to_jid=_account.user.jid,
+                               status=_account.status_msg,
+                               show=show,
+                               stanza_type="available"))
+        if hasattr(_account, 'store_password') \
+            and hasattr(_account, 'password') \
+            and _account.store_password == False \
+            and old_status == account.OFFLINE \
+            and _account.password == None :
+            result.extend(self.ask_password(_account, lang_class))
+        model.db_disconnect()
+        return result
+
+    def send_root_presence_legacy(self, to_jid, presence_type,
+                                   status=None, show=None):
+        """Send presence from legacy JID"""
+        result = []
+        for legacy_jid in account.get_legacy_jids(unicode(to_jid.bare())):
+            result.append(Presence(from_jid=legacy_jid.jid,
+                                   to_jid=to_jid,
+                                   show=show,
+                                   status=status,
+                                   stanza_type=presence_type))
+        return result
+
+    def ask_password(self, _account, lang_class):
+        """Send a Jabber message to ask for account password
+        """
+        result = []
+        if hasattr(_account, 'waiting_password_reply') \
+            and not _account.waiting_password_reply \
+            and _account.status != account.OFFLINE:
+            _account.waiting_password_reply = True
+            result.append(Message(from_jid=_account.jid,
+                                  to_jid=_account.user.jid,
+                                  subject=u"[PASSWORD] " + \
+                                      lang_class.ask_password_subject,
+                                  body=lang_class.ask_password_body % \
+                                      (_account.name)))
+        return result
+
+    def set_password(self, _account, from_jid, password, lang_class):
+        """
+        Set password to given account
+        """
+        model.db_connect()
+        _account.password = password
+        _account.waiting_password_reply = False
+        result = [Message(from_jid=_account.jid,
+                          to_jid=from_jid,
+                          subject=lang_class.password_saved_for_session,
+                          body=lang_class.password_saved_for_session)]
+        model.db_disconnect()
+        return result
+
+    def send_error_from_account(self, _account, exception):
+        """Send an error message only one time until _account.in_error
+        has been reset to False"""
+        result = []
+        if _account.in_error == False:
+            _account.in_error = True
+            result.append(Message(from_jid=_account.jid,
+                                  to_jid=_account.user.jid,
+                                  stanza_type="error",
+                                  subject=_account.default_lang_class.error_subject,
+                                  body=_account.default_lang_class.error_body \
+                                      % (exception)))
+        return result
+
 ###############################################################################
 # JCL implementation
 ###############################################################################
@@ -91,7 +593,8 @@ class JCLComponent(Component, object):
                  config_file="jmc.conf",
                  disco_category="headline",
                  disco_type="x-unknown",
-                 lang=Lang()):
+                 lang=Lang(),
+                 account_manager_class=AccountManager):
         Component.__init__(self,
                            JID(jid),
                            secret,
@@ -107,7 +610,7 @@ class JCLComponent(Component, object):
         self.version = VERSION
         self.time_unit = 60
         self.queue = Queue(100)
-        self.account_manager = AccountManager(self)
+        self.account_manager = account_manager_class(self)
         self.msg_handlers = []
         self.presence_subscribe_handlers = [[AccountPresenceSubscribeHandler(self),
                                              RootPresenceSubscribeHandler(self)]]
@@ -635,505 +1138,3 @@ class JCLComponent(Component, object):
         """
         raise NotImplementedError
 
-
-class AccountManager(object):
-    """Implement component account behavior"""
-
-    def __init__(self, component):
-        """AccountManager constructor"""
-        self.__logger = logging.getLogger("jcl.jabber.JCLComponent")
-        self.regexp_type = re.compile("(.*)Account$")
-        self._account_classes = None
-        self.account_classes = (Account,)
-        self.component = component
-        self.account_types = []
-
-    def _get_account_classes(self):
-        """account_classes getter"""
-        return self._account_classes
-
-    def _set_account_classes(self, account_classes):
-        """account_classes setter"""
-        self._account_classes = account_classes
-        self.has_multiple_account_type = (len(self._account_classes) > 1)
-        self.account_types = []
-        for account_class in account_classes:
-            match = self.regexp_type.search(account_class.__name__)
-            if match is not None:
-                account_type = match.group(1)
-                self.account_types.append(account_type)
-            else:
-                self.__logger.error(account_class.__name__ +
-                                    " name not well formed")
-                self.account_types.append("")
-
-    account_classes = property(_get_account_classes, _set_account_classes)
-
-    ###### get_register handlers ######
-    def account_get_register(self, info_query,
-                             name,
-                             from_jid,
-                             account_type,
-                             lang_class):
-        """Handle get_register on an account.
-        Return a preinitialized form"""
-        info_query = info_query.make_result_response()
-        account_class = self.get_account_class(account_type)
-        model.db_connect()
-        _account = account.get_account(unicode(from_jid.bare()), name, account_class)
-        if _account is not None:
-            query = info_query.new_query("jabber:iq:register")
-            model.db_disconnect()
-            self.generate_registration_form_init(lang_class,
-                                                 _account).as_xml(query)
-        else:
-            model.db_disconnect()
-        return [info_query]
-
-    def _account_type_get_register(self, info_query, account_class, lang_class):
-        """Handle get_register for given account_class"""
-        info_query = info_query.make_result_response()
-        query = info_query.new_query("jabber:iq:register")
-        from_jid = info_query.get_from()
-        bare_from_jid = unicode(from_jid.bare())
-        self.generate_registration_form(lang_class,
-                                        account_class,
-                                        bare_from_jid).as_xml(query)
-        return [info_query]
-
-    def account_type_get_register(self, info_query, account_type, lang_class):
-        """Handle get_register on an account_type node"""
-        return self._account_type_get_register(\
-            info_query,
-            self.get_account_class(account_type),
-            lang_class)
-
-    def root_get_register(self, info_query, lang_class):
-        """Handle get_register on root node"""
-        if not self.has_multiple_account_type:
-            return self._account_type_get_register(info_query,
-                                                   self.account_classes[0],
-                                                   lang_class)
-
-    ###### set_register handlers ######
-    def remove_all_accounts(self, user_jid):
-        """Unsubscribe all accounts associated to 'user_jid' then delete
-        those accounts from the DataBase"""
-        model.db_connect()
-        result = []
-        for _account in account.get_accounts(user_jid):
-            result.extend(self.remove_account(_account, user_jid, False))
-        user = account.get_user(unicode(user_jid.bare()))
-        if user is not None:
-            user.destroySelf()
-        result.append(Presence(from_jid=self.component.jid,
-                               to_jid=user_jid,
-                               stanza_type="unsubscribe"))
-        result.append(Presence(from_jid=self.component.jid,
-                               to_jid=user_jid,
-                               stanza_type="unsubscribed"))
-        model.db_disconnect()
-        return result
-
-    def remove_account_from_name(self, user_jid, name):
-        _account = account.get_account(user_jid, name)
-        if _account is not None:
-            return self.remove_account(_account, user_jid)
-        else:
-            return []
-
-    def remove_account(self, _account, user_jid, remove_user=True):
-        self.__logger.debug("Deleting account: " + str(_account))
-        result = []
-        model.db_connect()
-        result.append(Presence(from_jid=_account.jid,
-                               to_jid=user_jid,
-                               stanza_type="unsubscribe"))
-        result.append(Presence(from_jid=_account.jid,
-                               to_jid=user_jid,
-                               stanza_type="unsubscribed"))
-        _account.destroySelf()
-        if remove_user:
-            bare_user_jid = unicode(user_jid.bare())
-            accounts_count = account.get_accounts_count(bare_user_jid)
-            if accounts_count == 0:
-                user = account.get_user(bare_user_jid)
-                user.destroySelf()
-        model.db_disconnect()
-        return result
-
-    def populate_account(self, _account, lang_class, x_data,
-                         new_account, first_account, from_jid=None):
-        """Populate given account"""
-        if from_jid is None:
-            from_jid = _account.user.jid
-        field = None
-        result = []
-        model.db_connect()
-        for (field, field_type, field_options, field_post_func,
-             field_default_func) in _account.get_register_fields():
-            if field is not None:
-                if field in x_data:
-                    value = x_data[field].value
-                else:
-                    value = None
-                setattr(_account, field,
-                        field_post_func(value, field_default_func,
-                                        unicode(from_jid.bare())))
-
-        if first_account:
-            # component subscribe user presence when registering the first
-            # account
-            result.append(Presence(from_jid=self.component.jid,
-                                   to_jid=from_jid,
-                                   stanza_type="subscribe"))
-            welcome_message = self.component.get_welcome_message()
-            if welcome_message is not None:
-                result.append(Message(from_jid=self.component.jid,
-                                      to_jid=from_jid,
-                                      body=welcome_message,
-                                      subject=lang_class.welcome_message_subject))
-        if new_account:
-            # subscribe to user presence if this is a new account
-            result.append(Message(\
-                    from_jid=self.component.jid,
-                    to_jid=from_jid,
-                    subject=_account.get_new_message_subject(lang_class),
-                    body=_account.get_new_message_body(lang_class)))
-            result.append(Presence(from_jid=_account.jid,
-                                   to_jid=from_jid,
-                                   stanza_type="subscribe"))
-        else:
-            result.append(Message(\
-                    from_jid=self.component.jid,
-                    to_jid=from_jid,
-                    subject=_account.get_update_message_subject(lang_class),
-                    body=_account.get_update_message_body(lang_class)))
-        model.db_disconnect()
-        return result
-
-    def update_account(self,
-                       account_name,
-                       from_jid,
-                       lang_class,
-                       x_data):
-        """Update account"""
-        self.__logger.debug("Updating account " + account_name)
-        bare_from_jid = unicode(from_jid.bare())
-        _account = account.get_account(bare_from_jid,
-                                       account_name)
-        if _account is not None:
-            return self.populate_account(_account, lang_class,
-                                         x_data,
-                                         new_account=False,
-                                         first_account=False,
-                                         from_jid=from_jid)
-        else:
-            self.__logger.error("Account " + account_name +
-                                " was not found, cannot update it")
-            return []
-
-    def create_account(self,
-                       account_name,
-                       from_jid,
-                       account_class,
-                       lang_class,
-                       x_data):
-        """Create new account from account_class"""
-        bare_from_jid = unicode(from_jid.bare())
-        first_account = (account.get_accounts_count(bare_from_jid) == 0)
-        model.db_connect()
-        user = account.get_user(bare_from_jid)
-        if user is None:
-            user = User(jid=bare_from_jid)
-        _account = account_class(user=user,
-                                 name=account_name,
-                                 jid=self.get_account_jid(account_name))
-        model.db_disconnect()
-        try:
-            return self.populate_account(_account, lang_class, x_data,
-                                         new_account=True,
-                                         first_account=first_account,
-                                         from_jid=from_jid)
-        except FieldError, field_error:
-            model.db_connect()
-            _account.destroySelf()
-            model.db_disconnect()
-            raise field_error
-
-    def create_account_from_type(self,
-                                 account_name,
-                                 from_jid,
-                                 account_type,
-                                 lang_class,
-                                 x_data):
-        """Create new account from its type name"""
-        account_class = self.get_account_class(account_type)
-        return self.create_account(account_name,
-                                   from_jid,
-                                   account_class,
-                                   lang_class,
-                                   x_data)
-
-    def create_default_account(self,
-                               account_name,
-                               bare_from_jid,
-                               lang_class,
-                               x_data):
-        """Create new account when managing only one account type"""
-        if not self.has_multiple_account_type:
-            return self.create_account(account_name, bare_from_jid,
-                                       self.account_classes[0],
-                                       lang_class, x_data)
-        else:
-            return []
-
-    ###### presence generic handlers ######
-    def send_presence_all(self, presence):
-        """Send presence to all account. Optimized to use only one sql
-        request"""
-        result = []
-        model.db_connect()
-        # Explicit reference to account table (clauseTables) to use
-        # "user_jid" column with Account subclasses
-        for user in account.get_all_users():
-            result.extend(self.send_presence(self.component.jid,
-                                             user.jid,
-                                             presence))
-        for _account in account.get_all_accounts():
-            result.extend(getattr(self, "send_presence_" +
-                                  presence)(_account))
-        model.db_disconnect()
-        return result
-
-
-    def probe_all_accounts_presence(self):
-        """Send presence probe to all registered accounts"""
-        return self.send_presence_all("probe")
-
-    ###### Utils methods ######
-    def list_accounts(self, bare_from_jid, account_class=None,
-                      account_type=""):
-        """List accounts in disco_items for given _account_class and user jid"""
-        if account_class is None:
-            account_class = self.account_classes[0]
-        if account_type is not None and account_type != "":
-            resource = "/" + account_type
-            account_type = account_type + "/"
-        else:
-            resource = ""
-        model.db_connect()
-        accounts = account.get_accounts(bare_from_jid, account_class)
-        if accounts.count() > 0:
-            for _account in accounts:
-                yield (_account, resource, account_type)
-        model.db_disconnect()
-
-    def list_account_types(self, lang_class):
-        """List account supported types"""
-        for account_type in self.account_types:
-            type_label_attr = "type_" + account_type.lower() + "_name"
-            if hasattr(lang_class, type_label_attr):
-                type_label = getattr(lang_class, type_label_attr)
-            else:
-                type_label = account_type
-            yield (account_type, type_label)
-        
-    def get_account_class(self, account_type=None,
-                          account_class_name=None):
-        """Return account class definition from declared classes in
-        account_classes from its class name"""
-        if account_type is not None:
-            account_class_name = account_type + "Account"
-        elif account_class_name is None:
-            self.__logger.error("account_type and account_class_name are None")
-            return None
-        self.__logger.debug("Looking for " + account_class_name)
-        for _account_class in self.account_classes:
-            if _account_class.__name__.lower() == account_class_name.lower():
-                self.__logger.debug(account_class_name + " found")
-                return _account_class
-        self.__logger.debug(account_class_name + " not found")
-        return None
-
-    def generate_registration_form(self, lang_class, _account_class, bare_from_jid):
-        """
-        Return register form based on language and account class
-        """
-        reg_form = Form(title=lang_class.register_title,
-                        instructions=lang_class.register_instructions)
-        # "name" field is mandatory
-        reg_form.add_field(field_type="text-single",
-                           label=lang_class.account_name,
-                           name="name",
-                           required=True)
-
-        for (field_name,
-             field_type,
-             field_options,
-             post_func,
-             default_func) in \
-                _account_class.get_register_fields():
-            if field_name is None:
-                # TODO : Add page when empty tuple given
-                pass
-
-            else:
-                lang_label_attr = "field_" + field_name
-                if hasattr(lang_class, lang_label_attr):
-                    label = getattr(lang_class, lang_label_attr)
-                else:
-                    label = field_name
-                self.__logger.debug("Adding field " + field_name + " to registration form")
-                field = reg_form.add_field(field_type=field_type,
-                                           label=label,
-                                           name=field_name,
-                                           value=default_func(bare_from_jid))
-                if field_options is not None:
-                    for option_value in field_options:
-                        lang_label_attr = "field_" + field_name + "_" + option_value
-                        if hasattr(lang_class, lang_label_attr):
-                            label = getattr(lang_class, lang_label_attr)
-                        else:
-                            label = option_value
-                        field.add_option(label=label,
-                                         values=[option_value])
-                try:
-                    post_func(None, default_func, bare_from_jid)
-                except:
-                    self.__logger.debug("Setting field " + field_name + " required")
-                    field.required = True
-        return reg_form
-
-    def generate_registration_form_init(self, lang_class, _account):
-        """
-        Return register form for an existing account (update)
-        """
-        reg_form = self.generate_registration_form(lang_class, _account.__class__,
-                                                   _account.user.jid)
-        reg_form["name"].value = _account.name
-        reg_form["name"].type = "hidden"
-        for field in reg_form.fields:
-            if hasattr(_account, field.name):
-                field.value = getattr(_account, field.name)
-        return reg_form
-
-    def get_account_jid(self, name):
-        """Compose account jid from account name"""
-        return name + u"@" + unicode(self.component.jid)
-
-    def send_presence_probe(self, _account):
-        """Send presence probe to account's user"""
-        return [Presence(from_jid=_account.jid,
-                         to_jid=_account.user.jid,
-                         stanza_type="probe")]
-
-    def send_presence_unavailable(self, _account):
-        """Send unavailable presence to account's user"""
-        model.db_connect()
-        _account.status = account.OFFLINE
-        result = [Presence(from_jid=_account.jid,
-                           to_jid=_account.user.jid,
-                           stanza_type="unavailable")]
-        model.db_disconnect()
-        return result
-
-    def send_root_presence(self, to_jid, presence_type,
-                            show=None, status=None):
-        result = self.send_presence(self.component.jid, to_jid,
-                                    presence_type, show=show,
-                                    status=status)
-        result.extend(self.send_root_presence_legacy(to_jid,
-                                                     presence_type,
-                                                     show=show,
-                                                     status=status))
-        return result
-
-    def send_presence(self, from_jid, to_jid, presence_type, status=None, show=None):
-        """Send presence stanza"""
-        return [Presence(from_jid=from_jid,
-                         to_jid=to_jid,
-                         status=status,
-                         show=show,
-                         stanza_type=presence_type)]
-
-    def send_presence_available(self, _account, show, lang_class):
-        """Send available presence to account's user and ask for password
-        if necessary"""
-        result = []
-        model.db_connect()
-        _account.default_lang_class = lang_class
-        old_status = _account.status
-        if show is None:
-            _account.status = account.ONLINE
-        else:
-            _account.status = show
-        result.append(Presence(from_jid=_account.jid,
-                               to_jid=_account.user.jid,
-                               status=_account.status_msg,
-                               show=show,
-                               stanza_type="available"))
-        if hasattr(_account, 'store_password') \
-            and hasattr(_account, 'password') \
-            and _account.store_password == False \
-            and old_status == account.OFFLINE \
-            and _account.password == None :
-            result.extend(self.ask_password(_account, lang_class))
-        model.db_disconnect()
-        return result
-
-    def send_root_presence_legacy(self, to_jid, presence_type,
-                                   status=None, show=None):
-        """Send presence from legacy JID"""
-        result = []
-        for legacy_jid in account.get_legacy_jids(unicode(to_jid.bare())):
-            result.append(Presence(from_jid=legacy_jid.jid,
-                                   to_jid=to_jid,
-                                   show=show,
-                                   status=status,
-                                   stanza_type=presence_type))
-        return result
-
-    def ask_password(self, _account, lang_class):
-        """Send a Jabber message to ask for account password
-        """
-        result = []
-        if hasattr(_account, 'waiting_password_reply') \
-            and not _account.waiting_password_reply \
-            and _account.status != account.OFFLINE:
-            _account.waiting_password_reply = True
-            result.append(Message(from_jid=_account.jid,
-                                  to_jid=_account.user.jid,
-                                  subject=u"[PASSWORD] " + \
-                                      lang_class.ask_password_subject,
-                                  body=lang_class.ask_password_body % \
-                                      (_account.name)))
-        return result
-
-    def set_password(self, _account, from_jid, password, lang_class):
-        """
-        Set password to given account
-        """
-        model.db_connect()
-        _account.password = password
-        _account.waiting_password_reply = False
-        result = [Message(from_jid=_account.jid,
-                          to_jid=from_jid,
-                          subject=lang_class.password_saved_for_session,
-                          body=lang_class.password_saved_for_session)]
-        model.db_disconnect()
-        return result
-
-    def send_error_from_account(self, _account, exception):
-        """Send an error message only one time until _account.in_error
-        has been reset to False"""
-        result = []
-        if _account.in_error == False:
-            _account.in_error = True
-            result.append(Message(from_jid=_account.jid,
-                                  to_jid=_account.user.jid,
-                                  stanza_type="error",
-                                  subject=_account.default_lang_class.error_subject,
-                                  body=_account.default_lang_class.error_body \
-                                      % (exception)))
-        return result

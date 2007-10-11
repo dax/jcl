@@ -29,7 +29,7 @@ __revision__ = "$Id: feeder.py,v 1.3 2005/09/18 20:24:07 dax Exp $"
 import logging
 
 from jcl.jabber import Handler
-from jcl.jabber.component import JCLComponent
+from jcl.jabber.component import JCLComponent, AccountManager
 from jcl.lang import Lang
 import jcl.model as model
 from jcl.model import account
@@ -51,7 +51,8 @@ class FeederComponent(JCLComponent):
                  port,
                  config,
                  config_file,
-                 lang = Lang()):
+                 lang=Lang(),
+                 account_manager_class=AccountManager):
         JCLComponent.__init__(self,
                               jid,
                               secret,
@@ -59,7 +60,8 @@ class FeederComponent(JCLComponent):
                               port,
                               config,
                               config_file,
-                              lang=lang)
+                              lang=lang,
+                              account_manager_class=account_manager_class)
         # Define default feeder and sender, can be override
         self.handler = FeederHandler(Feeder(self), Sender(self))
         self.check_interval = 1

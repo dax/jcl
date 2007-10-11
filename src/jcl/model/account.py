@@ -204,17 +204,20 @@ class Account(InheritableSQLObject):
         """Return localized message body for existing account"""
         return lang_class.update_account_message_body
 
-def get_account(bare_user_jid, name, account_class=Account):
+def get_account_filter(filter, account_class=Account):
     result = None
     model.db_connect()
-    accounts = account_class.select(\
-        AND(AND(Account.q.name == name,
-                Account.q.userID == User.q.id),
-            User.q.jid == unicode(bare_user_jid)))
+    accounts = account_class.select(filter)
     if accounts.count() > 0:
         result = accounts[0]
     model.db_disconnect()
     return result
+
+def get_account(bare_user_jid, name, account_class=Account):
+    real_filter = AND(AND(Account.q.name == name,
+                          Account.q.userID == User.q.id),
+                      User.q.jid == unicode(bare_user_jid))
+    return get_account_filter(real_filter, account_class)
 
 def get_accounts(bare_user_jid, account_class=Account, filter=None):
     if filter is not None:

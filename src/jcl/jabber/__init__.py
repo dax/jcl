@@ -71,5 +71,5 @@ def replace_handlers(handlers, old_handler_type, new_handler):
     """
     for handler_group in handlers:
         for i in xrange(len(handler_group)):
-            if isinstance(handler_group[i], old_handler_type):
+            if handler_group[i].__class__.__name__ == old_handler_type.__name__:
                 handler_group[i] = new_handler
