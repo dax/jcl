@@ -48,6 +48,10 @@ STATUS_COMPLETED = "completed"
 STATUS_EXECUTING = "executing"
 STATUS_CANCELED = "canceled"
 
+root_node_re = re.compile("^[^@/]+$")
+account_type_node_re = re.compile("^[^@/]+/.*$")
+account_node_re = re.compile("^[^@/]+@[^/]+/.*$")
+
 class FieldNoType(Field):
     def complete_xml_element(self, xmlnode, doc):
         result = Field.complete_xml_element(self, xmlnode, doc)
@@ -84,12 +88,13 @@ class CommandManager(object):
             command_desc = short_command_name
         return command_desc
 
-    def list_commands(self, jid, disco_items, lang_class):
+    def list_commands(self, jid, to_jid, disco_items, lang_class):
         """Return DiscoItem for each supported commands"""
         for command_name in self.commands.keys():
-            must_be_admin = self.commands[command_name]
-            if not must_be_admin or \
-               (must_be_admin and self.component.is_admin(jid)):
+            (must_be_admin, to_jid_re) = self.commands[command_name]
+            if to_jid_re.match(unicode(to_jid)) and \
+                    (not must_be_admin or 
+                     (must_be_admin and self.component.is_admin(jid))):
                 command_desc = self.get_command_desc(command_name,
                                                      lang_class)
                 DiscoItem(disco_items,
@@ -110,7 +115,7 @@ class CommandManager(object):
     def apply_command_action(self, info_query, command_name, action):
         """Apply action on command"""
         if self.commands.has_key(command_name):
-            must_be_admin = self.commands[command_name]
+            (must_be_admin, to_jid_re) = self.commands[command_name]
             if not must_be_admin or \
                    (must_be_admin and
                     self.component.is_admin(info_query.get_from())):
@@ -265,30 +270,52 @@ class JCLCommandManager(CommandManager):
         """
         CommandManager.__init__(self, component, account_manager)
         self.__logger = logging.getLogger("jcl.jabber.command.JCLCommandManager")
-        self.commands["http://jabber.org/protocol/admin#add-user"] = False
-        self.commands["http://jabber.org/protocol/admin#delete-user"] = True
-        self.commands["http://jabber.org/protocol/admin#disable-user"] = True
-        self.commands["http://jabber.org/protocol/admin#reenable-user"] = True
-        self.commands["http://jabber.org/protocol/admin#end-user-session"] = True
+        self.commands["http://jabber.org/protocol/admin#add-user"] = \
+            (False, root_node_re)
+        self.commands["http://jabber.org/protocol/admin#delete-user"] = \
+            (True, root_node_re)
+        self.commands["http://jabber.org/protocol/admin#disable-user"] = \
+            (True, root_node_re)
+        self.commands["http://jabber.org/protocol/admin#reenable-user"] = \
+            (True, root_node_re)
+        self.commands["http://jabber.org/protocol/admin#end-user-session"] = \
+            (True, root_node_re)
         #self.commands["http://jabber.org/protocol/admin#get-user-password"] = True
         #self.commands["http://jabber.org/protocol/admin#change-user-password"] = True
-        self.commands["http://jabber.org/protocol/admin#get-user-roster"] = True
-        self.commands["http://jabber.org/protocol/admin#get-user-lastlogin"] = True
-        self.commands["http://jabber.org/protocol/admin#get-registered-users-num"] = True
-        self.commands["http://jabber.org/protocol/admin#get-disabled-users-num"] = True
-        self.commands["http://jabber.org/protocol/admin#get-online-users-num"] = True
-        self.commands["http://jabber.org/protocol/admin#get-registered-users-list"] = True
-        self.commands["http://jabber.org/protocol/admin#get-disabled-users-list"] = True
-        self.commands["http://jabber.org/protocol/admin#get-online-users-list"] = True
-        self.commands["http://jabber.org/protocol/admin#announce"] = True
-        self.commands["http://jabber.org/protocol/admin#set-motd"] = True
-        self.commands["http://jabber.org/protocol/admin#edit-motd"] = True
-        self.commands["http://jabber.org/protocol/admin#delete-motd"] = True
-        self.commands["http://jabber.org/protocol/admin#set-welcome"] = True
-        self.commands["http://jabber.org/protocol/admin#delete-welcome"] = True
-        self.commands["http://jabber.org/protocol/admin#edit-admin"] = True
-        self.commands["http://jabber.org/protocol/admin#restart"] = True
-        self.commands["http://jabber.org/protocol/admin#shutdown"] = True
+        self.commands["http://jabber.org/protocol/admin#get-user-roster"] = \
+            (True, root_node_re)
+        self.commands["http://jabber.org/protocol/admin#get-user-lastlogin"] = \
+            (True, root_node_re)
+        self.commands["http://jabber.org/protocol/admin#get-registered-users-num"] = \
+            (True, root_node_re)
+        self.commands["http://jabber.org/protocol/admin#get-disabled-users-num"] = \
+            (True, root_node_re)
+        self.commands["http://jabber.org/protocol/admin#get-online-users-num"] = \
+            (True, root_node_re)
+        self.commands["http://jabber.org/protocol/admin#get-registered-users-list"] = \
+            (True, root_node_re)
+        self.commands["http://jabber.org/protocol/admin#get-disabled-users-list"] = \
+            (True, root_node_re)
+        self.commands["http://jabber.org/protocol/admin#get-online-users-list"] = \
+            (True, root_node_re)
+        self.commands["http://jabber.org/protocol/admin#announce"] = \
+            (True, root_node_re)
+        self.commands["http://jabber.org/protocol/admin#set-motd"] = \
+            (True, root_node_re)
+        self.commands["http://jabber.org/protocol/admin#edit-motd"] = \
+            (True, root_node_re)
+        self.commands["http://jabber.org/protocol/admin#delete-motd"] = \
+            (True, root_node_re)
+        self.commands["http://jabber.org/protocol/admin#set-welcome"] = \
+            (True, root_node_re)
+        self.commands["http://jabber.org/protocol/admin#delete-welcome"] = \
+            (True, root_node_re)
+        self.commands["http://jabber.org/protocol/admin#edit-admin"] = \
+            (True, root_node_re)
+        self.commands["http://jabber.org/protocol/admin#restart"] = \
+            (True, root_node_re)
+        self.commands["http://jabber.org/protocol/admin#shutdown"] = \
+            (True, root_node_re)
 
     def get_name_and_jid(self, mixed_name_and_jid):
         return mixed_name_and_jid.split("/", 1)[:2]
@@ -1226,6 +1253,7 @@ class CommandDiscoGetItemsHandler(DiscoHandler):
         if not disco_obj:
             disco_obj = DiscoItems()
         return [command_manager.list_commands(jid=info_query.get_from(),
+                                              to_jid=info_query.get_to(),
                                               disco_items=disco_obj,
                                               lang_class=lang_class)]
 

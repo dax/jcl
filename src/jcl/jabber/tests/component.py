@@ -45,6 +45,7 @@ import jcl.model as model
 import jcl.model.account as account
 from jcl.model.account import Account, LegacyJID, User
 from jcl.lang import Lang
+import jcl.jabber.command as command
 
 from jcl.model.tests.account import ExampleAccount, Example2Account
 from jcl.tests import JCLTestCase
@@ -757,7 +758,7 @@ class JCLComponent_TestCase(JCLTestCase):
         disco_items = self.comp.disco_get_items("Example2/account1", info_query)
         self.assertEquals(disco_items, None)
 
-    def test_disco_get_items_list_commands(self):
+    def test_disco_root_get_items_list_commands(self):
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
         config_file = tempfile.mktemp(".conf", "jcltest", jcl.tests.DB_DIR)
@@ -765,6 +766,10 @@ class JCLComponent_TestCase(JCLTestCase):
         self.comp.config_file = config_file
         self.comp.config.read(config_file)
         self.comp.set_admins(["admin@test.com"])
+        command.command_manager.commands["accounttype_command"] = \
+            (True, command.account_type_node_re)
+        command.command_manager.commands["account_command"] = \
+            (True, command.account_node_re)
         info_query = Iq(stanza_type="get",
                         from_jid="admin@test.com",
                         to_jid="jcl.test.com")

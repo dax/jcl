@@ -74,11 +74,16 @@ class CommandManager_TestCase(unittest.TestCase):
         command_name = command.command_manager.get_short_command_name("test-command")
         self.assertEquals(command_name, "test_command")
 
-    def test_list_commands(self):
-        command.command_manager.commands["command1"] = True
-        command.command_manager.commands["command2"] = False
+    def test_list_root_commands(self):
+        command.command_manager.commands["command1"] = (True, command.root_node_re)
+        command.command_manager.commands["command2"] = (False, command.root_node_re)
+        command.command_manager.commands["command11"] = (True, command.account_type_node_re)
+        command.command_manager.commands["command12"] = (False, command.account_type_node_re)
+        command.command_manager.commands["command21"] = (True, command.account_node_re)
+        command.command_manager.commands["command22"] = (False, command.account_node_re)
         command.command_manager.component = MockComponent()
         disco_items = command.command_manager.list_commands(jid=JID("user@test.com"),
+                                                            to_jid=JID("jcl.test.com"),
                                                             disco_items=DiscoItems(),
                                                             lang_class=Lang.en)
         items = disco_items.get_items()
@@ -86,11 +91,46 @@ class CommandManager_TestCase(unittest.TestCase):
         self.assertEquals(items[0].get_node(), "command2")
         self.assertEquals(items[0].get_name(), "command2")
 
+    def test_list_accounttype_commands(self):
+        command.command_manager.commands["command1"] = (True, command.root_node_re)
+        command.command_manager.commands["command2"] = (False, command.root_node_re)
+        command.command_manager.commands["command11"] = (True, command.account_type_node_re)
+        command.command_manager.commands["command12"] = (False, command.account_type_node_re)
+        command.command_manager.commands["command21"] = (True, command.account_node_re)
+        command.command_manager.commands["command22"] = (False, command.account_node_re)
+        command.command_manager.component = MockComponent()
+        disco_items = command.command_manager.list_commands(jid=JID("user@test.com"),
+                                                            to_jid=JID("jcl.test.com/Example"),
+                                                            disco_items=DiscoItems(),
+                                                            lang_class=Lang.en)
+        items = disco_items.get_items()
+        self.assertEquals(len(items), 1)
+        self.assertEquals(items[0].get_node(), "command12")
+        self.assertEquals(items[0].get_name(), "command12")
+
+    def test_list_account_commands(self):
+        command.command_manager.commands["command1"] = (True, command.root_node_re)
+        command.command_manager.commands["command2"] = (False, command.root_node_re)
+        command.command_manager.commands["command11"] = (True, command.account_type_node_re)
+        command.command_manager.commands["command12"] = (False, command.account_type_node_re)
+        command.command_manager.commands["command21"] = (True, command.account_node_re)
+        command.command_manager.commands["command22"] = (False, command.account_node_re)
+        command.command_manager.component = MockComponent()
+        disco_items = command.command_manager.list_commands(jid=JID("user@test.com"),
+                                                            to_jid=JID("account@jcl.test.com/Example"),
+                                                            disco_items=DiscoItems(),
+                                                            lang_class=Lang.en)
+        items = disco_items.get_items()
+        self.assertEquals(len(items), 1)
+        self.assertEquals(items[0].get_node(), "command22")
+        self.assertEquals(items[0].get_name(), "command22")
+
     def test_list_commands_as_admin(self):
-        command.command_manager.commands["command1"] = True
-        command.command_manager.commands["command2"] = False
+        command.command_manager.commands["command1"] = (True, command.root_node_re)
+        command.command_manager.commands["command2"] = (False, command.root_node_re)
         command.command_manager.component = MockComponent()
         disco_items = command.command_manager.list_commands(jid=JID("admin@test.com"),
+                                                            to_jid=JID("jcl.test.com"),
                                                             disco_items=DiscoItems(),
                                                             lang_class=Lang.en)
         items = disco_items.get_items()
@@ -101,10 +141,11 @@ class CommandManager_TestCase(unittest.TestCase):
         self.assertEquals(items[1].get_name(), "command2")
 
     def test_list_commands_as_admin_fulljid(self):
-        command.command_manager.commands["command1"] = True
-        command.command_manager.commands["command2"] = False
+        command.command_manager.commands["command1"] = (True, command.root_node_re)
+        command.command_manager.commands["command2"] = (False, command.root_node_re)
         command.command_manager.component = MockComponent()
         disco_items = command.command_manager.list_commands(jid=JID("admin@test.com/full"),
+                                                            to_jid=JID("jcl.test.com"),
                                                             disco_items=DiscoItems(),
                                                             lang_class=Lang.en)
         items = disco_items.get_items()
@@ -115,7 +156,7 @@ class CommandManager_TestCase(unittest.TestCase):
         self.assertEquals(items[1].get_name(), "command2")
 
     def test_apply_admin_command_action_as_admin(self):
-        command.command_manager.commands["command1"] = True
+        command.command_manager.commands["command1"] = (True, command.root_node_re)
         command.command_manager.apply_execute_command = \
             lambda iq, command_name: []
         command.command_manager.component = MockComponent()
@@ -128,7 +169,7 @@ class CommandManager_TestCase(unittest.TestCase):
         self.assertEquals(result, [])
 
     def test_apply_admin_command_action_as_admin_fulljid(self):
-        command.command_manager.commands["command1"] = True
+        command.command_manager.commands["command1"] = (True, command.root_node_re)
         command.command_manager.apply_execute_command = \
             lambda iq, command_name: []
         command.command_manager.component = MockComponent()
@@ -141,7 +182,7 @@ class CommandManager_TestCase(unittest.TestCase):
         self.assertEquals(result, [])
 
     def test_apply_admin_command_action_as_user(self):
-        command.command_manager.commands["command1"] = True
+        command.command_manager.commands["command1"] = (True, command.root_node_re)
         command.command_manager.apply_execute_command = \
             lambda iq, command_name: []
         command.command_manager.component = MockComponent()
@@ -158,7 +199,7 @@ class CommandManager_TestCase(unittest.TestCase):
         self.assertEquals(result[0].xmlnode.children.children.name, "forbidden")
 
     def test_apply_non_admin_command_action_as_admin(self):
-        command.command_manager.commands["command1"] = False
+        command.command_manager.commands["command1"] = (False, command.root_node_re)
         command.command_manager.apply_execute_command = \
             lambda iq, command_name: []
         command.command_manager.component = MockComponent()
@@ -171,7 +212,7 @@ class CommandManager_TestCase(unittest.TestCase):
         self.assertEquals(result, [])
 
     def test_apply_non_admin_command_action_as_user(self):
-        command.command_manager.commands["command1"] = False
+        command.command_manager.commands["command1"] = (False, command.root_node_re)
         command.command_manager.apply_execute_command = \
             lambda iq, command_name: []
         command.command_manager.component = MockComponent()
@@ -184,7 +225,7 @@ class CommandManager_TestCase(unittest.TestCase):
         self.assertEquals(result, [])
 
     def test_apply_command_non_existing_action(self):
-        command.command_manager.commands["command1"] = False
+        command.command_manager.commands["command1"] = (False, command.root_node_re)
         command.command_manager.component = MockComponent()
         info_query = Iq(stanza_type="set",
                         from_jid="user@test.com",
@@ -200,10 +241,11 @@ class CommandManager_TestCase(unittest.TestCase):
                           "feature-not-implemented")
 
 class JCLCommandManager_TestCase(JCLTestCase):
-    def setUp(self):
-        JCLTestCase.setUp(self, tables=[Account, ExampleAccount,
-                                        Example2Account, LegacyJID,
-                                        User])
+    def setUp(self, tables=[]):
+        tables += [Account, ExampleAccount,
+                   Example2Account, LegacyJID,
+                   User]
+        JCLTestCase.setUp(self, tables=tables)
         self.config_file = tempfile.mktemp(".conf", "jcltest", jcl.tests.DB_DIR)
         self.config = ConfigParser()
         self.config.read(self.config_file)
@@ -222,7 +264,7 @@ class JCLCommandManager_TestCase(JCLTestCase):
         if os.path.exists(self.config_file):
             os.unlink(self.config_file)
 
-    def __check_actions(self, info_query, expected_actions=None, action_index=0):
+    def _check_actions(self, info_query, expected_actions=None, action_index=0):
         actions = info_query.xpath_eval("c:command/c:actions",
                                         {"c": "http://jabber.org/protocol/commands"})
         if expected_actions is None:
@@ -240,7 +282,7 @@ class JCLCommandManager_TestCase(JCLTestCase):
     def test_add_form_select_users_jids(self):
         info_query = Iq(stanza_type="set",
                         from_jid="admin@test.com",
-                        to_jid="jcl.test.com")
+                        to_jid=self.comp.jid)
         command_node = info_query.set_new_content(command.COMMAND_NS, "command")
         self.command_manager.add_form_select_users_jids(command_node, "title",
                                                         "description",
@@ -262,7 +304,7 @@ class JCLCommandManager_TestCase(JCLTestCase):
     def test_add_form_select_user_jid(self):
         info_query = Iq(stanza_type="set",
                         from_jid="admin@test.com",
-                        to_jid="jcl.test.com")
+                        to_jid=self.comp.jid)
         command_node = info_query.set_new_content(command.COMMAND_NS, "command")
         self.command_manager.add_form_select_user_jid(command_node, "title",
                                                       "description",
@@ -309,7 +351,7 @@ class JCLCommandManager_TestCase(JCLTestCase):
         model.db_disconnect()
         info_query = Iq(stanza_type="set",
                         from_jid="admin@test.com",
-                        to_jid="jcl.test.com")
+                        to_jid=self.comp.jid)
         command_node = info_query.set_new_content(command.COMMAND_NS, "command")
         session_context = {}
         session_context["user_jids"] = ["test1@test.com", "test2@test.com"]
@@ -383,7 +425,7 @@ class JCLCommandManager_TestCase(JCLTestCase):
         model.db_disconnect()
         info_query = Iq(stanza_type="set",
                         from_jid="admin@test.com",
-                        to_jid="jcl.test.com")
+                        to_jid=self.comp.jid)
         command_node = info_query.set_new_content(command.COMMAND_NS, "command")
         session_context = {}
         session_context["user_jids"] = ["test1@test.com", "test2@test.com"]
@@ -452,7 +494,7 @@ class JCLCommandManager_TestCase(JCLTestCase):
         model.db_disconnect()
         info_query = Iq(stanza_type="set",
                         from_jid="admin@test.com",
-                        to_jid="jcl.test.com")
+                        to_jid=self.comp.jid)
         command_node = info_query.set_new_content(command.COMMAND_NS, "command")
         session_context = {}
         session_context["user_jid"] = ["test1@test.com"]
@@ -492,7 +534,7 @@ class JCLCommandManager_TestCase(JCLTestCase):
                                                      Example2Account)
         info_query = Iq(stanza_type="set",
                         from_jid="admin@test.com",
-                        to_jid="jcl.test.com")
+                        to_jid=self.comp.jid)
         command_node = info_query.set_new_content(command.COMMAND_NS, "command")
         command_node.setProp("node", "http://jabber.org/protocol/admin#add-user")
         result = self.command_manager.apply_command_action(info_query,
@@ -504,7 +546,7 @@ class JCLCommandManager_TestCase(JCLTestCase):
                                            {"c": "http://jabber.org/protocol/commands"})[0]
         self.assertEquals(xml_command.prop("status"), "executing")
         self.assertNotEquals(xml_command.prop("sessionid"), None)
-        self.__check_actions(result[0], ["next"])
+        self._check_actions(result[0], ["next"])
         x_data = result[0].xpath_eval("c:command/data:x",
                                       {"c": "http://jabber.org/protocol/commands",
                                        "data": "jabber:x:data"})
@@ -532,7 +574,7 @@ class JCLCommandManager_TestCase(JCLTestCase):
         # Second step
         info_query = Iq(stanza_type="set",
                         from_jid="admin@test.com",
-                        to_jid="jcl.test.com")
+                        to_jid=self.comp.jid)
         command_node = info_query.set_new_content(command.COMMAND_NS, "command")
         command_node.setProp("node", "http://jabber.org/protocol/admin#add-user")
         session_id = xml_command.prop("sessionid")
@@ -555,7 +597,7 @@ class JCLCommandManager_TestCase(JCLTestCase):
                                            {"c": "http://jabber.org/protocol/commands"})[0]
         self.assertEquals(xml_command.prop("status"), "executing")
         self.assertEquals(xml_command.prop("sessionid"), session_id)
-        self.__check_actions(result[0], ["prev", "complete"], 1)
+        self._check_actions(result[0], ["prev", "complete"], 1)
         x_data = result[0].xpath_eval("c:command/data:x",
                                       {"c": "http://jabber.org/protocol/commands",
                                        "data": "jabber:x:data"})
@@ -572,7 +614,7 @@ class JCLCommandManager_TestCase(JCLTestCase):
         # Third step
         info_query = Iq(stanza_type="set",
                         from_jid="admin@test.com",
-                        to_jid="jcl.test.com")
+                        to_jid=self.comp.jid)
         command_node = info_query.set_new_content(command.COMMAND_NS, "command")
         command_node.setProp("node", "http://jabber.org/protocol/admin#add-user")
         command_node.setProp("sessionid", session_id)
@@ -605,7 +647,7 @@ class JCLCommandManager_TestCase(JCLTestCase):
                                            {"c": "http://jabber.org/protocol/commands"})[0]
         self.assertEquals(xml_command.prop("status"), "completed")
         self.assertEquals(xml_command.prop("sessionid"), session_id)
-        self.__check_actions(result[0])
+        self._check_actions(result[0])
 
         self.assertEquals(context_session["name"], ["account1"])
         self.assertEquals(context_session["login"], ["login1"])
@@ -620,7 +662,7 @@ class JCLCommandManager_TestCase(JCLTestCase):
         self.assertNotEquals(_account, None)
         self.assertEquals(_account.user.jid, "user2@test.com")
         self.assertEquals(_account.name, "account1")
-        self.assertEquals(_account.jid, "account1@jcl.test.com")
+        self.assertEquals(_account.jid, "account1@" + unicode(self.comp.jid))
         model.db_disconnect()
 
         stanza_sent = result
@@ -628,17 +670,17 @@ class JCLCommandManager_TestCase(JCLTestCase):
         iq_result = stanza_sent[0]
         self.assertTrue(isinstance(iq_result, Iq))
         self.assertEquals(iq_result.get_node().prop("type"), "result")
-        self.assertEquals(iq_result.get_from(), "jcl.test.com")
+        self.assertEquals(iq_result.get_from(), self.comp.jid)
         self.assertEquals(iq_result.get_to(), "admin@test.com")
         presence_component = stanza_sent[1]
         self.assertTrue(isinstance(presence_component, Presence))
-        self.assertEquals(presence_component.get_from(), "jcl.test.com")
+        self.assertEquals(presence_component.get_from(), self.comp.jid)
         self.assertEquals(presence_component.get_to(), "user2@test.com")
         self.assertEquals(presence_component.get_node().prop("type"),
                           "subscribe")
         message = stanza_sent[2]
         self.assertTrue(isinstance(message, Message))
-        self.assertEquals(message.get_from(), "jcl.test.com")
+        self.assertEquals(message.get_from(), self.comp.jid)
         self.assertEquals(message.get_to(), "user2@test.com")
         self.assertEquals(message.get_subject(),
                           _account.get_new_message_subject(Lang.en))
@@ -646,7 +688,7 @@ class JCLCommandManager_TestCase(JCLTestCase):
                           _account.get_new_message_body(Lang.en))
         presence_account = stanza_sent[3]
         self.assertTrue(isinstance(presence_account, Presence))
-        self.assertEquals(presence_account.get_from(), "account1@jcl.test.com")
+        self.assertEquals(presence_account.get_from(), "account1@" + unicode(self.comp.jid))
         self.assertEquals(presence_account.get_to(), "user2@test.com")
         self.assertEquals(presence_account.get_node().prop("type"),
                           "subscribe")
@@ -656,7 +698,7 @@ class JCLCommandManager_TestCase(JCLTestCase):
                                                      Example2Account)
         info_query = Iq(stanza_type="set",
                         from_jid="test1@test.com",
-                        to_jid="jcl.test.com")
+                        to_jid=self.comp.jid)
         command_node = info_query.set_new_content(command.COMMAND_NS, "command")
         command_node.setProp("node", "http://jabber.org/protocol/admin#add-user")
         result = self.command_manager.apply_command_action(info_query,
@@ -668,7 +710,7 @@ class JCLCommandManager_TestCase(JCLTestCase):
                                            {"c": "http://jabber.org/protocol/commands"})[0]
         self.assertEquals(xml_command.prop("status"), "executing")
         self.assertNotEquals(xml_command.prop("sessionid"), None)
-        self.__check_actions(result[0], ["next"])
+        self._check_actions(result[0], ["next"])
         x_data = result[0].xpath_eval("c:command/data:x",
                                       {"c": "http://jabber.org/protocol/commands",
                                        "data": "jabber:x:data"})
@@ -692,7 +734,7 @@ class JCLCommandManager_TestCase(JCLTestCase):
         # Second step
         info_query = Iq(stanza_type="set",
                         from_jid="test1@test.com",
-                        to_jid="jcl.test.com")
+                        to_jid=self.comp.jid)
         command_node = info_query.set_new_content(command.COMMAND_NS, "command")
         command_node.setProp("node", "http://jabber.org/protocol/admin#add-user")
         session_id = xml_command.prop("sessionid")
@@ -712,7 +754,7 @@ class JCLCommandManager_TestCase(JCLTestCase):
                                            {"c": "http://jabber.org/protocol/commands"})[0]
         self.assertEquals(xml_command.prop("status"), "executing")
         self.assertEquals(xml_command.prop("sessionid"), session_id)
-        self.__check_actions(result[0], ["prev", "complete"], 1)
+        self._check_actions(result[0], ["prev", "complete"], 1)
         x_data = result[0].xpath_eval("c:command/data:x",
                                       {"c": "http://jabber.org/protocol/commands",
                                        "data": "jabber:x:data"})
@@ -729,7 +771,7 @@ class JCLCommandManager_TestCase(JCLTestCase):
         # Third step
         info_query = Iq(stanza_type="set",
                         from_jid="test1@test.com",
-                        to_jid="jcl.test.com")
+                        to_jid=self.comp.jid)
         command_node = info_query.set_new_content(command.COMMAND_NS, "command")
         command_node.setProp("node", "http://jabber.org/protocol/admin#add-user")
         command_node.setProp("sessionid", session_id)
@@ -761,7 +803,7 @@ class JCLCommandManager_TestCase(JCLTestCase):
                                            {"c": "http://jabber.org/protocol/commands"})[0]
         self.assertEquals(xml_command.prop("status"), "completed")
         self.assertEquals(xml_command.prop("sessionid"), session_id)
-        self.__check_actions(result[0])
+        self._check_actions(result[0])
         self.assertEquals(context_session["name"], ["account1"])
         self.assertEquals(context_session["login"], ["login1"])
         self.assertEquals(context_session["password"], ["pass1"])
@@ -774,24 +816,24 @@ class JCLCommandManager_TestCase(JCLTestCase):
         self.assertNotEquals(_account, None)
         self.assertEquals(_account.user.jid, "test1@test.com")
         self.assertEquals(_account.name, "account1")
-        self.assertEquals(_account.jid, "account1@jcl.test.com")
+        self.assertEquals(_account.jid, "account1@" + unicode(self.comp.jid))
         model.db_disconnect()
         stanza_sent = result
         self.assertEquals(len(stanza_sent), 4)
         iq_result = stanza_sent[0]
         self.assertTrue(isinstance(iq_result, Iq))
         self.assertEquals(iq_result.get_node().prop("type"), "result")
-        self.assertEquals(iq_result.get_from(), "jcl.test.com")
+        self.assertEquals(iq_result.get_from(), self.comp.jid)
         self.assertEquals(iq_result.get_to(), "test1@test.com")
         presence_component = stanza_sent[1]
         self.assertTrue(isinstance(presence_component, Presence))
-        self.assertEquals(presence_component.get_from(), "jcl.test.com")
+        self.assertEquals(presence_component.get_from(), self.comp.jid)
         self.assertEquals(presence_component.get_to(), "test1@test.com")
         self.assertEquals(presence_component.get_node().prop("type"),
                           "subscribe")
         message = stanza_sent[2]
         self.assertTrue(isinstance(message, Message))
-        self.assertEquals(message.get_from(), "jcl.test.com")
+        self.assertEquals(message.get_from(), self.comp.jid)
         self.assertEquals(message.get_to(), "test1@test.com")
         self.assertEquals(message.get_subject(),
                           _account.get_new_message_subject(Lang.en))
@@ -799,7 +841,7 @@ class JCLCommandManager_TestCase(JCLTestCase):
                           _account.get_new_message_body(Lang.en))
         presence_account = stanza_sent[3]
         self.assertTrue(isinstance(presence_account, Presence))
-        self.assertEquals(presence_account.get_from(), "account1@jcl.test.com")
+        self.assertEquals(presence_account.get_from(), "account1@" + unicode(self.comp.jid))
         self.assertEquals(presence_account.get_to(), "test1@test.com")
         self.assertEquals(presence_account.get_node().prop("type"),
                           "subscribe")
@@ -809,7 +851,7 @@ class JCLCommandManager_TestCase(JCLTestCase):
                                                      Example2Account)
         info_query = Iq(stanza_type="set",
                         from_jid="admin@test.com",
-                        to_jid="jcl.test.com")
+                        to_jid=self.comp.jid)
         command_node = info_query.set_new_content(command.COMMAND_NS, "command")
         command_node.setProp("node", "http://jabber.org/protocol/admin#add-user")
         result = self.command_manager.apply_command_action(info_query,
@@ -821,7 +863,7 @@ class JCLCommandManager_TestCase(JCLTestCase):
                                            {"c": "http://jabber.org/protocol/commands"})[0]
         self.assertEquals(xml_command.prop("status"), "executing")
         self.assertNotEquals(xml_command.prop("sessionid"), None)
-        self.__check_actions(result[0], ["next"])
+        self._check_actions(result[0], ["next"])
         options = result[0].xpath_eval("c:command/data:x/data:field[1]/data:option",
                                        {"c": "http://jabber.org/protocol/commands",
                                         "data": "jabber:x:data"})
@@ -844,7 +886,7 @@ class JCLCommandManager_TestCase(JCLTestCase):
         # Second step
         info_query = Iq(stanza_type="set",
                         from_jid="admin@test.com",
-                        to_jid="jcl.test.com")
+                        to_jid=self.comp.jid)
         command_node = info_query.set_new_content(command.COMMAND_NS, "command")
         command_node.setProp("node", "http://jabber.org/protocol/admin#add-user")
         session_id = xml_command.prop("sessionid")
@@ -867,7 +909,7 @@ class JCLCommandManager_TestCase(JCLTestCase):
                                            {"c": "http://jabber.org/protocol/commands"})[0]
         self.assertEquals(xml_command.prop("status"), "executing")
         self.assertEquals(xml_command.prop("sessionid"), session_id)
-        self.__check_actions(result[0], ["prev", "complete"], 1)
+        self._check_actions(result[0], ["prev", "complete"], 1)
         fields = result[0].xpath_eval("c:command/data:x/data:field",
                                       {"c": "http://jabber.org/protocol/commands",
                                        "data": "jabber:x:data"})
@@ -879,7 +921,7 @@ class JCLCommandManager_TestCase(JCLTestCase):
         # First step again
         info_query = Iq(stanza_type="set",
                         from_jid="admin@test.com",
-                        to_jid="jcl.test.com")
+                        to_jid=self.comp.jid)
         command_node = info_query.set_new_content(command.COMMAND_NS, "command")
         command_node.setProp("node", "http://jabber.org/protocol/admin#add-user")
         command_node.setProp("sessionid", session_id)
@@ -913,7 +955,7 @@ class JCLCommandManager_TestCase(JCLTestCase):
                                            {"c": "http://jabber.org/protocol/commands"})[0]
         self.assertEquals(xml_command.prop("status"), "executing")
         self.assertEquals(xml_command.prop("sessionid"), session_id)
-        self.__check_actions(result[0], ["next"])
+        self._check_actions(result[0], ["next"])
         options = result[0].xpath_eval("c:command/data:x/data:field[1]/data:option",
                                        {"c": "http://jabber.org/protocol/commands",
                                         "data": "jabber:x:data"})
@@ -938,7 +980,7 @@ class JCLCommandManager_TestCase(JCLTestCase):
                                                      Example2Account)
         info_query = Iq(stanza_type="set",
                         from_jid="admin@test.com",
-                        to_jid="jcl.test.com")
+                        to_jid=self.comp.jid)
         command_node = info_query.set_new_content(command.COMMAND_NS, "command")
         command_node.setProp("node", "http://jabber.org/protocol/admin#add-user")
         result = self.command_manager.apply_command_action(info_query,
@@ -950,7 +992,7 @@ class JCLCommandManager_TestCase(JCLTestCase):
                                            {"c": "http://jabber.org/protocol/commands"})[0]
         self.assertEquals(xml_command.prop("status"), "executing")
         self.assertNotEquals(xml_command.prop("sessionid"), None)
-        self.__check_actions(result[0], ["next"])
+        self._check_actions(result[0], ["next"])
         options = result[0].xpath_eval("c:command/data:x/data:field[1]/data:option",
                                        {"c": "http://jabber.org/protocol/commands",
                                         "data": "jabber:x:data"})
@@ -973,7 +1015,7 @@ class JCLCommandManager_TestCase(JCLTestCase):
         # Second step
         info_query = Iq(stanza_type="set",
                         from_jid="admin@test.com",
-                        to_jid="jcl.test.com")
+                        to_jid=self.comp.jid)
         command_node = info_query.set_new_content(command.COMMAND_NS, "command")
         command_node.setProp("node", "http://jabber.org/protocol/admin#add-user")
         session_id = xml_command.prop("sessionid")
@@ -999,26 +1041,26 @@ class JCLCommandManager_TestCase(JCLTestCase):
         user3 = User(jid="test3@test.com")
         account11 = ExampleAccount(user=user1,
                                    name="account11",
-                                   jid="account11@jcl.test.com")
+                                   jid="account11@" + unicode(self.comp.jid))
         account12 = Example2Account(user=user1,
                                     name="account12",
-                                    jid="account12@jcl.test.com")
+                                    jid="account12@" + unicode(self.comp.jid))
         account21 = ExampleAccount(user=user2,
                                    name="account21",
-                                   jid="account21@jcl.test.com")
+                                   jid="account21@" + unicode(self.comp.jid))
         account22 = ExampleAccount(user=user2,
                                    name="account11",
-                                   jid="account11@jcl.test.com")
+                                   jid="account11@" + unicode(self.comp.jid))
         account31 = ExampleAccount(user=user3,
                                    name="account31",
-                                   jid="account31@jcl.test.com")
+                                   jid="account31@" + unicode(self.comp.jid))
         account32 = Example2Account(user=user3,
                                     name="account32",
-                                    jid="account32@jcl.test.com")
+                                    jid="account32@" + unicode(self.comp.jid))
         model.db_disconnect()
         info_query = Iq(stanza_type="set",
                         from_jid="admin@test.com",
-                        to_jid="jcl.test.com")
+                        to_jid=self.comp.jid)
         command_node = info_query.set_new_content(command.COMMAND_NS, "command")
         command_node.setProp("node", "http://jabber.org/protocol/admin#delete-user")
         result = self.command_manager.apply_command_action(info_query,
@@ -1030,12 +1072,12 @@ class JCLCommandManager_TestCase(JCLTestCase):
                                            {"c": "http://jabber.org/protocol/commands"})[0]
         self.assertEquals(xml_command.prop("status"), "executing")
         self.assertNotEquals(xml_command.prop("sessionid"), None)
-        self.__check_actions(result[0], ["next"])
+        self._check_actions(result[0], ["next"])
 
         # Second step
         info_query = Iq(stanza_type="set",
                         from_jid="admin@test.com",
-                        to_jid="jcl.test.com")
+                        to_jid=self.comp.jid)
         command_node = info_query.set_new_content(command.COMMAND_NS, "command")
         command_node.setProp("node", "http://jabber.org/protocol/admin#delete-user")
         session_id = xml_command.prop("sessionid")
@@ -1055,7 +1097,7 @@ class JCLCommandManager_TestCase(JCLTestCase):
                                            {"c": "http://jabber.org/protocol/commands"})[0]
         self.assertEquals(xml_command.prop("status"), "executing")
         self.assertEquals(xml_command.prop("sessionid"), session_id)
-        self.__check_actions(result[0], ["prev", "complete"], 1)
+        self._check_actions(result[0], ["prev", "complete"], 1)
         context_session = self.command_manager.sessions[session_id][1]
         self.assertEquals(context_session["user_jids"],
                           ["test1@test.com", "test2@test.com"])
@@ -1063,7 +1105,7 @@ class JCLCommandManager_TestCase(JCLTestCase):
         # Third step
         info_query = Iq(stanza_type="set",
                         from_jid="admin@test.com",
-                        to_jid="jcl.test.com")
+                        to_jid=self.comp.jid)
         command_node = info_query.set_new_content(command.COMMAND_NS, "command")
         command_node.setProp("node", "http://jabber.org/protocol/admin#delete-user")
         command_node.setProp("sessionid", session_id)
@@ -1081,7 +1123,7 @@ class JCLCommandManager_TestCase(JCLTestCase):
                                            {"c": "http://jabber.org/protocol/commands"})[0]
         self.assertEquals(xml_command.prop("status"), "completed")
         self.assertEquals(xml_command.prop("sessionid"), session_id)
-        self.__check_actions(result[0])
+        self._check_actions(result[0])
         self.assertEquals(context_session["account_names"],
                           ["account11/test1@test.com",
                            "account11/test2@test.com"])
@@ -1107,29 +1149,29 @@ class JCLCommandManager_TestCase(JCLTestCase):
         iq_result = stanza_sent[0]
         self.assertTrue(isinstance(iq_result, Iq))
         self.assertEquals(iq_result.get_node().prop("type"), "result")
-        self.assertEquals(iq_result.get_from(), "jcl.test.com")
+        self.assertEquals(iq_result.get_from(), self.comp.jid)
         self.assertEquals(iq_result.get_to(), "admin@test.com")
         presence_component = stanza_sent[1]
         self.assertTrue(isinstance(presence_component, Presence))
-        self.assertEquals(presence_component.get_from(), "account11@jcl.test.com")
+        self.assertEquals(presence_component.get_from(), "account11@" + unicode(self.comp.jid))
         self.assertEquals(presence_component.get_to(), "test1@test.com")
         self.assertEquals(presence_component.get_node().prop("type"),
                           "unsubscribe")
         presence_component = stanza_sent[2]
         self.assertTrue(isinstance(presence_component, Presence))
-        self.assertEquals(presence_component.get_from(), "account11@jcl.test.com")
+        self.assertEquals(presence_component.get_from(), "account11@" + unicode(self.comp.jid))
         self.assertEquals(presence_component.get_to(), "test1@test.com")
         self.assertEquals(presence_component.get_node().prop("type"),
                           "unsubscribed")
         presence_component = stanza_sent[3]
         self.assertTrue(isinstance(presence_component, Presence))
-        self.assertEquals(presence_component.get_from(), "account11@jcl.test.com")
+        self.assertEquals(presence_component.get_from(), "account11@" + unicode(self.comp.jid))
         self.assertEquals(presence_component.get_to(), "test2@test.com")
         self.assertEquals(presence_component.get_node().prop("type"),
                           "unsubscribe")
         presence_component = stanza_sent[4]
         self.assertTrue(isinstance(presence_component, Presence))
-        self.assertEquals(presence_component.get_from(), "account11@jcl.test.com")
+        self.assertEquals(presence_component.get_from(), "account11@" + unicode(self.comp.jid))
         self.assertEquals(presence_component.get_to(), "test2@test.com")
         self.assertEquals(presence_component.get_node().prop("type"),
                           "unsubscribed")
@@ -1143,32 +1185,32 @@ class JCLCommandManager_TestCase(JCLTestCase):
         user3 = User(jid="test3@test.com")
         account11 = ExampleAccount(user=user1,
                                    name="account11",
-                                   jid="account11@jcl.test.com")
+                                   jid="account11@" + unicode(self.comp.jid))
         account11.enabled = True
         account12 = Example2Account(user=user1,
                                     name="account12",
-                                    jid="account12@jcl.test.com")
+                                    jid="account12@" + unicode(self.comp.jid))
         account12.enabled = False
         account21 = ExampleAccount(user=user2,
                                    name="account21",
-                                   jid="account21@jcl.test.com")
+                                   jid="account21@" + unicode(self.comp.jid))
         account21.enabled = False
         account22 = ExampleAccount(user=user2,
                                    name="account11",
-                                   jid="account11@jcl.test.com")
+                                   jid="account11@" + unicode(self.comp.jid))
         account22.enabled = True
         account31 = ExampleAccount(user=user3,
                                    name="account31",
-                                   jid="account31@jcl.test.com")
+                                   jid="account31@" + unicode(self.comp.jid))
         account31.enabled = False
         account32 = Example2Account(user=user3,
                                     name="account32",
-                                    jid="account32@jcl.test.com")
+                                    jid="account32@" + unicode(self.comp.jid))
         account32.enabled = False
         model.db_disconnect()
         info_query = Iq(stanza_type="set",
                         from_jid="admin@test.com",
-                        to_jid="jcl.test.com")
+                        to_jid=self.comp.jid)
         command_node = info_query.set_new_content(command.COMMAND_NS, "command")
         command_node.setProp("node", "http://jabber.org/protocol/admin#disable-user")
         result = self.command_manager.apply_command_action(info_query,
@@ -1180,12 +1222,12 @@ class JCLCommandManager_TestCase(JCLTestCase):
                                            {"c": "http://jabber.org/protocol/commands"})[0]
         self.assertEquals(xml_command.prop("status"), "executing")
         self.assertNotEquals(xml_command.prop("sessionid"), None)
-        self.__check_actions(result[0], ["next"])
+        self._check_actions(result[0], ["next"])
 
         # Second step
         info_query = Iq(stanza_type="set",
                         from_jid="admin@test.com",
-                        to_jid="jcl.test.com")
+                        to_jid=self.comp.jid)
         command_node = info_query.set_new_content(command.COMMAND_NS, "command")
         command_node.setProp("node", "http://jabber.org/protocol/admin#disable-user")
         session_id = xml_command.prop("sessionid")
@@ -1205,7 +1247,7 @@ class JCLCommandManager_TestCase(JCLTestCase):
                                            {"c": "http://jabber.org/protocol/commands"})[0]
         self.assertEquals(xml_command.prop("status"), "executing")
         self.assertEquals(xml_command.prop("sessionid"), session_id)
-        self.__check_actions(result[0], ["prev", "complete"], 1)
+        self._check_actions(result[0], ["prev", "complete"], 1)
         context_session = self.command_manager.sessions[session_id][1]
         self.assertEquals(context_session["user_jids"],
                           ["test1@test.com", "test2@test.com"])
@@ -1217,7 +1259,7 @@ class JCLCommandManager_TestCase(JCLTestCase):
         # Third step
         info_query = Iq(stanza_type="set",
                         from_jid="admin@test.com",
-                        to_jid="jcl.test.com")
+                        to_jid=self.comp.jid)
         command_node = info_query.set_new_content(command.COMMAND_NS, "command")
         command_node.setProp("node", "http://jabber.org/protocol/admin#disable-user")
         command_node.setProp("sessionid", session_id)
@@ -1235,7 +1277,7 @@ class JCLCommandManager_TestCase(JCLTestCase):
                                            {"c": "http://jabber.org/protocol/commands"})[0]
         self.assertEquals(xml_command.prop("status"), "completed")
         self.assertEquals(xml_command.prop("sessionid"), session_id)
-        self.__check_actions(result[0])
+        self._check_actions(result[0])
         self.assertEquals(context_session["account_names"],
                           ["account11/test1@test.com",
                            "account11/test2@test.com"])
@@ -1251,32 +1293,32 @@ class JCLCommandManager_TestCase(JCLTestCase):
         user3 = User(jid="test3@test.com")
         account11 = ExampleAccount(user=user1,
                                    name="account11",
-                                   jid="account11@jcl.test.com")
+                                   jid="account11@" + unicode(self.comp.jid))
         account11.enabled = False
         account12 = Example2Account(user=user1,
                                     name="account12",
-                                    jid="account12@jcl.test.com")
+                                    jid="account12@" + unicode(self.comp.jid))
         account12.enabled = True
         account21 = ExampleAccount(user=user2,
                                    name="account21",
-                                   jid="account21@jcl.test.com")
+                                   jid="account21@" + unicode(self.comp.jid))
         account21.enabled = True
         account22 = ExampleAccount(user=user2,
                                    name="account11",
-                                   jid="account11@jcl.test.com")
+                                   jid="account11@" + unicode(self.comp.jid))
         account22.enabled = False
         account31 = ExampleAccount(user=user3,
                                    name="account31",
-                                   jid="account31@jcl.test.com")
+                                   jid="account31@" + unicode(self.comp.jid))
         account31.enabled = True
         account32 = Example2Account(user=user3,
                                     name="account32",
-                                    jid="account32@jcl.test.com")
+                                    jid="account32@" + unicode(self.comp.jid))
         account32.enabled = True
         model.db_disconnect()
         info_query = Iq(stanza_type="set",
                         from_jid="admin@test.com",
-                        to_jid="jcl.test.com")
+                        to_jid=self.comp.jid)
         command_node = info_query.set_new_content(command.COMMAND_NS, "command")
         command_node.setProp("node", "http://jabber.org/protocol/admin#reenable-user")
         result = self.command_manager.apply_command_action(info_query,
@@ -1288,12 +1330,12 @@ class JCLCommandManager_TestCase(JCLTestCase):
                                            {"c": "http://jabber.org/protocol/commands"})[0]
         self.assertEquals(xml_command.prop("status"), "executing")
         self.assertNotEquals(xml_command.prop("sessionid"), None)
-        self.__check_actions(result[0], ["next"])
+        self._check_actions(result[0], ["next"])
 
         # Second step
         info_query = Iq(stanza_type="set",
                         from_jid="admin@test.com",
-                        to_jid="jcl.test.com")
+                        to_jid=self.comp.jid)
         command_node = info_query.set_new_content(command.COMMAND_NS, "command")
         command_node.setProp("node", "http://jabber.org/protocol/admin#reenable-user")
         session_id = xml_command.prop("sessionid")
@@ -1313,7 +1355,7 @@ class JCLCommandManager_TestCase(JCLTestCase):
                                            {"c": "http://jabber.org/protocol/commands"})[0]
         self.assertEquals(xml_command.prop("status"), "executing")
         self.assertEquals(xml_command.prop("sessionid"), session_id)
-        self.__check_actions(result[0], ["prev", "complete"], 1)
+        self._check_actions(result[0], ["prev", "complete"], 1)
         context_session = self.command_manager.sessions[session_id][1]
         self.assertEquals(context_session["user_jids"],
                           ["test1@test.com", "test2@test.com"])
@@ -1325,7 +1367,7 @@ class JCLCommandManager_TestCase(JCLTestCase):
         # Third step
         info_query = Iq(stanza_type="set",
                         from_jid="admin@test.com",
-                        to_jid="jcl.test.com")
+                        to_jid=self.comp.jid)
         command_node = info_query.set_new_content(command.COMMAND_NS, "command")
         command_node.setProp("node", "http://jabber.org/protocol/admin#reenable-user")
         command_node.setProp("sessionid", session_id)
@@ -1343,7 +1385,7 @@ class JCLCommandManager_TestCase(JCLTestCase):
                                            {"c": "http://jabber.org/protocol/commands"})[0]
         self.assertEquals(xml_command.prop("status"), "completed")
         self.assertEquals(xml_command.prop("sessionid"), session_id)
-        self.__check_actions(result[0])
+        self._check_actions(result[0])
         self.assertEquals(context_session["account_names"],
                           ["account11/test1@test.com",
                            "account11/test2@test.com"])
@@ -1359,28 +1401,28 @@ class JCLCommandManager_TestCase(JCLTestCase):
         user3 = User(jid="test3@test.com")
         account11 = ExampleAccount(user=user1,
                                    name="account11",
-                                   jid="account11@jcl.test.com")
+                                   jid="account11@" + unicode(self.comp.jid))
         account11.status = account.ONLINE
         account12 = Example2Account(user=user1,
                                     name="account12",
-                                    jid="account12@jcl.test.com")
+                                    jid="account12@" + unicode(self.comp.jid))
         account21 = ExampleAccount(user=user2,
                                    name="account21",
-                                   jid="account21@jcl.test.com")
+                                   jid="account21@" + unicode(self.comp.jid))
         account22 = ExampleAccount(user=user2,
                                    name="account11",
-                                   jid="account11@jcl.test.com")
+                                   jid="account11@" + unicode(self.comp.jid))
         account22.status = account.ONLINE
         account31 = ExampleAccount(user=user3,
                                    name="account31",
-                                   jid="account31@jcl.test.com")
+                                   jid="account31@" + unicode(self.comp.jid))
         account32 = Example2Account(user=user3,
                                     name="account32",
-                                    jid="account32@jcl.test.com")
+                                    jid="account32@" + unicode(self.comp.jid))
         model.db_disconnect()
         info_query = Iq(stanza_type="set",
                         from_jid="admin@test.com",
-                        to_jid="jcl.test.com")
+                        to_jid=self.comp.jid)
         command_node = info_query.set_new_content(command.COMMAND_NS, "command")
         command_node.setProp("node", "http://jabber.org/protocol/admin#end-user-session")
         result = self.command_manager.apply_command_action(info_query,
@@ -1392,12 +1434,12 @@ class JCLCommandManager_TestCase(JCLTestCase):
                                            {"c": "http://jabber.org/protocol/commands"})[0]
         self.assertEquals(xml_command.prop("status"), "executing")
         self.assertNotEquals(xml_command.prop("sessionid"), None)
-        self.__check_actions(result[0], ["next"])
+        self._check_actions(result[0], ["next"])
 
         # Second step
         info_query = Iq(stanza_type="set",
                         from_jid="admin@test.com",
-                        to_jid="jcl.test.com")
+                        to_jid=self.comp.jid)
         command_node = info_query.set_new_content(command.COMMAND_NS, "command")
         command_node.setProp("node", "http://jabber.org/protocol/admin#end-user-session")
         session_id = xml_command.prop("sessionid")
@@ -1417,7 +1459,7 @@ class JCLCommandManager_TestCase(JCLTestCase):
                                            {"c": "http://jabber.org/protocol/commands"})[0]
         self.assertEquals(xml_command.prop("status"), "executing")
         self.assertEquals(xml_command.prop("sessionid"), session_id)
-        self.__check_actions(result[0], ["prev", "complete"], 1)
+        self._check_actions(result[0], ["prev", "complete"], 1)
         context_session = self.command_manager.sessions[session_id][1]
         self.assertEquals(context_session["user_jids"],
                           ["test1@test.com", "test2@test.com"])
@@ -1429,7 +1471,7 @@ class JCLCommandManager_TestCase(JCLTestCase):
         # Third step
         info_query = Iq(stanza_type="set",
                         from_jid="admin@test.com",
-                        to_jid="jcl.test.com")
+                        to_jid=self.comp.jid)
         command_node = info_query.set_new_content(command.COMMAND_NS, "command")
         command_node.setProp("node", "http://jabber.org/protocol/admin#end-user-session")
         command_node.setProp("sessionid", session_id)
@@ -1447,7 +1489,7 @@ class JCLCommandManager_TestCase(JCLTestCase):
                                            {"c": "http://jabber.org/protocol/commands"})[0]
         self.assertEquals(xml_command.prop("status"), "completed")
         self.assertEquals(xml_command.prop("sessionid"), session_id)
-        self.__check_actions(result[0])
+        self._check_actions(result[0])
         self.assertEquals(context_session["account_names"],
                           ["account11/test1@test.com",
                            "account11/test2@test.com"])
@@ -1456,17 +1498,17 @@ class JCLCommandManager_TestCase(JCLTestCase):
         iq_result = stanza_sent[0]
         self.assertTrue(isinstance(iq_result, Iq))
         self.assertEquals(iq_result.get_node().prop("type"), "result")
-        self.assertEquals(iq_result.get_from(), "jcl.test.com")
+        self.assertEquals(iq_result.get_from(), self.comp.jid)
         self.assertEquals(iq_result.get_to(), "admin@test.com")
         presence_component = stanza_sent[1]
         self.assertTrue(isinstance(presence_component, Presence))
-        self.assertEquals(presence_component.get_from(), "account11@jcl.test.com")
+        self.assertEquals(presence_component.get_from(), "account11@" + unicode(self.comp.jid))
         self.assertEquals(presence_component.get_to(), "test1@test.com")
         self.assertEquals(presence_component.get_node().prop("type"),
                           "unavailable")
         presence_component = stanza_sent[2]
         self.assertTrue(isinstance(presence_component, Presence))
-        self.assertEquals(presence_component.get_from(), "account11@jcl.test.com")
+        self.assertEquals(presence_component.get_from(), "account11@" + unicode(self.comp.jid))
         self.assertEquals(presence_component.get_to(), "test2@test.com")
         self.assertEquals(presence_component.get_node().prop("type"),
                           "unavailable")
@@ -1480,21 +1522,21 @@ class JCLCommandManager_TestCase(JCLTestCase):
 #         user2 = User(jid="test2@test.com")
 #         account11 = ExampleAccount(user=user1,
 #                                    name="account11",
-#                                    jid="account11@jcl.test.com")
+#                                    jid="account11@" + unicode(self.comp.jid))
 #         account11.password = "pass1"
 #         account12 = Example2Account(user=user1,
 #                                     name="account12",
-#                                     jid="account12@jcl.test.com")
+#                                     jid="account12@" + unicode(self.comp.jid))
 #         account21 = ExampleAccount(user=user2,
 #                                    name="account21",
-#                                    jid="account21@jcl.test.com")
+#                                    jid="account21@" + unicode(self.comp.jid))
 #         account22 = ExampleAccount(user=user2,
 #                                    name="account11",
-#                                    jid="account11@jcl.test.com")
+#                                    jid="account11@" + unicode(self.comp.jid))
 #         model.db_disconnect()
 #         info_query = Iq(stanza_type="set",
 #                         from_jid="admin@test.com",
-#                         to_jid="jcl.test.com")
+#                         to_jid=self.comp.jid)
 #         command_node = info_query.set_new_content(command.COMMAND_NS, "command")
 #         command_node.setProp("node", "http://jabber.org/protocol/admin#get-user-password")
 #         result = self.command_manager.apply_command_action(info_query,
@@ -1506,12 +1548,12 @@ class JCLCommandManager_TestCase(JCLTestCase):
 #                                            {"c": "http://jabber.org/protocol/commands"})[0]
 #         self.assertEquals(xml_command.prop("status"), "executing")
 #         self.assertNotEquals(xml_command.prop("sessionid"), None)
-#         self.__check_actions(result[0], ["next"])
+#         self._check_actions(result[0], ["next"])
 
 #         # Second step
 #         info_query = Iq(stanza_type="set",
 #                         from_jid="admin@test.com",
-#                         to_jid="jcl.test.com")
+#                         to_jid=self.comp.jid)
 #         command_node = info_query.set_new_content(command.COMMAND_NS, "command")
 #         command_node.setProp("node", "http://jabber.org/protocol/admin#get-user-password")
 #         session_id = xml_command.prop("sessionid")
@@ -1531,7 +1573,7 @@ class JCLCommandManager_TestCase(JCLTestCase):
 #                                            {"c": "http://jabber.org/protocol/commands"})[0]
 #         self.assertEquals(xml_command.prop("status"), "executing")
 #         self.assertEquals(xml_command.prop("sessionid"), session_id)
-#         self.__check_actions(result[0], ["prev", "complete"], 1)
+#         self._check_actions(result[0], ["prev", "complete"], 1)
 #         context_session = self.command_manager.sessions[session_id][1]
 #         self.assertEquals(context_session["user_jid"],
 #                           ["test1@test.com"])
@@ -1539,7 +1581,7 @@ class JCLCommandManager_TestCase(JCLTestCase):
 #         # Third step
 #         info_query = Iq(stanza_type="set",
 #                         from_jid="admin@test.com",
-#                         to_jid="jcl.test.com")
+#                         to_jid=self.comp.jid)
 #         command_node = info_query.set_new_content(command.COMMAND_NS, "command")
 #         command_node.setProp("node", "http://jabber.org/protocol/admin#get-user-password")
 #         command_node.setProp("sessionid", session_id)
@@ -1556,7 +1598,7 @@ class JCLCommandManager_TestCase(JCLTestCase):
 #                                            {"c": "http://jabber.org/protocol/commands"})[0]
 #         self.assertEquals(xml_command.prop("status"), "completed")
 #         self.assertEquals(xml_command.prop("sessionid"), session_id)
-#         self.__check_actions(result[0])
+#         self._check_actions(result[0])
 #         self.assertEquals(context_session["account_name"],
 #                           ["account11/test1@test.com"])
 #         stanza_sent = result
@@ -1564,7 +1606,7 @@ class JCLCommandManager_TestCase(JCLTestCase):
 #         iq_result = stanza_sent[0]
 #         self.assertTrue(isinstance(iq_result, Iq))
 #         self.assertEquals(iq_result.get_node().prop("type"), "result")
-#         self.assertEquals(iq_result.get_from(), "jcl.test.com")
+#         self.assertEquals(iq_result.get_from(), self.comp.jid)
 #         self.assertEquals(iq_result.get_to(), "admin@test.com")
 #         fields = iq_result.xpath_eval("c:command/data:x/data:field",
 #                                       {"c": "http://jabber.org/protocol/commands",
@@ -1592,22 +1634,22 @@ class JCLCommandManager_TestCase(JCLTestCase):
 #         user1 = User(jid="test1@test.com")
 #         account11 = ExampleAccount(user=user1,
 #                                    name="account11",
-#                                    jid="account11@jcl.test.com")
+#                                    jid="account11@" + unicode(self.comp.jid))
 #         account11.password = "pass1"
 #         account12 = Example2Account(user=user1,
 #                                     name="account12",
-#                                     jid="account12@jcl.test.com")
+#                                     jid="account12@" + unicode(self.comp.jid))
 #         user2 = User(jid="test2@test.com")
 #         account21 = ExampleAccount(user=user2,
 #                                    name="account21",
-#                                    jid="account21@jcl.test.com")
+#                                    jid="account21@" + unicode(self.comp.jid))
 #         account22 = ExampleAccount(user=user2,
 #                                    name="account11",
-#                                    jid="account11@jcl.test.com")
+#                                    jid="account11@" + unicode(self.comp.jid))
 #         model.db_disconnect()
 #         info_query = Iq(stanza_type="set",
 #                         from_jid="admin@test.com",
-#                         to_jid="jcl.test.com")
+#                         to_jid=self.comp.jid)
 #         command_node = info_query.set_new_content(command.COMMAND_NS, "command")
 #         command_node.setProp("node", "http://jabber.org/protocol/admin#change-user-password")
 #         result = self.command_manager.apply_command_action(info_query,
@@ -1619,12 +1661,12 @@ class JCLCommandManager_TestCase(JCLTestCase):
 #                                            {"c": "http://jabber.org/protocol/commands"})[0]
 #         self.assertEquals(xml_command.prop("status"), "executing")
 #         self.assertNotEquals(xml_command.prop("sessionid"), None)
-#         self.__check_actions(result[0], ["next"])
+#         self._check_actions(result[0], ["next"])
 
 #         # Second step
 #         info_query = Iq(stanza_type="set",
 #                         from_jid="admin@test.com",
-#                         to_jid="jcl.test.com")
+#                         to_jid=self.comp.jid)
 #         command_node = info_query.set_new_content(command.COMMAND_NS, "command")
 #         command_node.setProp("node", "http://jabber.org/protocol/admin#change-user-password")
 #         session_id = xml_command.prop("sessionid")
@@ -1644,7 +1686,7 @@ class JCLCommandManager_TestCase(JCLTestCase):
 #                                            {"c": "http://jabber.org/protocol/commands"})[0]
 #         self.assertEquals(xml_command.prop("status"), "executing")
 #         self.assertEquals(xml_command.prop("sessionid"), session_id)
-#         self.__check_actions(result[0], ["prev", "complete"], 1)
+#         self._check_actions(result[0], ["prev", "complete"], 1)
 #         context_session = self.command_manager.sessions[session_id][1]
 #         self.assertEquals(context_session["user_jid"],
 #                           ["test1@test.com"])
@@ -1656,7 +1698,7 @@ class JCLCommandManager_TestCase(JCLTestCase):
 #         # Third step
 #         info_query = Iq(stanza_type="set",
 #                         from_jid="admin@test.com",
-#                         to_jid="jcl.test.com")
+#                         to_jid=self.comp.jid)
 #         command_node = info_query.set_new_content(command.COMMAND_NS, "command")
 #         command_node.setProp("node", "http://jabber.org/protocol/admin#change-user-password")
 #         command_node.setProp("sessionid", session_id)
@@ -1676,7 +1718,7 @@ class JCLCommandManager_TestCase(JCLTestCase):
 #                                            {"c": "http://jabber.org/protocol/commands"})[0]
 #         self.assertEquals(xml_command.prop("status"), "completed")
 #         self.assertEquals(xml_command.prop("sessionid"), session_id)
-#         self.__check_actions(result[0])
+#         self._check_actions(result[0])
 #         self.assertEquals(context_session["account_name"],
 #                           ["account11/test1@test.com"])
 #         self.assertEquals(context_session["password"],
@@ -1690,39 +1732,39 @@ class JCLCommandManager_TestCase(JCLTestCase):
         user1 = User(jid="test1@test.com")
         account11 = ExampleAccount(user=user1,
                                    name="account11",
-                                   jid="account11@jcl.test.com")
+                                   jid="account11@" + unicode(self.comp.jid))
         ljid111 = LegacyJID(legacy_address="test111@test.com",
-                            jid="test111%test.com@jcl.test.com",
+                            jid="test111%test.com@" + unicode(self.comp.jid),
                             account=account11)
         ljid112 = LegacyJID(legacy_address="test112@test.com",
-                            jid="test112%test.com@jcl.test.com",
+                            jid="test112%test.com@" + unicode(self.comp.jid),
                             account=account11)
         account12 = Example2Account(user=user1,
                                     name="account12",
-                                    jid="account12@jcl.test.com")
+                                    jid="account12@" + unicode(self.comp.jid))
         ljid121 = LegacyJID(legacy_address="test121@test.com",
-                            jid="test121%test.com@jcl.test.com",
+                            jid="test121%test.com@" + unicode(self.comp.jid),
                             account=account12)
         user2 = User(jid="test2@test.com")
         account21 = ExampleAccount(user=user2,
                                    name="account21",
-                                   jid="account21@jcl.test.com")
+                                   jid="account21@" + unicode(self.comp.jid))
         ljid211 = LegacyJID(legacy_address="test211@test.com",
-                            jid="test211%test.com@jcl.test.com",
+                            jid="test211%test.com@" + unicode(self.comp.jid),
                             account=account21)
         ljid212 = LegacyJID(legacy_address="test212@test.com",
-                            jid="test212%test.com@jcl.test.com",
+                            jid="test212%test.com@" + unicode(self.comp.jid),
                             account=account21)
         account22 = ExampleAccount(user=user2,
                                    name="account11",
-                                   jid="account11@jcl.test.com")
+                                   jid="account11@" + unicode(self.comp.jid))
         ljid221 = LegacyJID(legacy_address="test221@test.com",
-                            jid="test221%test.com@jcl.test.com",
+                            jid="test221%test.com@" + unicode(self.comp.jid),
                             account=account22)
         model.db_disconnect()
         info_query = Iq(stanza_type="set",
                         from_jid="admin@test.com",
-                        to_jid="jcl.test.com")
+                        to_jid=self.comp.jid)
         command_node = info_query.set_new_content(command.COMMAND_NS, "command")
         command_node.setProp("node", "http://jabber.org/protocol/admin#get-user-roster")
         result = self.command_manager.apply_command_action(info_query,
@@ -1734,12 +1776,12 @@ class JCLCommandManager_TestCase(JCLTestCase):
                                            {"c": "http://jabber.org/protocol/commands"})[0]
         self.assertEquals(xml_command.prop("status"), "executing")
         self.assertNotEquals(xml_command.prop("sessionid"), None)
-        self.__check_actions(result[0], ["complete"])
+        self._check_actions(result[0], ["complete"])
 
         # Second step
         info_query = Iq(stanza_type="set",
                         from_jid="admin@test.com",
-                        to_jid="jcl.test.com")
+                        to_jid=self.comp.jid)
         command_node = info_query.set_new_content(command.COMMAND_NS, "command")
         command_node.setProp("node", "http://jabber.org/protocol/admin#get-user-roster")
         session_id = xml_command.prop("sessionid")
@@ -1759,7 +1801,7 @@ class JCLCommandManager_TestCase(JCLTestCase):
                                            {"c": "http://jabber.org/protocol/commands"})[0]
         self.assertEquals(xml_command.prop("status"), "completed")
         self.assertEquals(xml_command.prop("sessionid"), session_id)
-        self.__check_actions(result[0])
+        self._check_actions(result[0])
         context_session = self.command_manager.sessions[session_id][1]
         self.assertEquals(context_session["user_jid"],
                           ["test1@test.com"])
@@ -1777,15 +1819,15 @@ class JCLCommandManager_TestCase(JCLTestCase):
                                       "data": "jabber:x:data",
                                       "roster": "jabber:iq:roster"})
         self.assertEquals(len(items), 5)
-        self.assertEquals(items[0].prop("jid"), "account11@jcl.test.com")
+        self.assertEquals(items[0].prop("jid"), "account11@" + unicode(self.comp.jid))
         self.assertEquals(items[0].prop("name"), "account11")
-        self.assertEquals(items[1].prop("jid"), "account12@jcl.test.com")
+        self.assertEquals(items[1].prop("jid"), "account12@" + unicode(self.comp.jid))
         self.assertEquals(items[1].prop("name"), "account12")
-        self.assertEquals(items[2].prop("jid"), "test111%test.com@jcl.test.com")
+        self.assertEquals(items[2].prop("jid"), "test111%test.com@" + unicode(self.comp.jid))
         self.assertEquals(items[2].prop("name"), "test111@test.com")
-        self.assertEquals(items[3].prop("jid"), "test112%test.com@jcl.test.com")
+        self.assertEquals(items[3].prop("jid"), "test112%test.com@" + unicode(self.comp.jid))
         self.assertEquals(items[3].prop("name"), "test112@test.com")
-        self.assertEquals(items[4].prop("jid"), "test121%test.com@jcl.test.com")
+        self.assertEquals(items[4].prop("jid"), "test121%test.com@" + unicode(self.comp.jid))
         self.assertEquals(items[4].prop("name"), "test121@test.com")
 
     def test_execute_get_user_lastlogin(self):
@@ -1795,22 +1837,22 @@ class JCLCommandManager_TestCase(JCLTestCase):
         user1 = User(jid="test1@test.com")
         account11 = ExampleAccount(user=user1,
                                    name="account11",
-                                   jid="account11@jcl.test.com")
+                                   jid="account11@" + unicode(self.comp.jid))
         account11.status = account.ONLINE
         account12 = Example2Account(user=user1,
                                     name="account12",
-                                    jid="account12@jcl.test.com")
+                                    jid="account12@" + unicode(self.comp.jid))
         user2 = User(jid="test2@test.com")
         account21 = ExampleAccount(user=user2,
                                    name="account21",
-                                   jid="account21@jcl.test.com")
+                                   jid="account21@" + unicode(self.comp.jid))
         account22 = ExampleAccount(user=user2,
                                    name="account11",
-                                   jid="account11@jcl.test.com")
+                                   jid="account11@" + unicode(self.comp.jid))
         model.db_disconnect()
         info_query = Iq(stanza_type="set",
                         from_jid="admin@test.com",
-                        to_jid="jcl.test.com")
+                        to_jid=self.comp.jid)
         command_node = info_query.set_new_content(command.COMMAND_NS, "command")
         command_node.setProp("node", "http://jabber.org/protocol/admin#get-user-lastlogin")
         result = self.command_manager.apply_command_action(info_query,
@@ -1822,12 +1864,12 @@ class JCLCommandManager_TestCase(JCLTestCase):
                                            {"c": "http://jabber.org/protocol/commands"})[0]
         self.assertEquals(xml_command.prop("status"), "executing")
         self.assertNotEquals(xml_command.prop("sessionid"), None)
-        self.__check_actions(result[0], ["next"])
+        self._check_actions(result[0], ["next"])
 
         # Second step
         info_query = Iq(stanza_type="set",
                         from_jid="admin@test.com",
-                        to_jid="jcl.test.com")
+                        to_jid=self.comp.jid)
         command_node = info_query.set_new_content(command.COMMAND_NS, "command")
         command_node.setProp("node", "http://jabber.org/protocol/admin#get-user-lastlogin")
         session_id = xml_command.prop("sessionid")
@@ -1847,7 +1889,7 @@ class JCLCommandManager_TestCase(JCLTestCase):
                                            {"c": "http://jabber.org/protocol/commands"})[0]
         self.assertEquals(xml_command.prop("status"), "executing")
         self.assertEquals(xml_command.prop("sessionid"), session_id)
-        self.__check_actions(result[0], ["prev", "complete"], 1)
+        self._check_actions(result[0], ["prev", "complete"], 1)
         context_session = self.command_manager.sessions[session_id][1]
         self.assertEquals(context_session["user_jid"],
                           ["test1@test.com"])
@@ -1855,7 +1897,7 @@ class JCLCommandManager_TestCase(JCLTestCase):
         # Third step
         info_query = Iq(stanza_type="set",
                         from_jid="admin@test.com",
-                        to_jid="jcl.test.com")
+                        to_jid=self.comp.jid)
         command_node = info_query.set_new_content(command.COMMAND_NS, "command")
         command_node.setProp("node", "http://jabber.org/protocol/admin#get-user-lastlogin")
         command_node.setProp("sessionid", session_id)
@@ -1872,7 +1914,7 @@ class JCLCommandManager_TestCase(JCLTestCase):
                                            {"c": "http://jabber.org/protocol/commands"})[0]
         self.assertEquals(xml_command.prop("status"), "completed")
         self.assertEquals(xml_command.prop("sessionid"), session_id)
-        self.__check_actions(result[0])
+        self._check_actions(result[0])
         self.assertEquals(context_session["account_name"],
                           ["account11/test1@test.com"])
         fields = result[0].xpath_eval("c:command/data:x/data:field",
@@ -1898,21 +1940,21 @@ class JCLCommandManager_TestCase(JCLTestCase):
         user1 = User(jid="test1@test.com")
         account11 = ExampleAccount(user=user1,
                                    name="account11",
-                                   jid="account11@jcl.test.com")
+                                   jid="account11@" + unicode(self.comp.jid))
         account12 = Example2Account(user=user1,
                                     name="account12",
-                                    jid="account12@jcl.test.com")
+                                    jid="account12@" + unicode(self.comp.jid))
         user2 = User(jid="test2@test.com")
         account21 = ExampleAccount(user=user2,
                                    name="account21",
-                                   jid="account21@jcl.test.com")
+                                   jid="account21@" + unicode(self.comp.jid))
         account22 = ExampleAccount(user=user2,
                                    name="account11",
-                                   jid="account11@jcl.test.com")
+                                   jid="account11@" + unicode(self.comp.jid))
         model.db_disconnect()
         info_query = Iq(stanza_type="set",
                         from_jid="admin@test.com",
-                        to_jid="jcl.test.com")
+                        to_jid=self.comp.jid)
         command_node = info_query.set_new_content(command.COMMAND_NS, "command")
         command_node.setProp("node", "http://jabber.org/protocol/admin#get-registered-users-num")
         result = self.command_manager.apply_command_action(info_query,
@@ -1924,7 +1966,7 @@ class JCLCommandManager_TestCase(JCLTestCase):
                                            {"c": "http://jabber.org/protocol/commands"})[0]
         self.assertEquals(xml_command.prop("status"), "completed")
         self.assertNotEquals(xml_command.prop("sessionid"), None)
-        self.__check_actions(result[0])
+        self._check_actions(result[0])
         fields = result[0].xpath_eval("c:command/data:x/data:field",
                                       {"c": "http://jabber.org/protocol/commands",
                                        "data": "jabber:x:data"})
@@ -1940,23 +1982,23 @@ class JCLCommandManager_TestCase(JCLTestCase):
         user1 = User(jid="test1@test.com")
         account11 = ExampleAccount(user=user1,
                                    name="account11",
-                                   jid="account11@jcl.test.com")
+                                   jid="account11@" + unicode(self.comp.jid))
         account11.enabled = False
         account12 = Example2Account(user=user1,
                                     name="account12",
-                                    jid="account12@jcl.test.com")
+                                    jid="account12@" + unicode(self.comp.jid))
         user2 = User(jid="test2@test.com")
         account21 = ExampleAccount(user=user2,
                                    name="account21",
-                                   jid="account21@jcl.test.com")
+                                   jid="account21@" + unicode(self.comp.jid))
         account22 = ExampleAccount(user=user2,
                                    name="account11",
-                                   jid="account11@jcl.test.com")
+                                   jid="account11@" + unicode(self.comp.jid))
         account22.enabled = False
         model.db_disconnect()
         info_query = Iq(stanza_type="set",
                         from_jid="admin@test.com",
-                        to_jid="jcl.test.com")
+                        to_jid=self.comp.jid)
         command_node = info_query.set_new_content(command.COMMAND_NS, "command")
         command_node.setProp("node", "http://jabber.org/protocol/admin#get-disabled-users-num")
         result = self.command_manager.apply_command_action(info_query,
@@ -1968,7 +2010,7 @@ class JCLCommandManager_TestCase(JCLTestCase):
                                            {"c": "http://jabber.org/protocol/commands"})[0]
         self.assertEquals(xml_command.prop("status"), "completed")
         self.assertNotEquals(xml_command.prop("sessionid"), None)
-        self.__check_actions(result[0])
+        self._check_actions(result[0])
         fields = result[0].xpath_eval("c:command/data:x/data:field",
                                       {"c": "http://jabber.org/protocol/commands",
                                        "data": "jabber:x:data"})
@@ -1984,24 +2026,24 @@ class JCLCommandManager_TestCase(JCLTestCase):
         user1 = User(jid="test1@test.com")
         account11 = ExampleAccount(user=user1,
                                    name="account11",
-                                   jid="account11@jcl.test.com")
+                                   jid="account11@" + unicode(self.comp.jid))
         account11.status = account.ONLINE
         account12 = Example2Account(user=user1,
                                     name="account12",
-                                    jid="account12@jcl.test.com")
+                                    jid="account12@" + unicode(self.comp.jid))
         account12.status = "away"
         user2 = User(jid="test2@test.com")
         account21 = ExampleAccount(user=user2,
                                    name="account21",
-                                   jid="account21@jcl.test.com")
+                                   jid="account21@" + unicode(self.comp.jid))
         account22 = ExampleAccount(user=user2,
                                    name="account11",
-                                   jid="account11@jcl.test.com")
+                                   jid="account11@" + unicode(self.comp.jid))
         account22.status = "chat"
         model.db_disconnect()
         info_query = Iq(stanza_type="set",
                         from_jid="admin@test.com",
-                        to_jid="jcl.test.com")
+                        to_jid=self.comp.jid)
         command_node = info_query.set_new_content(command.COMMAND_NS, "command")
         command_node.setProp("node", "http://jabber.org/protocol/admin#get-online-users-num")
         result = self.command_manager.apply_command_action(info_query,
@@ -2013,7 +2055,7 @@ class JCLCommandManager_TestCase(JCLTestCase):
                                            {"c": "http://jabber.org/protocol/commands"})[0]
         self.assertEquals(xml_command.prop("status"), "completed")
         self.assertNotEquals(xml_command.prop("sessionid"), None)
-        self.__check_actions(result[0])
+        self._check_actions(result[0])
         fields = result[0].xpath_eval("c:command/data:x/data:field",
                                       {"c": "http://jabber.org/protocol/commands",
                                        "data": "jabber:x:data"})
@@ -2029,21 +2071,21 @@ class JCLCommandManager_TestCase(JCLTestCase):
         user1 = User(jid="test1@test.com")
         account11 = ExampleAccount(user=user1,
                                    name="account11",
-                                   jid="account11@jcl.test.com")
+                                   jid="account11@" + unicode(self.comp.jid))
         account12 = Example2Account(user=user1,
                                     name="account12",
-                                    jid="account12@jcl.test.com")
+                                    jid="account12@" + unicode(self.comp.jid))
         user2 = User(jid="test2@test.com")
         account21 = ExampleAccount(user=user2,
                                    name="account21",
-                                   jid="account21@jcl.test.com")
+                                   jid="account21@" + unicode(self.comp.jid))
         account22 = ExampleAccount(user=user2,
                                    name="account11",
-                                   jid="account11@jcl.test.com")
+                                   jid="account11@" + unicode(self.comp.jid))
         model.db_disconnect()
         info_query = Iq(stanza_type="set",
                         from_jid="admin@test.com",
-                        to_jid="jcl.test.com")
+                        to_jid=self.comp.jid)
         command_node = info_query.set_new_content(command.COMMAND_NS, "command")
         command_node.setProp("node", "http://jabber.org/protocol/admin#get-registered-users-list")
         result = self.command_manager.apply_command_action(info_query,
@@ -2055,7 +2097,7 @@ class JCLCommandManager_TestCase(JCLTestCase):
                                            {"c": "http://jabber.org/protocol/commands"})[0]
         self.assertEquals(xml_command.prop("status"), "completed")
         self.assertNotEquals(xml_command.prop("sessionid"), None)
-        self.__check_actions(result[0])
+        self._check_actions(result[0])
         x_data = result[0].xpath_eval("c:command/data:x",
                                       {"c": "http://jabber.org/protocol/commands",
                                        "data": "jabber:x:data"})
@@ -2088,17 +2130,17 @@ class JCLCommandManager_TestCase(JCLTestCase):
         for i in xrange(10):
             ExampleAccount(user=user1,
                            name="account11" + str(i),
-                           jid="account11" + str(i) + "@jcl.test.com")
+                           jid="account11" + str(i) + "@" + unicode(self.comp.jid))
             Example2Account(user=user1,
                             name="account12" + str(i),
-                            jid="account12" + str(i) + "@jcl.test.com")
+                            jid="account12" + str(i) + "@" + unicode(self.comp.jid))
             ExampleAccount(user=user2,
                            name="account2" + str(i),
-                           jid="account2" + str(i) + "@jcl.test.com")
+                           jid="account2" + str(i) + "@" + unicode(self.comp.jid))
         model.db_disconnect()
         info_query = Iq(stanza_type="set",
                         from_jid="admin@test.com",
-                        to_jid="jcl.test.com")
+                        to_jid=self.comp.jid)
         command_node = info_query.set_new_content(command.COMMAND_NS, "command")
         command_node.setProp("node", "http://jabber.org/protocol/admin#get-registered-users-list")
         result = self.command_manager.apply_command_action(info_query,
@@ -2110,7 +2152,7 @@ class JCLCommandManager_TestCase(JCLTestCase):
                                            {"c": "http://jabber.org/protocol/commands"})[0]
         self.assertEquals(xml_command.prop("status"), "executing")
         self.assertNotEquals(xml_command.prop("sessionid"), None)
-        self.__check_actions(result[0], ["complete"])
+        self._check_actions(result[0], ["complete"])
         x_data = result[0].xpath_eval("c:command/data:x",
                                       {"c": "http://jabber.org/protocol/commands",
                                        "data": "jabber:x:data"})
@@ -2142,7 +2184,7 @@ class JCLCommandManager_TestCase(JCLTestCase):
         # Second step
         info_query = Iq(stanza_type="set",
                         from_jid="admin@test.com",
-                        to_jid="jcl.test.com")
+                        to_jid=self.comp.jid)
         command_node = info_query.set_new_content(command.COMMAND_NS, "command")
         command_node.setProp("node",
                              "http://jabber.org/protocol/admin#get-registered-users-list")
@@ -2164,7 +2206,7 @@ class JCLCommandManager_TestCase(JCLTestCase):
                                            {"c": "http://jabber.org/protocol/commands"})[0]
         self.assertEquals(xml_command.prop("status"), "completed")
         self.assertEquals(xml_command.prop("sessionid"), session_id)
-        self.__check_actions(result[0])
+        self._check_actions(result[0])
         context_session = self.command_manager.sessions[session_id][1]
         self.assertEquals(context_session["max_items"],
                           ["25"])
@@ -2202,24 +2244,24 @@ class JCLCommandManager_TestCase(JCLTestCase):
         user1 = User(jid="test1@test.com")
         account11 = ExampleAccount(user=user1,
                                    name="account11",
-                                   jid="account11@jcl.test.com")
+                                   jid="account11@" + unicode(self.comp.jid))
         account11.enabled = False
         account12 = Example2Account(user=user1,
                                     name="account12",
-                                    jid="account12@jcl.test.com")
+                                    jid="account12@" + unicode(self.comp.jid))
         account12.enabled = False
         user2 = User(jid="test2@test.com")
         account21 = ExampleAccount(user=user2,
                                    name="account21",
-                                   jid="account21@jcl.test.com")
+                                   jid="account21@" + unicode(self.comp.jid))
         account22 = ExampleAccount(user=user2,
                                    name="account11",
-                                   jid="account11@jcl.test.com")
+                                   jid="account11@" + unicode(self.comp.jid))
         account22.enabled = False
         model.db_disconnect()
         info_query = Iq(stanza_type="set",
                         from_jid="admin@test.com",
-                        to_jid="jcl.test.com")
+                        to_jid=self.comp.jid)
         command_node = info_query.set_new_content(command.COMMAND_NS, "command")
         command_node.setProp("node",
                              "http://jabber.org/protocol/admin#get-disabled-users-list")
@@ -2233,7 +2275,7 @@ class JCLCommandManager_TestCase(JCLTestCase):
                                            {"c": "http://jabber.org/protocol/commands"})[0]
         self.assertEquals(xml_command.prop("status"), "completed")
         self.assertNotEquals(xml_command.prop("sessionid"), None)
-        self.__check_actions(result[0])
+        self._check_actions(result[0])
         fields = result[0].xpath_eval("c:command/data:x/data:field",
                                       {"c": "http://jabber.org/protocol/commands",
                                        "data": "jabber:x:data"})
@@ -2260,20 +2302,20 @@ class JCLCommandManager_TestCase(JCLTestCase):
             _account = ExampleAccount(user=user1,
                                       name="account11" + str(i),
                                       jid="account11" + str(i)
-                                      + "@jcl.test.com")
+                                      + "@" + unicode(self.comp.jid))
             _account.enabled = False
             Example2Account(user=user1,
                             name="account12" + str(i),
-                            jid="account12" + str(i) + "@jcl.test.com")
+                            jid="account12" + str(i) + "@" + unicode(self.comp.jid))
             _account = ExampleAccount(user=user2,
                                       name="account2" + str(i),
                                       jid="account2" + str(i)
-                                      + "@jcl.test.com")
+                                      + "@" + unicode(self.comp.jid))
             _account.enabled = False
         model.db_disconnect()
         info_query = Iq(stanza_type="set",
                         from_jid="admin@test.com",
-                        to_jid="jcl.test.com")
+                        to_jid=self.comp.jid)
         command_node = info_query.set_new_content(command.COMMAND_NS, "command")
         command_node.setProp("node",
                              "http://jabber.org/protocol/admin#get-disabled-users-list")
@@ -2287,7 +2329,7 @@ class JCLCommandManager_TestCase(JCLTestCase):
                                            {"c": "http://jabber.org/protocol/commands"})[0]
         self.assertEquals(xml_command.prop("status"), "executing")
         self.assertNotEquals(xml_command.prop("sessionid"), None)
-        self.__check_actions(result[0], ["complete"])
+        self._check_actions(result[0], ["complete"])
         fields = result[0].xpath_eval("c:command/data:x/data:field",
                                       {"c": "http://jabber.org/protocol/commands",
                                        "data": "jabber:x:data"})
@@ -2314,7 +2356,7 @@ class JCLCommandManager_TestCase(JCLTestCase):
         # Second step
         info_query = Iq(stanza_type="set",
                         from_jid="admin@test.com",
-                        to_jid="jcl.test.com")
+                        to_jid=self.comp.jid)
         command_node = info_query.set_new_content(command.COMMAND_NS, "command")
         command_node.setProp("node",
                              "http://jabber.org/protocol/admin#get-disabled-users-list")
@@ -2336,7 +2378,7 @@ class JCLCommandManager_TestCase(JCLTestCase):
                                            {"c": "http://jabber.org/protocol/commands"})[0]
         self.assertEquals(xml_command.prop("status"), "completed")
         self.assertEquals(xml_command.prop("sessionid"), session_id)
-        self.__check_actions(result[0])
+        self._check_actions(result[0])
         context_session = self.command_manager.sessions[session_id][1]
         self.assertEquals(context_session["max_items"],
                           ["25"])
@@ -2373,24 +2415,24 @@ class JCLCommandManager_TestCase(JCLTestCase):
         user1 = User(jid="test1@test.com")
         account11 = ExampleAccount(user=user1,
                                    name="account11",
-                                   jid="account11@jcl.test.com")
+                                   jid="account11@" + unicode(self.comp.jid))
         account11.status = account.ONLINE
         account12 = Example2Account(user=user1,
                                     name="account12",
-                                    jid="account12@jcl.test.com")
+                                    jid="account12@" + unicode(self.comp.jid))
         account12.status = "away"
         user2 = User(jid="test2@test.com")
         account21 = ExampleAccount(user=user2,
                                    name="account21",
-                                   jid="account21@jcl.test.com")
+                                   jid="account21@" + unicode(self.comp.jid))
         account22 = ExampleAccount(user=user2,
                                    name="account11",
-                                   jid="account11@jcl.test.com")
+                                   jid="account11@" + unicode(self.comp.jid))
         account22.status = "xa"
         model.db_disconnect()
         info_query = Iq(stanza_type="set",
                         from_jid="admin@test.com",
-                        to_jid="jcl.test.com")
+                        to_jid=self.comp.jid)
         command_node = info_query.set_new_content(command.COMMAND_NS, "command")
         command_node.setProp("node",
                              "http://jabber.org/protocol/admin#get-online-users-list")
@@ -2404,7 +2446,7 @@ class JCLCommandManager_TestCase(JCLTestCase):
                                            {"c": "http://jabber.org/protocol/commands"})[0]
         self.assertEquals(xml_command.prop("status"), "completed")
         self.assertNotEquals(xml_command.prop("sessionid"), None)
-        self.__check_actions(result[0])
+        self._check_actions(result[0])
         fields = result[0].xpath_eval("c:command/data:x/data:field",
                                       {"c": "http://jabber.org/protocol/commands",
                                        "data": "jabber:x:data"})
@@ -2431,20 +2473,20 @@ class JCLCommandManager_TestCase(JCLTestCase):
             _account = ExampleAccount(user=user1,
                                       name="account11" + str(i),
                                       jid="account11" + str(i)
-                                      + "@jcl.test.com")
+                                      + "@" + unicode(self.comp.jid))
             _account.status = account.ONLINE
             Example2Account(user=user1,
                             name="account12" + str(i),
-                            jid="account12" + str(i) + "@jcl.test.com")
+                            jid="account12" + str(i) + "@" + unicode(self.comp.jid))
             _account = ExampleAccount(user=user2,
                                       name="account2" + str(i),
                                       jid="account2" + str(i)
-                                      + "@jcl.test.com")
+                                      + "@" + unicode(self.comp.jid))
             _account.status = "away"
         model.db_disconnect()
         info_query = Iq(stanza_type="set",
                         from_jid="admin@test.com",
-                        to_jid="jcl.test.com")
+                        to_jid=self.comp.jid)
         command_node = info_query.set_new_content(command.COMMAND_NS, "command")
         command_node.setProp("node",
                              "http://jabber.org/protocol/admin#get-online-users-list")
@@ -2458,7 +2500,7 @@ class JCLCommandManager_TestCase(JCLTestCase):
                                            {"c": "http://jabber.org/protocol/commands"})[0]
         self.assertEquals(xml_command.prop("status"), "executing")
         self.assertNotEquals(xml_command.prop("sessionid"), None)
-        self.__check_actions(result[0], ["complete"])
+        self._check_actions(result[0], ["complete"])
         fields = result[0].xpath_eval("c:command/data:x/data:field",
                                       {"c": "http://jabber.org/protocol/commands",
                                        "data": "jabber:x:data"})
@@ -2485,7 +2527,7 @@ class JCLCommandManager_TestCase(JCLTestCase):
         # Second step
         info_query = Iq(stanza_type="set",
                         from_jid="admin@test.com",
-                        to_jid="jcl.test.com")
+                        to_jid=self.comp.jid)
         command_node = info_query.set_new_content(command.COMMAND_NS, "command")
         command_node.setProp("node",
                              "http://jabber.org/protocol/admin#get-online-users-list")
@@ -2507,7 +2549,7 @@ class JCLCommandManager_TestCase(JCLTestCase):
                                            {"c": "http://jabber.org/protocol/commands"})[0]
         self.assertEquals(xml_command.prop("status"), "completed")
         self.assertEquals(xml_command.prop("sessionid"), session_id)
-        self.__check_actions(result[0])
+        self._check_actions(result[0])
         context_session = self.command_manager.sessions[session_id][1]
         self.assertEquals(context_session["max_items"],
                           ["25"])
@@ -2544,24 +2586,24 @@ class JCLCommandManager_TestCase(JCLTestCase):
         user1 = User(jid="test1@test.com")
         account11 = ExampleAccount(user=user1,
                                    name="account11",
-                                   jid="account11@jcl.test.com")
+                                   jid="account11@" + unicode(self.comp.jid))
         account11.status = account.ONLINE
         account12 = Example2Account(user=user1,
                                     name="account12",
-                                    jid="account12@jcl.test.com")
+                                    jid="account12@" + unicode(self.comp.jid))
         account12.status = "away"
         user2 = User(jid="test2@test.com")
         account21 = ExampleAccount(user=user2,
                                    name="account21",
-                                   jid="account21@jcl.test.com")
+                                   jid="account21@" + unicode(self.comp.jid))
         account22 = ExampleAccount(user=user2,
                                    name="account11",
-                                   jid="account11@jcl.test.com")
+                                   jid="account11@" + unicode(self.comp.jid))
         account22.status = "xa"
         model.db_disconnect()
         info_query = Iq(stanza_type="set",
                         from_jid="admin@test.com",
-                        to_jid="jcl.test.com")
+                        to_jid=self.comp.jid)
         command_node = info_query.set_new_content(command.COMMAND_NS, "command")
         command_node.setProp("node",
                              "http://jabber.org/protocol/admin#announce")
@@ -2575,7 +2617,7 @@ class JCLCommandManager_TestCase(JCLTestCase):
                                            {"c": "http://jabber.org/protocol/commands"})[0]
         self.assertEquals(xml_command.prop("status"), "executing")
         self.assertNotEquals(xml_command.prop("sessionid"), None)
-        self.__check_actions(result[0], ["complete"])
+        self._check_actions(result[0], ["complete"])
         x_data = result[0].xpath_eval("c:command/data:x",
                                       {"c": "http://jabber.org/protocol/commands",
                                        "data": "jabber:x:data"})
@@ -2592,7 +2634,7 @@ class JCLCommandManager_TestCase(JCLTestCase):
         # Second step
         info_query = Iq(stanza_type="set",
                         from_jid="admin@test.com",
-                        to_jid="jcl.test.com")
+                        to_jid=self.comp.jid)
         command_node = info_query.set_new_content(command.COMMAND_NS, "command")
         command_node.setProp("node",
                              "http://jabber.org/protocol/admin#announce")
@@ -2619,14 +2661,14 @@ class JCLCommandManager_TestCase(JCLTestCase):
                                            {"c": "http://jabber.org/protocol/commands"})[0]
         self.assertEquals(xml_command.prop("status"), "completed")
         self.assertEquals(xml_command.prop("sessionid"), session_id)
-        self.__check_actions(result[0])
+        self._check_actions(result[0])
         context_session = self.command_manager.sessions[session_id][1]
         self.assertEquals(context_session["announcement"],
                           ["test announce"])
-        self.assertEquals(result[1].get_from(), "jcl.test.com")
+        self.assertEquals(result[1].get_from(), self.comp.jid)
         self.assertEquals(result[1].get_to(), "test1@test.com")
         self.assertEquals(result[1].get_body(), "test announce")
-        self.assertEquals(result[2].get_from(), "jcl.test.com")
+        self.assertEquals(result[2].get_from(), self.comp.jid)
         self.assertEquals(result[2].get_to(), "test2@test.com")
         self.assertEquals(result[2].get_body(), "test announce")
 
@@ -2645,7 +2687,7 @@ class JCLCommandManager_TestCase(JCLTestCase):
                                            {"c": "http://jabber.org/protocol/commands"})[0]
         self.assertEquals(xml_command.prop("status"), "completed")
         self.assertEquals(xml_command.prop("sessionid"), session_id)
-        self.__check_actions(result[0])
+        self._check_actions(result[0])
         context_session = self.command_manager.sessions[session_id][1]
         self.assertFalse(context_session.has_key("announcement"))
 
@@ -2656,25 +2698,25 @@ class JCLCommandManager_TestCase(JCLTestCase):
         user1 = User(jid="test1@test.com")
         account11 = ExampleAccount(user=user1,
                                    name="account11",
-                                   jid="account11@jcl.test.com")
+                                   jid="account11@" + unicode(self.comp.jid))
         account11.status = account.ONLINE
         account12 = Example2Account(user=user1,
                                     name="account12",
-                                    jid="account12@jcl.test.com")
+                                    jid="account12@" + unicode(self.comp.jid))
         account12.status = "away"
         user2 = User(jid="test2@test.com")
         account21 = ExampleAccount(user=user2,
                                    name="account21",
-                                   jid="account21@jcl.test.com")
+                                   jid="account21@" + unicode(self.comp.jid))
         account21.status = account.OFFLINE
         account22 = ExampleAccount(user=user2,
                                    name="account11",
-                                   jid="account11@jcl.test.com")
+                                   jid="account11@" + unicode(self.comp.jid))
         account22.status = account.OFFLINE
         model.db_disconnect()
         info_query = Iq(stanza_type="set",
                         from_jid="admin@test.com",
-                        to_jid="jcl.test.com")
+                        to_jid=self.comp.jid)
         command_node = info_query.set_new_content(command.COMMAND_NS, "command")
         command_node.setProp("node",
                              "http://jabber.org/protocol/admin#set-motd")
@@ -2688,7 +2730,7 @@ class JCLCommandManager_TestCase(JCLTestCase):
                                            {"c": "http://jabber.org/protocol/commands"})[0]
         self.assertEquals(xml_command.prop("status"), "executing")
         self.assertNotEquals(xml_command.prop("sessionid"), None)
-        self.__check_actions(result[0], ["complete"])
+        self._check_actions(result[0], ["complete"])
         x_data = result[0].xpath_eval("c:command/data:x",
                                       {"c": "http://jabber.org/protocol/commands",
                                        "data": "jabber:x:data"})
@@ -2707,7 +2749,7 @@ class JCLCommandManager_TestCase(JCLTestCase):
         # Second step
         info_query = Iq(stanza_type="set",
                         from_jid="admin@test.com",
-                        to_jid="jcl.test.com")
+                        to_jid=self.comp.jid)
         command_node = info_query.set_new_content(command.COMMAND_NS, "command")
         command_node.setProp("node",
                              "http://jabber.org/protocol/admin#set-motd")
@@ -2729,12 +2771,12 @@ class JCLCommandManager_TestCase(JCLTestCase):
                                            {"c": "http://jabber.org/protocol/commands"})[0]
         self.assertEquals(xml_command.prop("status"), "completed")
         self.assertEquals(xml_command.prop("sessionid"), session_id)
-        self.__check_actions(result[0])
+        self._check_actions(result[0])
         context_session = self.command_manager.sessions[session_id][1]
         self.assertEquals(context_session["motd"],
                           ["Message Of The Day"])
         self.assertTrue(account11.user.has_received_motd)
-        self.assertEquals(result[1].get_from(), "jcl.test.com")
+        self.assertEquals(result[1].get_from(), self.comp.jid)
         self.assertEquals(result[1].get_to(), "test1@test.com")
         self.assertEquals(result[1].get_body(), "Message Of The Day")
         self.assertFalse(account21.user.has_received_motd)
@@ -2747,26 +2789,26 @@ class JCLCommandManager_TestCase(JCLTestCase):
         user1 = User(jid="test1@test.com")
         account11 = ExampleAccount(user=user1,
                                    name="account11",
-                                   jid="account11@jcl.test.com")
+                                   jid="account11@" + unicode(self.comp.jid))
         account11.status = account.ONLINE
         account12 = Example2Account(user=user1,
                                     name="account12",
-                                    jid="account12@jcl.test.com")
+                                    jid="account12@" + unicode(self.comp.jid))
         account12.status = "away"
         user2 = User(jid="test2@test.com")
         user2.has_received_motd = True
         account21 = ExampleAccount(user=user2,
                                    name="account21",
-                                   jid="account21@jcl.test.com")
+                                   jid="account21@" + unicode(self.comp.jid))
         account21.status = account.OFFLINE
         account22 = ExampleAccount(user=user2,
                                    name="account11",
-                                   jid="account11@jcl.test.com")
+                                   jid="account11@" + unicode(self.comp.jid))
         account22.status = account.OFFLINE
         model.db_disconnect()
         info_query = Iq(stanza_type="set",
                         from_jid="admin@test.com",
-                        to_jid="jcl.test.com")
+                        to_jid=self.comp.jid)
         command_node = info_query.set_new_content(command.COMMAND_NS, "command")
         command_node.setProp("node",
                              "http://jabber.org/protocol/admin#edit-motd")
@@ -2780,7 +2822,7 @@ class JCLCommandManager_TestCase(JCLTestCase):
                                            {"c": "http://jabber.org/protocol/commands"})[0]
         self.assertEquals(xml_command.prop("status"), "executing")
         self.assertNotEquals(xml_command.prop("sessionid"), None)
-        self.__check_actions(result[0], ["complete"])
+        self._check_actions(result[0], ["complete"])
         fields = result[0].xpath_eval("c:command/data:x/data:field",
                                       {"c": "http://jabber.org/protocol/commands",
                                        "data": "jabber:x:data"})
@@ -2794,7 +2836,7 @@ class JCLCommandManager_TestCase(JCLTestCase):
         # Second step
         info_query = Iq(stanza_type="set",
                         from_jid="admin@test.com",
-                        to_jid="jcl.test.com")
+                        to_jid=self.comp.jid)
         command_node = info_query.set_new_content(command.COMMAND_NS, "command")
         command_node.setProp("node",
                              "http://jabber.org/protocol/admin#edit-motd")
@@ -2816,12 +2858,12 @@ class JCLCommandManager_TestCase(JCLTestCase):
                                            {"c": "http://jabber.org/protocol/commands"})[0]
         self.assertEquals(xml_command.prop("status"), "completed")
         self.assertEquals(xml_command.prop("sessionid"), session_id)
-        self.__check_actions(result[0])
+        self._check_actions(result[0])
         context_session = self.command_manager.sessions[session_id][1]
         self.assertEquals(context_session["motd"],
                           ["Message Of The Day"])
         self.assertTrue(account11.user.has_received_motd)
-        self.assertEquals(result[1].get_from(), "jcl.test.com")
+        self.assertEquals(result[1].get_from(), self.comp.jid)
         self.assertEquals(result[1].get_to(), "test1@test.com")
         self.assertEquals(result[1].get_body(), "Message Of The Day")
         self.assertFalse(account21.user.has_received_motd)
@@ -2838,25 +2880,25 @@ class JCLCommandManager_TestCase(JCLTestCase):
         user1 = User(jid="test1@test.com")
         account11 = ExampleAccount(user=user1,
                                    name="account11",
-                                   jid="account11@jcl.test.com")
+                                   jid="account11@" + unicode(self.comp.jid))
         account11.status = account.ONLINE
         account12 = Example2Account(user=user1,
                                     name="account12",
-                                    jid="account12@jcl.test.com")
+                                    jid="account12@" + unicode(self.comp.jid))
         account12.status = "away"
         user2 = User(jid="test2@test.com")
         account21 = ExampleAccount(user=user2,
                                    name="account21",
-                                   jid="account21@jcl.test.com")
+                                   jid="account21@" + unicode(self.comp.jid))
         account21.status = account.OFFLINE
         account22 = ExampleAccount(user=user2,
                                    name="account11",
-                                   jid="account11@jcl.test.com")
+                                   jid="account11@" + unicode(self.comp.jid))
         account22.status = account.OFFLINE
         model.db_disconnect()
         info_query = Iq(stanza_type="set",
                         from_jid="admin@test.com",
-                        to_jid="jcl.test.com")
+                        to_jid=self.comp.jid)
         command_node = info_query.set_new_content(command.COMMAND_NS, "command")
         command_node.setProp("node",
                              "http://jabber.org/protocol/admin#delete-motd")
@@ -2870,7 +2912,7 @@ class JCLCommandManager_TestCase(JCLTestCase):
                                            {"c": "http://jabber.org/protocol/commands"})[0]
         self.assertEquals(xml_command.prop("status"), "completed")
         self.assertNotEquals(xml_command.prop("sessionid"), None)
-        self.__check_actions(result[0])
+        self._check_actions(result[0])
         self.comp.config.read(self.comp.config_file)
         self.assertFalse(self.comp.config.has_option("component", "motd"))
 
@@ -2882,25 +2924,25 @@ class JCLCommandManager_TestCase(JCLTestCase):
         user1 = User(jid="test1@test.com")
         account11 = ExampleAccount(user=user1,
                                    name="account11",
-                                   jid="account11@jcl.test.com")
+                                   jid="account11@" + unicode(self.comp.jid))
         account11.status = account.ONLINE
         account12 = Example2Account(user=user1,
                                     name="account12",
-                                    jid="account12@jcl.test.com")
+                                    jid="account12@" + unicode(self.comp.jid))
         account12.status = "away"
         user2 = User(jid="test2@test.com")
         account21 = ExampleAccount(user=user2,
                                    name="account21",
-                                   jid="account21@jcl.test.com")
+                                   jid="account21@" + unicode(self.comp.jid))
         account21.status = account.OFFLINE
         account22 = ExampleAccount(user=user2,
                                    name="account11",
-                                   jid="account11@jcl.test.com")
+                                   jid="account11@" + unicode(self.comp.jid))
         account22.status = account.OFFLINE
         model.db_disconnect()
         info_query = Iq(stanza_type="set",
                         from_jid="admin@test.com",
-                        to_jid="jcl.test.com")
+                        to_jid=self.comp.jid)
         command_node = info_query.set_new_content(command.COMMAND_NS, "command")
         command_node.setProp("node",
                              "http://jabber.org/protocol/admin#set-welcome")
@@ -2914,7 +2956,7 @@ class JCLCommandManager_TestCase(JCLTestCase):
                                            {"c": "http://jabber.org/protocol/commands"})[0]
         self.assertEquals(xml_command.prop("status"), "executing")
         self.assertNotEquals(xml_command.prop("sessionid"), None)
-        self.__check_actions(result[0], ["complete"])
+        self._check_actions(result[0], ["complete"])
         x_data = result[0].xpath_eval("c:command/data:x",
                                       {"c": "http://jabber.org/protocol/commands",
                                        "data": "jabber:x:data"})
@@ -2933,7 +2975,7 @@ class JCLCommandManager_TestCase(JCLTestCase):
         # Second step
         info_query = Iq(stanza_type="set",
                         from_jid="admin@test.com",
-                        to_jid="jcl.test.com")
+                        to_jid=self.comp.jid)
         command_node = info_query.set_new_content(command.COMMAND_NS, "command")
         command_node.setProp("node",
                              "http://jabber.org/protocol/admin#set-welcome")
@@ -2955,7 +2997,7 @@ class JCLCommandManager_TestCase(JCLTestCase):
                                            {"c": "http://jabber.org/protocol/commands"})[0]
         self.assertEquals(xml_command.prop("status"), "completed")
         self.assertEquals(xml_command.prop("sessionid"), session_id)
-        self.__check_actions(result[0])
+        self._check_actions(result[0])
         context_session = self.command_manager.sessions[session_id][1]
         self.assertEquals(context_session["welcome"],
                           ["New Welcome Message"])
@@ -2972,25 +3014,25 @@ class JCLCommandManager_TestCase(JCLTestCase):
         user1 = User(jid="test1@test.com")
         account11 = ExampleAccount(user=user1,
                                    name="account11",
-                                   jid="account11@jcl.test.com")
+                                   jid="account11@" + unicode(self.comp.jid))
         account11.status = account.ONLINE
         account12 = Example2Account(user=user1,
                                     name="account12",
-                                    jid="account12@jcl.test.com")
+                                    jid="account12@" + unicode(self.comp.jid))
         account12.status = "away"
         user2 = User(jid="test2@test.com")
         account21 = ExampleAccount(user=user2,
                                    name="account21",
-                                   jid="account21@jcl.test.com")
+                                   jid="account21@" + unicode(self.comp.jid))
         account21.status = account.OFFLINE
         account22 = ExampleAccount(user=user2,
                                    name="account11",
-                                   jid="account11@jcl.test.com")
+                                   jid="account11@" + unicode(self.comp.jid))
         account22.status = account.OFFLINE
         model.db_disconnect()
         info_query = Iq(stanza_type="set",
                         from_jid="admin@test.com",
-                        to_jid="jcl.test.com")
+                        to_jid=self.comp.jid)
         command_node = info_query.set_new_content(command.COMMAND_NS, "command")
         command_node.setProp("node",
                              "http://jabber.org/protocol/admin#delete-welcome")
@@ -3004,7 +3046,7 @@ class JCLCommandManager_TestCase(JCLTestCase):
                                            {"c": "http://jabber.org/protocol/commands"})[0]
         self.assertEquals(xml_command.prop("status"), "completed")
         self.assertNotEquals(xml_command.prop("sessionid"), None)
-        self.__check_actions(result[0])
+        self._check_actions(result[0])
         self.comp.config.read(self.comp.config_file)
         self.assertFalse(self.comp.config.has_option("component",
                                                      "welcome_message"))
@@ -3017,25 +3059,25 @@ class JCLCommandManager_TestCase(JCLTestCase):
         user1 = User(jid="test1@test.com")
         account11 = ExampleAccount(user=user1,
                                    name="account11",
-                                   jid="account11@jcl.test.com")
+                                   jid="account11@" + unicode(self.comp.jid))
         account11.status = account.ONLINE
         account12 = Example2Account(user=user1,
                                     name="account12",
-                                    jid="account12@jcl.test.com")
+                                    jid="account12@" + unicode(self.comp.jid))
         account12.status = "away"
         user2 = User(jid="test2@test.com")
         account21 = ExampleAccount(user=user2,
                                    name="account21",
-                                   jid="account21@jcl.test.com")
+                                   jid="account21@" + unicode(self.comp.jid))
         account21.status = account.OFFLINE
         account22 = ExampleAccount(user=user2,
                                    name="account11",
-                                   jid="account11@jcl.test.com")
+                                   jid="account11@" + unicode(self.comp.jid))
         account22.status = account.OFFLINE
         model.db_disconnect()
         info_query = Iq(stanza_type="set",
                         from_jid="admin1@test.com",
-                        to_jid="jcl.test.com")
+                        to_jid=self.comp.jid)
         command_node = info_query.set_new_content(command.COMMAND_NS, "command")
         command_node.setProp("node",
                              "http://jabber.org/protocol/admin#edit-admin")
@@ -3049,7 +3091,7 @@ class JCLCommandManager_TestCase(JCLTestCase):
                                            {"c": "http://jabber.org/protocol/commands"})[0]
         self.assertEquals(xml_command.prop("status"), "executing")
         self.assertNotEquals(xml_command.prop("sessionid"), None)
-        self.__check_actions(result[0], ["complete"])
+        self._check_actions(result[0], ["complete"])
         x_data = result[0].xpath_eval("c:command/data:x",
                                       {"c": "http://jabber.org/protocol/commands",
                                        "data": "jabber:x:data"})
@@ -3070,7 +3112,7 @@ class JCLCommandManager_TestCase(JCLTestCase):
         # Second step
         info_query = Iq(stanza_type="set",
                         from_jid="admin1@test.com",
-                        to_jid="jcl.test.com")
+                        to_jid=self.comp.jid)
         command_node = info_query.set_new_content(command.COMMAND_NS, "command")
         command_node.setProp("node",
                              "http://jabber.org/protocol/admin#edit-admin")
@@ -3092,7 +3134,7 @@ class JCLCommandManager_TestCase(JCLTestCase):
                                            {"c": "http://jabber.org/protocol/commands"})[0]
         self.assertEquals(xml_command.prop("status"), "completed")
         self.assertEquals(xml_command.prop("sessionid"), session_id)
-        self.__check_actions(result[0])
+        self._check_actions(result[0])
         context_session = self.command_manager.sessions[session_id][1]
         self.assertEquals(context_session["adminjids"],
                           ["admin3@test.com", "admin4@test.com"])
@@ -3109,24 +3151,24 @@ class JCLCommandManager_TestCase(JCLTestCase):
         user1 = User(jid="test1@test.com")
         account11 = ExampleAccount(user=user1,
                                    name="account11",
-                                   jid="account11@jcl.test.com")
+                                   jid="account11@" + unicode(self.comp.jid))
         account11.status = account.ONLINE
         account12 = Example2Account(user=user1,
                                     name="account12",
-                                    jid="account12@jcl.test.com")
+                                    jid="account12@" + unicode(self.comp.jid))
         account12.status = "away"
         user2 = User(jid="test2@test.com")
         account21 = ExampleAccount(user=user2,
                                    name="account21",
-                                   jid="account21@jcl.test.com")
+                                   jid="account21@" + unicode(self.comp.jid))
         account22 = ExampleAccount(user=user2,
                                    name="account11",
-                                   jid="account11@jcl.test.com")
+                                   jid="account11@" + unicode(self.comp.jid))
         account22.status = "xa"
         model.db_disconnect()
         info_query = Iq(stanza_type="set",
                         from_jid="admin@test.com",
-                        to_jid="jcl.test.com")
+                        to_jid=self.comp.jid)
         command_node = info_query.set_new_content(command.COMMAND_NS, "command")
         command_node.setProp("node",
                              "http://jabber.org/protocol/admin#restart")
@@ -3140,7 +3182,7 @@ class JCLCommandManager_TestCase(JCLTestCase):
                                            {"c": "http://jabber.org/protocol/commands"})[0]
         self.assertEquals(xml_command.prop("status"), "executing")
         self.assertNotEquals(xml_command.prop("sessionid"), None)
-        self.__check_actions(result[0], ["complete"])
+        self._check_actions(result[0], ["complete"])
         x_data = result[0].xpath_eval("c:command/data:x",
                                       {"c": "http://jabber.org/protocol/commands",
                                        "data": "jabber:x:data"})
@@ -3176,7 +3218,7 @@ class JCLCommandManager_TestCase(JCLTestCase):
         # Second step
         info_query = Iq(stanza_type="set",
                         from_jid="admin@test.com",
-                        to_jid="jcl.test.com")
+                        to_jid=self.comp.jid)
         command_node = info_query.set_new_content(command.COMMAND_NS, "command")
         command_node.setProp("node",
                              "http://jabber.org/protocol/admin#restart")
@@ -3206,16 +3248,16 @@ class JCLCommandManager_TestCase(JCLTestCase):
                                            {"c": "http://jabber.org/protocol/commands"})[0]
         self.assertEquals(xml_command.prop("status"), "completed")
         self.assertEquals(xml_command.prop("sessionid"), session_id)
-        self.__check_actions(result[0])
+        self._check_actions(result[0])
         context_session = self.command_manager.sessions[session_id][1]
         self.assertEquals(context_session["announcement"],
                           ["service will be restarted in 0 second"])
         self.assertEquals(context_session["delay"],
                           ["0"])
-        self.assertEquals(result[1].get_from(), "jcl.test.com")
+        self.assertEquals(result[1].get_from(), self.comp.jid)
         self.assertEquals(result[1].get_to(), "test1@test.com")
         self.assertEquals(result[1].get_body(), "service will be restarted in 0 second")
-        self.assertEquals(result[2].get_from(), "jcl.test.com")
+        self.assertEquals(result[2].get_from(), self.comp.jid)
         self.assertEquals(result[2].get_to(), "test2@test.com")
         self.assertEquals(result[2].get_body(), "service will be restarted in 0 second")
         self.assertFalse(self.comp.restart)
@@ -3242,7 +3284,7 @@ class JCLCommandManager_TestCase(JCLTestCase):
                                            {"c": "http://jabber.org/protocol/commands"})[0]
         self.assertEquals(xml_command.prop("status"), "completed")
         self.assertEquals(xml_command.prop("sessionid"), session_id)
-        self.__check_actions(result[0])
+        self._check_actions(result[0])
         context_session = self.command_manager.sessions[session_id][1]
         self.assertFalse(context_session.has_key("announcement"))
         self.assertEquals(context_session["delay"],
@@ -3265,24 +3307,24 @@ class JCLCommandManager_TestCase(JCLTestCase):
         user1 = User(jid="test1@test.com")
         account11 = ExampleAccount(user=user1,
                                    name="account11",
-                                   jid="account11@jcl.test.com")
+                                   jid="account11@" + unicode(self.comp.jid))
         account11.status = account.ONLINE
         account12 = Example2Account(user=user1,
                                     name="account12",
-                                    jid="account12@jcl.test.com")
+                                    jid="account12@" + unicode(self.comp.jid))
         account12.status = "away"
         user2 = User(jid="test2@test.com")
         account21 = ExampleAccount(user=user2,
                                    name="account21",
-                                   jid="account21@jcl.test.com")
+                                   jid="account21@" + unicode(self.comp.jid))
         account22 = ExampleAccount(user=user2,
                                    name="account11",
-                                   jid="account11@jcl.test.com")
+                                   jid="account11@" + unicode(self.comp.jid))
         account22.status = "xa"
         model.db_disconnect()
         info_query = Iq(stanza_type="set",
                         from_jid="admin@test.com",
-                        to_jid="jcl.test.com")
+                        to_jid=self.comp.jid)
         command_node = info_query.set_new_content(command.COMMAND_NS, "command")
         command_node.setProp("node",
                              "http://jabber.org/protocol/admin#shutdown")
@@ -3296,7 +3338,7 @@ class JCLCommandManager_TestCase(JCLTestCase):
                                            {"c": "http://jabber.org/protocol/commands"})[0]
         self.assertEquals(xml_command.prop("status"), "executing")
         self.assertNotEquals(xml_command.prop("sessionid"), None)
-        self.__check_actions(result[0], ["complete"])
+        self._check_actions(result[0], ["complete"])
         x_data = result[0].xpath_eval("c:command/data:x",
                                       {"c": "http://jabber.org/protocol/commands",
                                        "data": "jabber:x:data"})
@@ -3332,7 +3374,7 @@ class JCLCommandManager_TestCase(JCLTestCase):
         # Second step
         info_query = Iq(stanza_type="set",
                         from_jid="admin@test.com",
-                        to_jid="jcl.test.com")
+                        to_jid=self.comp.jid)
         command_node = info_query.set_new_content(command.COMMAND_NS, "command")
         command_node.setProp("node",
                              "http://jabber.org/protocol/admin#shutdown")
@@ -3362,16 +3404,16 @@ class JCLCommandManager_TestCase(JCLTestCase):
                                            {"c": "http://jabber.org/protocol/commands"})[0]
         self.assertEquals(xml_command.prop("status"), "completed")
         self.assertEquals(xml_command.prop("sessionid"), session_id)
-        self.__check_actions(result[0])
+        self._check_actions(result[0])
         context_session = self.command_manager.sessions[session_id][1]
         self.assertEquals(context_session["announcement"],
                           ["service will be shut in 0 second"])
         self.assertEquals(context_session["delay"],
                           ["0"])
-        self.assertEquals(result[1].get_from(), "jcl.test.com")
+        self.assertEquals(result[1].get_from(), self.comp.jid)
         self.assertEquals(result[1].get_to(), "test1@test.com")
         self.assertEquals(result[1].get_body(), "service will be shut in 0 second")
-        self.assertEquals(result[2].get_from(), "jcl.test.com")
+        self.assertEquals(result[2].get_from(), self.comp.jid)
         self.assertEquals(result[2].get_to(), "test2@test.com")
         self.assertEquals(result[2].get_body(), "service will be shut in 0 second")
         self.assertFalse(self.comp.restart)
@@ -3398,7 +3440,7 @@ class JCLCommandManager_TestCase(JCLTestCase):
                                            {"c": "http://jabber.org/protocol/commands"})[0]
         self.assertEquals(xml_command.prop("status"), "completed")
         self.assertEquals(xml_command.prop("sessionid"), session_id)
-        self.__check_actions(result[0])
+        self._check_actions(result[0])
         context_session = self.command_manager.sessions[session_id][1]
         self.assertFalse(context_session.has_key("announcement"))
         self.assertEquals(context_session["delay"],
