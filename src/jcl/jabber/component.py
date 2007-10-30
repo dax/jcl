@@ -153,16 +153,17 @@ class AccountManager(object):
         those accounts from the DataBase"""
         model.db_connect()
         result = []
-        for _account in account.get_accounts(user_jid):
+        bare_user_jid = user_jid.bare()
+        for _account in account.get_accounts(bare_user_jid):
             result.extend(self.remove_account(_account, user_jid, False))
-        user = account.get_user(unicode(user_jid.bare()))
+        user = account.get_user(unicode(bare_user_jid))
         if user is not None:
             user.destroySelf()
         result.append(Presence(from_jid=self.component.jid,
-                               to_jid=user_jid,
+                               to_jid=bare_user_jid,
                                stanza_type="unsubscribe"))
         result.append(Presence(from_jid=self.component.jid,
-                               to_jid=user_jid,
+                               to_jid=bare_user_jid,
                                stanza_type="unsubscribed"))
         model.db_disconnect()
         return result
@@ -178,11 +179,12 @@ class AccountManager(object):
         self.__logger.debug("Deleting account: " + str(_account))
         result = []
         model.db_connect()
+        bare_user_jid = user_jid.bare()
         result.append(Presence(from_jid=_account.jid,
-                               to_jid=user_jid,
+                               to_jid=bare_user_jid,
                                stanza_type="unsubscribe"))
         result.append(Presence(from_jid=_account.jid,
-                               to_jid=user_jid,
+                               to_jid=bare_user_jid,
                                stanza_type="unsubscribed"))
         _account.destroySelf()
         if remove_user:
@@ -217,7 +219,7 @@ class AccountManager(object):
             # component subscribe user presence when registering the first
             # account
             result.append(Presence(from_jid=self.component.jid,
-                                   to_jid=from_jid,
+                                   to_jid=from_jid.bare(),
                                    stanza_type="subscribe"))
             welcome_message = self.component.get_welcome_message()
             if welcome_message is not None:
@@ -233,7 +235,7 @@ class AccountManager(object):
                     subject=_account.get_new_message_subject(lang_class),
                     body=_account.get_new_message_body(lang_class)))
             result.append(Presence(from_jid=_account.jid,
-                                   to_jid=from_jid,
+                                   to_jid=from_jid.bare(),
                                    stanza_type="subscribe"))
         else:
             result.append(Message(\

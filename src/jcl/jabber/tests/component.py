@@ -1108,7 +1108,7 @@ class JCLComponent_TestCase(JCLTestCase):
                          value="account1",
                          field_type="text-single")
         iq_set = Iq(stanza_type="set",
-                    from_jid="user1@test.com",
+                    from_jid="user1@test.com/res",
                     to_jid="jcl.test.com")
         query = iq_set.new_query("jabber:iq:register")
         x_data.as_xml(query, None)
@@ -1128,7 +1128,7 @@ class JCLComponent_TestCase(JCLTestCase):
         self.assertTrue(isinstance(iq_result, Iq))
         self.assertEquals(iq_result.get_node().prop("type"), "result")
         self.assertEquals(iq_result.get_from(), "jcl.test.com")
-        self.assertEquals(iq_result.get_to(), "user1@test.com")
+        self.assertEquals(iq_result.get_to(), "user1@test.com/res")
 
         presence_component = stanza_sent[1]
         self.assertTrue(isinstance(presence_component, Presence))
@@ -1140,7 +1140,7 @@ class JCLComponent_TestCase(JCLTestCase):
         message = stanza_sent[2]
         self.assertTrue(isinstance(message, Message))
         self.assertEquals(message.get_from(), "jcl.test.com")
-        self.assertEquals(message.get_to(), "user1@test.com")
+        self.assertEquals(message.get_to(), "user1@test.com/res")
         self.assertEquals(message.get_subject(),
                           _account.get_new_message_subject(Lang.en))
         self.assertEquals(message.get_body(),
@@ -1169,7 +1169,7 @@ class JCLComponent_TestCase(JCLTestCase):
                          value="account1",
                          field_type="text-single")
         iq_set = Iq(stanza_type="set",
-                    from_jid="user1@test.com",
+                    from_jid="user1@test.com/res",
                     to_jid="jcl.test.com")
         query = iq_set.new_query("jabber:iq:register")
         x_data.as_xml(query, None)
@@ -1189,7 +1189,7 @@ class JCLComponent_TestCase(JCLTestCase):
         self.assertTrue(isinstance(iq_result, Iq))
         self.assertEquals(iq_result.get_node().prop("type"), "result")
         self.assertEquals(iq_result.get_from(), "jcl.test.com")
-        self.assertEquals(iq_result.get_to(), "user1@test.com")
+        self.assertEquals(iq_result.get_to(), "user1@test.com/res")
 
         presence_component = stanza_sent[1]
         self.assertTrue(isinstance(presence_component, Presence))
@@ -1201,7 +1201,7 @@ class JCLComponent_TestCase(JCLTestCase):
         message = stanza_sent[2]
         self.assertTrue(isinstance(message, Message))
         self.assertEquals(message.get_from(), "jcl.test.com")
-        self.assertEquals(message.get_to(), "user1@test.com")
+        self.assertEquals(message.get_to(), "user1@test.com/res")
         self.assertEquals(message.get_subject(),
                           Lang.en.welcome_message_subject)
         self.assertEquals(message.get_body(),
@@ -1210,7 +1210,7 @@ class JCLComponent_TestCase(JCLTestCase):
         message = stanza_sent[3]
         self.assertTrue(isinstance(message, Message))
         self.assertEquals(message.get_from(), "jcl.test.com")
-        self.assertEquals(message.get_to(), "user1@test.com")
+        self.assertEquals(message.get_to(), "user1@test.com/res")
         self.assertEquals(message.get_subject(),
                           _account.get_new_message_subject(Lang.en))
         self.assertEquals(message.get_body(),
@@ -1233,7 +1233,7 @@ class JCLComponent_TestCase(JCLTestCase):
                          value="account1",
                          field_type="text-single")
         iq_set = Iq(stanza_type="set",
-                    from_jid="user1@test.com",
+                    from_jid="user1@test.com/res",
                     to_jid="jcl.test.com/Example2")
         query = iq_set.new_query("jabber:iq:register")
         x_data.as_xml(query, None)
@@ -1253,7 +1253,7 @@ class JCLComponent_TestCase(JCLTestCase):
         self.assertTrue(isinstance(iq_result, Iq))
         self.assertEquals(iq_result.get_node().prop("type"), "result")
         self.assertEquals(iq_result.get_from(), "jcl.test.com/Example2")
-        self.assertEquals(iq_result.get_to(), "user1@test.com")
+        self.assertEquals(iq_result.get_to(), "user1@test.com/res")
 
         presence_component = stanza_sent[1]
         self.assertTrue(isinstance(presence_component, Presence))
@@ -1265,7 +1265,7 @@ class JCLComponent_TestCase(JCLTestCase):
         message = stanza_sent[2]
         self.assertTrue(isinstance(message, Message))
         self.assertEquals(message.get_from(), "jcl.test.com")
-        self.assertEquals(message.get_to(), "user1@test.com")
+        self.assertEquals(message.get_to(), "user1@test.com/res")
         self.assertEquals(message.get_subject(),
                           _account.get_new_message_subject(Lang.en))
         self.assertEquals(message.get_body(),
@@ -1364,7 +1364,7 @@ class JCLComponent_TestCase(JCLTestCase):
                          value="mylogin",
                          field_type="text-single")
         iq_set = Iq(stanza_type="set",
-                    from_jid="user1@test.com",
+                    from_jid="user1@test.com/res",
                     to_jid="jcl.test.com")
         query = iq_set.new_query("jabber:iq:register")
         x_data.as_xml(query)
@@ -1395,7 +1395,7 @@ class JCLComponent_TestCase(JCLTestCase):
                          value="mylogin1",
                          field_type="text-single")
         iq_set = Iq(stanza_type="set",
-                    from_jid="user1@test.com",
+                    from_jid="user1@test.com/res",
                     to_jid="jcl.test.com")
         query = iq_set.new_query("jabber:iq:register")
         x_data.as_xml(query)
@@ -1422,7 +1422,7 @@ class JCLComponent_TestCase(JCLTestCase):
                          value="mylogin2",
                          field_type="text-single")
         iq_set = Iq(stanza_type="set",
-                    from_jid="user1@test.com",
+                    from_jid="user1@test.com/res",
                     to_jid="jcl.test.com")
         query = iq_set.new_query("jabber:iq:register")
         x_data.as_xml(query)
@@ -1448,9 +1448,9 @@ class JCLComponent_TestCase(JCLTestCase):
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
         x_data = Form("submit")
-        iq_set = Iq(stanza_type = "set", \
-                    from_jid = "user1@test.com", \
-                    to_jid = "jcl.test.com")
+        iq_set = Iq(stanza_type="set",
+                    from_jid="user1@test.com/res",
+                    to_jid="jcl.test.com")
         query = iq_set.new_query("jabber:iq:register")
         x_data.as_xml(query)
         self.comp.handle_set_register(iq_set)
@@ -1465,9 +1465,9 @@ class JCLComponent_TestCase(JCLTestCase):
         self.assertTrue(isinstance(stanza_sent[0], Iq))
         self.assertEquals(stanza_sent[0].get_node().prop("type"), "error")
         stanza_error = stanza_sent[0].get_error()
-        self.assertEquals(stanza_error.get_condition().name, \
+        self.assertEquals(stanza_error.get_condition().name,
                           "not-acceptable")
-        self.assertEquals(stanza_error.get_text(), \
+        self.assertEquals(stanza_error.get_text(),
                           Lang.en.mandatory_field % ("name"))
 
     def test_handle_set_register_new_field_mandatory(self):
@@ -1479,7 +1479,7 @@ class JCLComponent_TestCase(JCLTestCase):
                          value="account1",
                          field_type="text-single")
         iq_set = Iq(stanza_type="set",
-                    from_jid="user1@test.com",
+                    from_jid="user1@test.com/res",
                     to_jid="jcl.test.com")
         query = iq_set.new_query("jabber:iq:register")
         x_data.as_xml(query)
@@ -1543,7 +1543,7 @@ class JCLComponent_TestCase(JCLTestCase):
                          value=43,
                          field_type="text-single")
         iq_set = Iq(stanza_type="set",
-                    from_jid="user1@test.com",
+                    from_jid="user1@test.com/res",
                     to_jid="account1@jcl.test.com")
         query = iq_set.new_query("jabber:iq:register")
         x_data.as_xml(query)
@@ -1569,12 +1569,12 @@ class JCLComponent_TestCase(JCLTestCase):
         self.assertTrue(isinstance(iq_result, Iq))
         self.assertEquals(iq_result.get_node().prop("type"), "result")
         self.assertEquals(iq_result.get_from(), "account1@jcl.test.com")
-        self.assertEquals(iq_result.get_to(), "user1@test.com")
+        self.assertEquals(iq_result.get_to(), "user1@test.com/res")
 
         message = stanza_sent[1]
         self.assertTrue(isinstance(message, Message))
         self.assertEquals(message.get_from(), "jcl.test.com")
-        self.assertEquals(message.get_to(), "user1@test.com")
+        self.assertEquals(message.get_to(), "user1@test.com/res")
         self.assertEquals(message.get_subject(), \
                           _account.get_update_message_subject(Lang.en))
         self.assertEquals(message.get_body(), \
@@ -1596,7 +1596,7 @@ class JCLComponent_TestCase(JCLTestCase):
                             jid="account1@jcl.test.com")
         model.db_disconnect()
         iq_set = Iq(stanza_type="set",
-                    from_jid="user1@test.com",
+                    from_jid="user1@test.com/res",
                     to_jid="jcl.test.com")
         query = iq_set.new_query("jabber:iq:register")
         query.newChild(None, "remove", None)
