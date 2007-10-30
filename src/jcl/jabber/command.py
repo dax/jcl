@@ -345,7 +345,8 @@ class JCLCommandManager(CommandManager):
         result_form.as_xml(command_node)
         return result_form
 
-    def __add_accounts_to_field(self, user_jids, field, lang_class, filter=None):
+    def __add_accounts_to_field(self, user_jids, field, lang_class, filter=None,
+                                show_user_jid=True):
         for (account_type, type_label) in \
                 self.account_manager.list_account_types(lang_class):
             account_class = self.account_manager.get_account_class(\
@@ -355,14 +356,20 @@ class JCLCommandManager(CommandManager):
                 for _account in account.get_accounts(user_jid, account_class,
                                                      filter):
                     self.__logger.debug(" - " + _account.name)
-                    field.add_option(label=_account.name + " (" + account_type
-                                     + ") (" + user_jid + ")",
+                    if show_user_jid:
+                        label = _account.name + " (" + account_type \
+                            + ") (" + user_jid + ")"
+                    else:
+                        label = _account.name+ " (" + account_type \
+                            + ")"
+                    field.add_option(label=label,
                                      values=[_account.name + "/" + user_jid])
 
     def add_form_select_accounts(self, session_context,
                                  command_node, lang_class,
                                  form_title, form_desc,
-                                 filter=None, format_as_xml=True):
+                                 filter=None, format_as_xml=True,
+                                 show_user_jid=True):
         """
         Add a form to select accounts for user JIDs contained in
         session_context[\"user_jids\"]
@@ -374,7 +381,8 @@ class JCLCommandManager(CommandManager):
                                       field_type="list-multi",
                                       label=lang_class.field_accounts)
         self.__add_accounts_to_field(session_context["user_jids"],
-                                     field, lang_class, filter)
+                                     field, lang_class, filter,
+                                     show_user_jid)
         if format_as_xml:
             result_form.as_xml(command_node)
         return result_form
