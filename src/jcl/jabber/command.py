@@ -50,7 +50,7 @@ STATUS_CANCELED = "canceled"
 
 root_node_re = re.compile("^[^@/]+$")
 account_type_node_re = re.compile("^[^@/]+/.*$")
-account_node_re = re.compile("^[^@/]+@[^/]+/.*$")
+account_node_re = re.compile("^[^@/]+@[^/]+/?.*$")
 
 class FieldNoType(Field):
     def complete_xml_element(self, xmlnode, doc):

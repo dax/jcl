@@ -594,7 +594,8 @@ class JCLComponent(Component, object):
                  disco_category="headline",
                  disco_type="x-unknown",
                  lang=Lang(),
-                 account_manager_class=AccountManager):
+                 account_manager_class=AccountManager,
+                 command_manager_class=JCLCommandManager):
         Component.__init__(self,
                            JID(jid),
                            secret,
@@ -620,7 +621,7 @@ class JCLComponent(Component, object):
                                              RootPresenceAvailableHandler(self)]]
         self.presence_unavailable_handlers = [[AccountPresenceUnavailableHandler(self),
                                                RootPresenceUnavailableHandler(self)]]
-        command.command_manager = JCLCommandManager()
+        command.command_manager = command_manager_class()
         command.command_manager.component = self
         command.command_manager.account_manager = self.account_manager
         self.disco_get_items_handlers = [[RootDiscoGetItemsHandler(self),

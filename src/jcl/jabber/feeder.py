@@ -33,6 +33,7 @@ from jcl.jabber.component import JCLComponent, AccountManager
 from jcl.lang import Lang
 import jcl.model as model
 from jcl.model import account
+from jcl.jabber.command import JCLCommandManager
 
 from pyxmpp.message import Message
 
@@ -52,7 +53,8 @@ class FeederComponent(JCLComponent):
                  config,
                  config_file,
                  lang=Lang(),
-                 account_manager_class=AccountManager):
+                 account_manager_class=AccountManager,
+                 command_manager_class=JCLCommandManager):
         JCLComponent.__init__(self,
                               jid,
                               secret,
@@ -61,7 +63,8 @@ class FeederComponent(JCLComponent):
                               config,
                               config_file,
                               lang=lang,
-                              account_manager_class=account_manager_class)
+                              account_manager_class=account_manager_class,
+                              command_manager_class=command_manager_class)
         # Define default feeder and sender, can be override
         self.handler = FeederHandler(Feeder(self), Sender(self))
         self.check_interval = 1

@@ -40,7 +40,7 @@ import jcl.jabber.command as command
 from jcl.jabber.command import FieldNoType, JCLCommandManager
 import jcl.model as model
 import jcl.model.account as account
-from jcl.model.account import Account, LegacyJID, User
+from jcl.model.account import Account, PresenceAccount, LegacyJID, User
 from jcl.model.tests.account import ExampleAccount, Example2Account
 from jcl.tests import JCLTestCase
 
@@ -242,7 +242,7 @@ class CommandManager_TestCase(unittest.TestCase):
 
 class JCLCommandManager_TestCase(JCLTestCase):
     def setUp(self, tables=[]):
-        tables += [Account, ExampleAccount,
+        tables += [Account, PresenceAccount, ExampleAccount,
                    Example2Account, LegacyJID,
                    User]
         JCLTestCase.setUp(self, tables=tables)
