@@ -1500,6 +1500,59 @@ class JCLComponent_TestCase(JCLTestCase):
         self.assertEquals(stanza_error.get_text(),
                           Lang.en.mandatory_field % ("login"))
 
+    def test_handle_set_register_update_not_existing(self):
+        self.comp.stream = MockStream()
+        self.comp.stream_class = MockStream
+        x_data = Form("submit")
+        x_data.add_field(name="name",
+                         value="account1",
+                         field_type="text-single")
+        iq_set = Iq(stanza_type="set",
+                    from_jid="user1@test.com/res",
+                    to_jid="account1@jcl.test.com")
+        query = iq_set.new_query("jabber:iq:register")
+        x_data.as_xml(query, None)
+        self.comp.handle_set_register(iq_set)
+
+        model.db_connect()
+        _account = account.get_account("user1@test.com", "account1")
+        self.assertNotEquals(_account, None)
+        self.assertEquals(_account.user.jid, "user1@test.com")
+        self.assertEquals(_account.name, "account1")
+        self.assertEquals(_account.jid, "account1@jcl.test.com")
+        model.db_disconnect()
+
+        stanza_sent = self.comp.stream.sent
+        self.assertEquals(len(stanza_sent), 4)
+        iq_result = stanza_sent[0]
+        self.assertTrue(isinstance(iq_result, Iq))
+        self.assertEquals(iq_result.get_node().prop("type"), "result")
+        self.assertEquals(iq_result.get_from(), "account1@jcl.test.com")
+        self.assertEquals(iq_result.get_to(), "user1@test.com/res")
+
+        presence_component = stanza_sent[1]
+        self.assertTrue(isinstance(presence_component, Presence))
+        self.assertEquals(presence_component.get_from(), "jcl.test.com")
+        self.assertEquals(presence_component.get_to(), "user1@test.com")
+        self.assertEquals(presence_component.get_node().prop("type"),
+                          "subscribe")
+
+        message = stanza_sent[2]
+        self.assertTrue(isinstance(message, Message))
+        self.assertEquals(message.get_from(), "jcl.test.com")
+        self.assertEquals(message.get_to(), "user1@test.com/res")
+        self.assertEquals(message.get_subject(),
+                          _account.get_new_message_subject(Lang.en))
+        self.assertEquals(message.get_body(),
+                          _account.get_new_message_body(Lang.en))
+
+        presence_account = stanza_sent[3]
+        self.assertTrue(isinstance(presence_account, Presence))
+        self.assertEquals(presence_account.get_from(), "account1@jcl.test.com")
+        self.assertEquals(presence_account.get_to(), "user1@test.com")
+        self.assertEquals(presence_account.get_node().prop("type"),
+                          "subscribe")
+
     def test_handle_set_register_update_complex(self):
         model.db_connect()
         self.comp.stream = MockStream()
@@ -1544,7 +1597,7 @@ class JCLComponent_TestCase(JCLTestCase):
                          field_type="text-single")
         iq_set = Iq(stanza_type="set",
                     from_jid="user1@test.com/res",
-                    to_jid="account1@jcl.test.com")
+                    to_jid="account1@jcl.test.com/Example")
         query = iq_set.new_query("jabber:iq:register")
         x_data.as_xml(query)
         self.comp.handle_set_register(iq_set)
@@ -1568,7 +1621,7 @@ class JCLComponent_TestCase(JCLTestCase):
         iq_result = stanza_sent[0]
         self.assertTrue(isinstance(iq_result, Iq))
         self.assertEquals(iq_result.get_node().prop("type"), "result")
-        self.assertEquals(iq_result.get_from(), "account1@jcl.test.com")
+        self.assertEquals(iq_result.get_from(), "account1@jcl.test.com/Example")
         self.assertEquals(iq_result.get_to(), "user1@test.com/res")
 
         message = stanza_sent[1]

@@ -249,6 +249,7 @@ class AccountManager(object):
     def update_account(self,
                        account_name,
                        from_jid,
+                       account_type,
                        lang_class,
                        x_data):
         """Update account"""
@@ -263,9 +264,12 @@ class AccountManager(object):
                                          first_account=False,
                                          from_jid=from_jid)
         else:
-            self.__logger.error("Account " + account_name +
-                                " was not found, cannot update it")
-            return []
+            account_class = self.get_account_class(account_type)
+            return self.create_account(account_name,
+                                       from_jid,
+                                       account_class,
+                                       lang_class,
+                                       x_data)
 
     def create_account(self,
                        account_name,

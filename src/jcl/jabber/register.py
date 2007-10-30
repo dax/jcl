@@ -66,11 +66,13 @@ class RootSetRegisterHandler(SetRegisterHandler):
         self.__logger = logging.getLogger("jcl.jabber.RootSetRegisterHandler")
 
     def filter(self, stanza, lang_class, x_data):
-        """"""
+        """
+        """
         return jabber.root_filter(self, stanza, lang_class)
 
     def handle(self, info_query, lang_class, data, x_data):
-        """"""
+        """
+        """
         self.__logger.debug("root_set_register")
         _account = None
         if not "name" in x_data or x_data["name"].value == "":
@@ -101,17 +103,25 @@ class AccountSetRegisterHandler(SetRegisterHandler):
         self.__logger = logging.getLogger("jcl.jabber.AccountSetRegisterHandler")
 
     def filter(self, stanza, lang_class, x_data):
-        """"""
+        """
+        """
         return jabber.account_filter(self, stanza, lang_class)
 
     def handle(self, info_query, lang_class, data, x_data):
-        """"""
+        """
+        """
         self.__logger.debug("account_set_register")
         _account = None
+        resource = info_query.get_to().resource
+        if resource is not None:
+            account_type = resource.split("/")[0]
+        else:
+            account_type = ""
         try:
             info_queries = self.account_manager.update_account(\
                 x_data["name"].value,
                 info_query.get_from(),
+                account_type,
                 lang_class,
                 x_data)
             info_queries.insert(0, info_query.make_result_response())
@@ -127,11 +137,13 @@ class AccountTypeSetRegisterHandler(SetRegisterHandler):
         self.__logger = logging.getLogger("jcl.jabber.AccountTypeSetRegisterHandler")
 
     def filter(self, stanza, lang_class, x_data):
-        """"""
+        """
+        """
         return jabber.account_type_filter(self, stanza, lang_class)
 
     def handle(self, info_query, lang_class, data, x_data):
-        """"""
+        """
+        """
         self.__logger.debug("account_type_set_register")
         account_type = data
         _account = None
