@@ -49,7 +49,7 @@ from jcl.error import FieldError
 from jcl.jabber.disco import AccountDiscoGetInfoHandler, \
      AccountTypeDiscoGetInfoHandler, RootDiscoGetItemsHandler, \
      AccountTypeDiscoGetItemsHandler
-from jcl.jabber.message import PasswordMessageHandler
+from jcl.jabber.message import PasswordMessageHandler, HelpMessageHandler
 import jcl.jabber.command as command
 from jcl.jabber.command import CommandDiscoGetItemsHandler, \
      CommandDiscoGetInfoHandler, JCLCommandManager, \
@@ -753,7 +753,8 @@ class JCLComponent(Component, object):
                                         self.handle_message)
         self.send_stanzas(self.account_manager.probe_all_accounts_presence())
 
-        self.msg_handlers += [[PasswordMessageHandler(self)]]
+        self.msg_handlers += [[PasswordMessageHandler(self),
+                               HelpMessageHandler(self)]]
 
     def signal_handler(self, signum, frame):
         """Stop method handler

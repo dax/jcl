@@ -237,6 +237,9 @@ class Lang:
         account_disabled = u"This account is disabled"
         account_error = u"This account has an error"
 
+        help_message_subject = u"Help"
+        help_message_body = u"No help"
+
     class fr:
         component_name = u"composant générique Jabber Component Library"
         register_title = u"Enregistrement d'un nouveau compte"
@@ -418,6 +421,9 @@ class Lang:
 
         account_disabled = u"Ce compte est désactivé"
         account_error = u"Ce compte est en erreur"
+
+        help_message_subject = u"Aide"
+        help_message_body = u"Pas d'aide !"
 
     class nl:
         # TODO: when finish, delete this line and uncomment in tests/lang.py the makeSuite(Language_nl_TestCase, 'test') line

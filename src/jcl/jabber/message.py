@@ -3,24 +3,26 @@
 ## Login : David Rousselie <dax@happycoders.org>
 ## Started on  Wed Jun 27 21:43:57 2007 David Rousselie
 ## $Id$
-## 
+##
 ## Copyright (C) 2007 David Rousselie
 ## This program is free software; you can redistribute it and/or modify
 ## it under the terms of the GNU General Public License as published by
 ## the Free Software Foundation; either version 2 of the License, or
 ## (at your option) any later version.
-## 
+##
 ## This program is distributed in the hope that it will be useful,
 ## but WITHOUT ANY WARRANTY; without even the implied warranty of
 ## MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ## GNU General Public License for more details.
-## 
+##
 ## You should have received a copy of the GNU General Public License
 ## along with this program; if not, write to the Free Software
 ## Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 ##
 
 import re
+
+from pyxmpp.message import Message
 
 from jcl.jabber import Handler
 import jcl.model.account as account
@@ -57,3 +59,27 @@ class PasswordMessageHandler(Handler):
         return self.component.account_manager.set_password(data, stanza.get_from(),
                                                            stanza.get_body(),
                                                            lang_class)
+
+class HelpMessageHandler(Handler):
+    """Handle 'help' sent in a message"""
+
+    def __init__(self, component):
+        """Handler constructor"""
+        Handler.__init__(self, component)
+        self.help_regexp = re.compile("^help.*")
+
+    def filter(self, stanza, lang_class):
+        """
+        Test if stanza body match the help regexp.
+        """
+        return self.help_regexp.search(stanza.get_body()) \
+            or self.help_regexp.search(stanza.get_subject())
+
+    def handle(self, stanza, lang_class, data):
+        """
+        Return a help message.
+        """
+        return [Message(to_jid=stanza.get_from(),
+                        from_jid=stanza.get_to(),
+                        subject=lang_class.help_message_subject,
+                        body=lang_class.help_message_body)]
