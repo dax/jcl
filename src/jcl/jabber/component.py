@@ -215,6 +215,9 @@ class AccountManager(object):
                         field_post_func(value, field_default_func,
                                         unicode(from_jid.bare())))
 
+        if hasattr(_account, "populate_handler"):
+            getattr(_account, "populate_handler")()
+
         if first_account:
             # component subscribe user presence when registering the first
             # account
@@ -376,7 +379,7 @@ class AccountManager(object):
             else:
                 type_label = account_type
             yield (account_type, type_label)
-        
+
     def get_account_class(self, account_type=None,
                           account_class_name=None):
         """Return account class definition from declared classes in
@@ -1063,7 +1066,7 @@ class JCLComponent(Component, object):
                                 % ("".join(traceback.format_exception
                                            (type, value, stack, 5))))
         return 1
-        
+
     ###########################################################################
     # Utils
     ###########################################################################
@@ -1136,7 +1139,7 @@ class JCLComponent(Component, object):
     def del_welcome_message(self):
         self.del_config_parameter("component", "welcome_message")
 
-        
+
     ###########################################################################
     # Virtual methods
     ###########################################################################

@@ -3070,7 +3070,7 @@ class AccountManager_TestCase(JCLTestCase):
                                  "localhost",
                                  "5347",
                                  None)
-        self.account_manager = AccountManager(self.comp)
+        self.account_manager = self.comp.account_manager
 
     def test_send_presence_all(self):
         user1 = User(jid="test1@test.com")
@@ -3107,6 +3107,31 @@ class AccountManager_TestCase(JCLTestCase):
         self.assertEquals(result[5].get_from(), "account22@jcl.test.com")
         self.assertEquals(result[5].get_to(), "test2@test.com")
         self.assertEquals(result[5].get_type(), "unavailable")
+
+    def test_populate_account_handler(self):
+        self.comp.stream = MockStream()
+        self.comp.stream_class = MockStream
+        x_data = Form("submit")
+        x_data.add_field(name="name",
+                         value="account1",
+                         field_type="text-single")
+        class AccountPopulateHandlerMock(Account):
+            def _init(self, *args, **kw):
+                Account._init(self, *args, **kw)
+                self.populate_handler_called = False
+
+            def populate_handler(self):
+                self.populate_handler_called = True
+
+        AccountPopulateHandlerMock.createTable(ifNotExists=True)
+        user1 = User(jid="test1@test.com")
+        account11 = AccountPopulateHandlerMock(user=user1,
+                                               name="account11",
+                                               jid="account11@jcl.test.com")
+        self.assertFalse(account11.populate_handler_called)
+        self.account_manager.populate_account(account11, Lang.en, x_data,
+                                              False, False)
+        self.assertTrue(account11.populate_handler_called)
 
 def suite():
     test_suite = unittest.TestSuite()
