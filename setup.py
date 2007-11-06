@@ -20,14 +20,20 @@
 ## Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 ##
 
-from setuptools import setup
+from setuptools import setup, find_packages
 
-setup(name = 'jcl', \
-      version = '0.1', \
-      description = 'Jabber Component Library', \
-      author = 'David Rousselie', \
-      author_email = 'dax@happycoders.org', \
-      url = 'http://people.happycoders.org/dax/projects/jcl', \
-      package_dir = {'': 'src'}, \
-      packages = ['jcl', 'jcl.jabber', 'jcl.model'], \
-      test_suite = 'jcl.tests.suite')
+setup(name='jcl',
+      version='0.1',
+      description='Jabber Component Library',
+      author='David Rousselie',
+      author_email='dax@happycoders.org',
+      license="GPL",
+      keywords="jabber component",
+      url='http://people.happycoders.org/dax/projects/jcl',
+      package_dir={'': 'src'},
+      packages=find_packages('src', exclude=["*.tests",
+                                             "*.tests.*",
+                                             "tests.*",
+                                             "tests"]),
+      test_suite='jcl.tests.suite',
+      install_requires=['SQLObject>=0.8', 'pyxmpp>=1.0', 'pysqlite>=2.0'])
