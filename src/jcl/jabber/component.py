@@ -216,7 +216,14 @@ class AccountManager(object):
                                         unicode(from_jid.bare())))
 
         if hasattr(_account, "populate_handler"):
-            getattr(_account, "populate_handler")()
+            try:
+                getattr(_account, "populate_handler")()
+            except Exception, exception:
+                type, value, stack = sys.exc_info()
+                self.__logger.error("Error in timer thread\n%s\n%s"
+                                    % (exception, "".join(traceback.format_exception
+                                                          (type, value, stack, 5))))
+                return self.send_error_from_account(_account, exception)
 
         if first_account:
             # component subscribe user presence when registering the first
