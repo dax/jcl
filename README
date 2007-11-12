@@ -4,10 +4,3 @@ Jabber Component Library
 Present a higher level component framework for developing Jabber
 component.
 
-Here is the class the implement to create a new Jabber component (be
-sure to override every methods) :
-- a class inheriting from JabberComponent
-- a Feeder (inheriting from Feeder)
-- a Sender (inheriting from Sender)
-
-

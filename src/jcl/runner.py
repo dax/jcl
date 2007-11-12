@@ -3,18 +3,18 @@
 ## Login : David Rousselie <dax@happycoders.org>
 ## Started on  Thu May 17 22:02:08 2007 David Rousselie
 ## $Id$
-## 
+##
 ## Copyright (C) 2007 David Rousselie
 ## This program is free software; you can redistribute it and/or modify
 ## it under the terms of the GNU General Public License as published by
 ## the Free Software Foundation; either version 2 of the License, or
 ## (at your option) any later version.
-## 
+##
 ## This program is distributed in the hope that it will be useful,
 ## but WITHOUT ANY WARRANTY; without even the implied warranty of
 ## MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ## GNU General Public License for more details.
-## 
+##
 ## You should have received a copy of the GNU General Public License
 ## along with this program; if not, write to the Free Software
 ## Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
@@ -84,7 +84,7 @@ class JCLRunner(object):
 
     def set_attr(self, attr, value):
         setattr(self, attr, value)
-        
+
     def __configure_commandline_args(self, shortopts, longopts, cleanopts):
         (opts, args) = gnu_getopt(sys.argv[1:], shortopts, longopts)
         commandline_args = {}
@@ -123,7 +123,7 @@ class JCLRunner(object):
                                           " from configuration file " +
                                           self.config_file)
                         set_func(config_property)
-        
+
     def configure(self):
         """Apply configuration from command line and configuration file.
         command line arguments override configuration file properties.
@@ -156,11 +156,11 @@ class JCLRunner(object):
                 long_option = option[1]
             help += "\t-" + option[0][0] + ", --" + long_option + option[3] + "\n"
         return help
-            
+
     def print_help(self):
         print self._get_help()
         sys.exit(0)
-        
+
     def get_debug(self):
         return self.__debug
 
@@ -170,10 +170,10 @@ class JCLRunner(object):
             self.logger.setLevel(logging.DEBUG)
         else:
             self.logger.setLevel(logging.CRITICAL)
-            
+
     debug = property(get_debug, set_debug)
-    
-    
+
+
     def setup_db(self):
         Account.createTable(ifNotExists=True)
         PresenceAccount.createTable(ifNotExists=True)
@@ -184,7 +184,7 @@ class JCLRunner(object):
         pidfile = open(self.pid_file, "w")
         pidfile.write(str(os.getpid()))
         pidfile.close()
-        
+
     def _run(self, run_func):
         try:
             self.setup_pidfile()
@@ -214,3 +214,17 @@ class JCLRunner(object):
             return component.run()
         self._run(run_func)
 
+
+def main():
+    import sys
+    reload(sys)
+    sys.setdefaultencoding('utf-8')
+    del sys.setdefaultencoding
+    import jcl
+    from jcl.runner import JCLRunner
+    runner = JCLRunner("JCL", jcl.version)
+    runner.configure()
+    runner.run()
+
+if __name__ == '__main__':
+    main()
