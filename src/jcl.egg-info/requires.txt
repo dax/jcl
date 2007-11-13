@@ -1,0 +1,3 @@
+SQLObject>=0.8
+pyxmpp>=1.0
+pysqlite>=2.0
