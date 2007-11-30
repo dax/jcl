@@ -48,6 +48,8 @@ class JCLRunner(object):
         self.language = "en"
         self.db_url = "sqlite:///var/spool/jabber/jcl.db"
         self.pid_file = "/var/run/jabber/jcl.pid"
+        self.log_stdout = False
+        self.log_file = None
         self.options = [("c:", "config-file=", None,
                          " FILE\t\t\t\tConfiguration file to use",
                          lambda arg: self.set_attr("config_file", arg)),
@@ -75,11 +77,16 @@ class JCLRunner(object):
                         ("d", "debug", None,
                          "\t\t\t\t\tEnable debug traces",
                          lambda arg: self.set_attr("debug", True)),
+                        ("o", "log-stdout", None,
+                         "\t\t\t\t\tLog on stdout",
+                         lambda arg: self.set_attr("log_stdout", True)),
+                        ("f", "log-file", "component",
+                         "\t\t\t\t\tLog in file",
+                         lambda arg: self.set_attr("log_file", arg)),
                         ("h", "help", None,
                          "\t\t\t\t\tThis help",
                          lambda arg: self.print_help())]
         self.logger = logging.getLogger()
-        self.logger.addHandler(logging.StreamHandler())
         self.__debug = False
 
     def set_attr(self, attr, value):
@@ -125,7 +132,8 @@ class JCLRunner(object):
                         set_func(config_property)
 
     def configure(self):
-        """Apply configuration from command line and configuration file.
+        """
+        Apply configuration from command line and configuration file.
         command line arguments override configuration file properties.
         """
         shortopts = ""
@@ -146,6 +154,12 @@ class JCLRunner(object):
             self.logger.debug("Debug activated")
         self.__apply_configfile(commandline_args, cleanopts)
         self.__apply_commandline_args(commandline_args, cleanopts)
+        if self.log_stdout:
+            print "Logging to stdout"
+            self.logger.addHandler(logging.StreamHandler())
+        if self.log_file is not None:
+            print "Logging to file " + self.log_file
+            self.logger.addHandler(logging.FileHandler(self.log_file))
 
     def _get_help(self):
         help = self.component_name + " v" + self.component_version + " help:\n"
