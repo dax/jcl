@@ -2781,6 +2781,7 @@ class JCLComponent_TestCase(JCLTestCase):
                            name="account11",
                            jid="account11@jcl.test.com")
         exception = Exception("test exception")
+        self.assertEqual(_account.error, None)
         self.comp.send_error(_account, exception)
         self.assertEqual(len(self.comp.stream.sent), 1)
         error_sent = self.comp.stream.sent[0]
@@ -2790,6 +2791,7 @@ class JCLComponent_TestCase(JCLTestCase):
         self.assertEqual(error_sent.get_subject(), _account.default_lang_class.error_subject)
         self.assertEqual(error_sent.get_body(), _account.default_lang_class.error_body \
                          % (exception))
+        self.assertEqual(_account.error, "test exception")
         model.db_disconnect()
 
     def test_send_error_second(self):
@@ -2799,9 +2801,10 @@ class JCLComponent_TestCase(JCLTestCase):
         _account = Account(user=User(jid="user1@test.com"),
                            name="account11",
                            jid="account11@jcl.test.com")
-        _account.in_error = True
+        _account.error = "test exception"
         exception = Exception("test exception")
         self.comp.send_error(_account, exception)
+        self.assertEqual(_account.error, "test exception")
         self.assertEqual(len(self.comp.stream.sent), 0)
 
     def test_send_stanzas(self):

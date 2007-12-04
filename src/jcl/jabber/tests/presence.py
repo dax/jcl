@@ -246,7 +246,7 @@ class AccountPresenceAvailableHandler_TestCase(JCLTestCase):
         account11 = Account(user=user1,
                             name="account11",
                             jid="account11@jcl.test.com")
-        account11.in_error = True
+        account11.error = "Error"
         account12 = Account(user=user1,
                             name="account12",
                             jid="account12@jcl.test.com")

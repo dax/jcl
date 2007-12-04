@@ -91,7 +91,7 @@ class Account(InheritableSQLObject):
     name = StringCol()
     jid = StringCol()
     _status = StringCol(default=OFFLINE, dbName="status")
-    in_error = BoolCol(default=False)
+    error = StringCol(default=None)
     legacy_jids = MultipleJoin('LegacyJID')
     enabled = BoolCol(default=True)
     lastlogin = DateTimeCol(default=datetime.datetime.today())

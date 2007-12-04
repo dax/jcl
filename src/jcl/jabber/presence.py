@@ -83,13 +83,14 @@ class AccountPresenceHandler(Handler):
 class AccountPresenceAvailableHandler(AccountPresenceHandler):
     def get_account_presence(self, stanza, lang_class, _account):
         show_status = account.ONLINE
-        if _account.in_error:
+        if _account.error is not None:
             show_status = account.DND
         elif not _account.enabled:
             show_status = account.XA
-        return self.component.account_manager.send_presence_available(_account,
-                                                                      show_status,
-                                                                      lang_class)
+        return self.component.account_manager.send_presence_available(\
+            _account,
+            show_status,
+            lang_class)
 
 class RootPresenceHandler(AccountPresenceHandler):
     filter = jabber.get_accounts_root_filter

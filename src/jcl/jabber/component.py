@@ -573,11 +573,11 @@ class AccountManager(object):
         return result
 
     def send_error_from_account(self, _account, exception):
-        """Send an error message only one time until _account.in_error
-        has been reset to False"""
+        """Send an error message only one time until _account.error
+        has been reset to None"""
         result = []
-        if _account.in_error == False:
-            _account.in_error = True
+        if _account.error == None:
+            _account.error = str(exception)
             result.append(Message(from_jid=_account.jid,
                                   to_jid=_account.user.jid,
                                   stanza_type="error",
