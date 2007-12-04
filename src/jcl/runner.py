@@ -155,10 +155,8 @@ class JCLRunner(object):
         self.__apply_configfile(commandline_args, cleanopts)
         self.__apply_commandline_args(commandline_args, cleanopts)
         if self.log_stdout:
-            print "Logging to stdout"
             self.logger.addHandler(logging.StreamHandler())
         if self.log_file is not None:
-            print "Logging to file " + self.log_file
             self.logger.addHandler(logging.FileHandler(self.log_file))
 
     def _get_help(self):
