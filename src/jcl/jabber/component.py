@@ -628,7 +628,8 @@ class JCLComponent(Component, object):
         self.time_unit = 60
         self.queue = Queue(100)
         self.account_manager = account_manager_class(self)
-        self.msg_handlers = []
+        self.msg_handlers = [[PasswordMessageHandler(self),
+                              HelpMessageHandler(self)]]
         self.presence_subscribe_handlers = [[AccountPresenceSubscribeHandler(self),
                                              RootPresenceSubscribeHandler(self)]]
         self.presence_unsubscribe_handlers = [[AccountPresenceUnsubscribeHandler(self),
@@ -769,9 +770,6 @@ class JCLComponent(Component, object):
                                         self.handle_message)
         self.send_stanzas(self.account_manager.probe_all_accounts_presence())
 
-        self.msg_handlers += [[PasswordMessageHandler(self),
-                               HelpMessageHandler(self)]]
-
     def signal_handler(self, signum, frame):
         """Stop method handler
         """
@@ -824,7 +822,13 @@ class JCLComponent(Component, object):
                                   apply_filter_func=None,
                                   apply_handle_func=None,
                                   send_result=True):
-        """Execute handler if their filter method does not return None"""
+        """
+        Execute handler if their filter method does not return None
+        `handlers` is a list of handler groups which is a list of groups.
+        Only one successfull handler (its filter and its handler methods
+        does not return None) per group is executed. When a handler is
+        executed successfully the next group is processed.
+        """
         result = []
         lang_class = self.lang.get_lang_class_from_node(stanza.get_node())
         for handler_group in handlers:

@@ -81,5 +81,6 @@ class HelpMessageHandler(Handler):
         """
         return [Message(to_jid=stanza.get_from(),
                         from_jid=stanza.get_to(),
+                        stanza_type=stanza.get_type(),
                         subject=lang_class.help_message_subject,
                         body=lang_class.help_message_body)]
