@@ -318,6 +318,7 @@ class JCLCommandManager(CommandManager):
             (True, root_node_re)
         self.commands["http://jabber.org/protocol/admin#shutdown"] = \
             (True, root_node_re)
+        self.commands["jcl#get-last-error"] = (False, account_node_re)
 
     def get_name_and_jid(self, mixed_name_and_jid):
         return mixed_name_and_jid.split("/", 1)[:2]
@@ -1218,6 +1219,24 @@ class JCLCommandManager(CommandManager):
                                           name="TimerThread")
         restart_thread.start()
         return (None, result)
+
+    def execute_get_last_error_1(self, info_query, session_context,
+                                 command_node, lang_class):
+        self.__logger.debug("Executing command 'get-last-error' step 1")
+        result_form = Form(xmlnode_or_type="result")
+        bare_from_jid = info_query.get_from().bare()
+        account_name = info_query.get_to().node
+        _account = account.get_account(bare_from_jid, account_name)
+        if _account is not None and _account.error is not None:
+            last_error = _account.error
+        else:
+            last_error = lang_class.account_no_error
+        result_form.add_field(field_type="text-single",
+                              label=lang_class.field_last_error,
+                              value=last_error)
+        result_form.as_xml(command_node)
+        command_node.setProp("status", STATUS_COMPLETED)
+        return (result_form, [])
 
 class CommandRootDiscoGetInfoHandler(RootDiscoGetInfoHandler):
 

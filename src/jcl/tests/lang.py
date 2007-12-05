@@ -242,6 +242,9 @@ class Language_TestCase(unittest.TestCase):
         self.assertNotEquals(self.lang_class.help_message_subject, None)
         self.assertNotEquals(self.lang_class.help_message_body, None)
 
+        self.assertNotEquals(self.lang_class.field_last_error, None)
+        self.assertNotEquals(self.lang_class.account_no_error, None)
+
 class Language_fr_TestCase(Language_TestCase):
     def setUp(self):
         self.lang_class = Lang.fr

@@ -3472,6 +3472,97 @@ class JCLCommandManager_TestCase(JCLTestCase):
         self.assertFalse(self.comp.restart)
         self.assertFalse(self.comp.running)
 
+    def test_execute_get_last_error_no_error(self):
+        self.comp.account_manager.account_classes = (Account,)
+        user1 = User(jid="test1@test.com")
+        user2 = User(jid="test2@test.com")
+        account11 = Account(user=user1,
+                            name="account11",
+                            jid="account11@" + unicode(self.comp.jid))
+        account12 = Account(user=user1,
+                            name="account12",
+                            jid="account12@" + unicode(self.comp.jid))
+        account21 = Account(user=user2,
+                            name="account21",
+                            jid="account21@" + unicode(self.comp.jid))
+        account22 = Account(user=user2,
+                            name="account11",
+                            jid="account11@" + unicode(self.comp.jid))
+        info_query = Iq(stanza_type="set",
+                        from_jid="test1@test.com",
+                        to_jid="account11@" + unicode(self.comp.jid))
+        command_node = info_query.set_new_content(command.COMMAND_NS, "command")
+        command_node.setProp("node", "jcl#get-last-error")
+        result = self.command_manager.apply_command_action(info_query,
+                                                           "jcl#get-last-error",
+                                                           "execute")
+        self.assertNotEquals(result, None)
+        self.assertEquals(len(result), 1)
+        xml_command = result[0].xpath_eval("c:command",
+                                           {"c": "http://jabber.org/protocol/commands"})[0]
+        self.assertEquals(xml_command.prop("status"), "completed")
+        self.assertNotEquals(xml_command.prop("sessionid"), None)
+        self._check_actions(result[0])
+        x_data = result[0].xpath_eval("c:command/data:x",
+                                      {"c": "http://jabber.org/protocol/commands",
+                                       "data": "jabber:x:data"})
+        self.assertEquals(len(x_data), 1)
+        self.assertEquals(x_data[0].prop("type"), "result")
+        fields = result[0].xpath_eval("c:command/data:x/data:field",
+                                      {"c": "http://jabber.org/protocol/commands",
+                                       "data": "jabber:x:data"})
+        self.assertEquals(len(fields), 1)
+        self.assertEquals(fields[0].prop("type"), "text-single")
+        self.assertEquals(fields[0].prop("label"), Lang.en.field_last_error)
+        self.assertEquals(fields[0].children.name, "value")
+        self.assertEquals(fields[0].children.content, Lang.en.account_no_error)
+
+    def test_execute_get_last_error(self):
+        self.comp.account_manager.account_classes = (Account,)
+        user1 = User(jid="test1@test.com")
+        user2 = User(jid="test2@test.com")
+        account11 = Account(user=user1,
+                            name="account11",
+                            jid="account11@" + unicode(self.comp.jid))
+        account11.error = "Current error"
+        account12 = Account(user=user1,
+                            name="account12",
+                            jid="account12@" + unicode(self.comp.jid))
+        account21 = Account(user=user2,
+                            name="account21",
+                            jid="account21@" + unicode(self.comp.jid))
+        account22 = Account(user=user2,
+                            name="account11",
+                            jid="account11@" + unicode(self.comp.jid))
+        info_query = Iq(stanza_type="set",
+                        from_jid="test1@test.com",
+                        to_jid="account11@" + unicode(self.comp.jid))
+        command_node = info_query.set_new_content(command.COMMAND_NS, "command")
+        command_node.setProp("node", "jcl#get-last-error")
+        result = self.command_manager.apply_command_action(info_query,
+                                                           "jcl#get-last-error",
+                                                           "execute")
+        self.assertNotEquals(result, None)
+        self.assertEquals(len(result), 1)
+        xml_command = result[0].xpath_eval("c:command",
+                                           {"c": "http://jabber.org/protocol/commands"})[0]
+        self.assertEquals(xml_command.prop("status"), "completed")
+        self.assertNotEquals(xml_command.prop("sessionid"), None)
+        self._check_actions(result[0])
+        x_data = result[0].xpath_eval("c:command/data:x",
+                                      {"c": "http://jabber.org/protocol/commands",
+                                       "data": "jabber:x:data"})
+        self.assertEquals(len(x_data), 1)
+        self.assertEquals(x_data[0].prop("type"), "result")
+        fields = result[0].xpath_eval("c:command/data:x/data:field",
+                                      {"c": "http://jabber.org/protocol/commands",
+                                       "data": "jabber:x:data"})
+        self.assertEquals(len(fields), 1)
+        self.assertEquals(fields[0].prop("type"), "text-single")
+        self.assertEquals(fields[0].prop("label"), Lang.en.field_last_error)
+        self.assertEquals(fields[0].children.name, "value")
+        self.assertEquals(fields[0].children.content, "Current error")
+
 def suite():
     test_suite = unittest.TestSuite()
     test_suite.addTest(unittest.makeSuite(CommandManager_TestCase, 'test'))

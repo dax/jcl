@@ -240,6 +240,9 @@ class Lang:
         help_message_subject = u"Help"
         help_message_body = u"No help"
 
+        field_last_error = u"Last error"
+        account_no_error = u"This account has no error"
+
     class fr:
         component_name = u"composant générique Jabber Component Library"
         register_title = u"Enregistrement d'un nouveau compte"
@@ -424,6 +427,9 @@ class Lang:
 
         help_message_subject = u"Aide"
         help_message_body = u"Pas d'aide !"
+
+        field_last_error = u"Dernière erreur"
+        account_no_error = u"Ce compte n'a pas d'erreur"
 
     class nl:
         # TODO: when finish, delete this line and uncomment in tests/lang.py the makeSuite(Language_nl_TestCase, 'test') line
