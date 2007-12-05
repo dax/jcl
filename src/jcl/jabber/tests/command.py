@@ -224,6 +224,23 @@ class CommandManager_TestCase(unittest.TestCase):
                                                               "execute")
         self.assertEquals(result, [])
 
+    def test_apply_command_action_to_wrong_jid(self):
+        command.command_manager.commands["command1"] = (False, command.account_node_re)
+        command.command_manager.apply_execute_command = \
+            lambda iq, command_name: []
+        command.command_manager.component = MockComponent()
+        info_query = Iq(stanza_type="set",
+                        from_jid="user@test.com",
+                        to_jid="jcl.test.com")
+        result = command.command_manager.apply_command_action(info_query,
+                                                              "command1",
+                                                              "execute")
+        self.assertEquals(len(result), 1)
+        self.assertEquals(result[0].get_type(), "error")
+        self.assertEquals(result[0].xmlnode.children.name, "error")
+        self.assertEquals(result[0].xmlnode.children.prop("type"), "auth")
+        self.assertEquals(result[0].xmlnode.children.children.name, "forbidden")
+
     def test_apply_command_non_existing_action(self):
         command.command_manager.commands["command1"] = (False, command.root_node_re)
         command.command_manager.component = MockComponent()

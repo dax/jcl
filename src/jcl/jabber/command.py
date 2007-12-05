@@ -116,9 +116,11 @@ class CommandManager(object):
         """Apply action on command"""
         if self.commands.has_key(command_name):
             (must_be_admin, to_jid_re) = self.commands[command_name]
-            if not must_be_admin or \
-                   (must_be_admin and
-                    self.component.is_admin(info_query.get_from())):
+            to_jid = info_query.get_to()
+            if to_jid_re.match(unicode(to_jid)) and \
+                    not must_be_admin or \
+                    (must_be_admin and
+                     self.component.is_admin(info_query.get_from())):
                 short_command_name = self.get_short_command_name(command_name)
                 action_command_method = "apply_" + action + "_command"
                 if hasattr(self, action_command_method):
