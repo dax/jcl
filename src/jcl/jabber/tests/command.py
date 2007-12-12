@@ -55,6 +55,7 @@ class FieldNoType_TestCase(unittest.TestCase):
 
 class MockComponent(JCLComponent):
     jid = JID("jcl.test.com")
+    lang = Lang()
 
     def __init__(self):
         pass
@@ -75,64 +76,88 @@ class CommandManager_TestCase(unittest.TestCase):
         self.assertEquals(command_name, "test_command")
 
     def test_list_root_commands(self):
-        command.command_manager.commands["command1"] = (True, command.root_node_re)
-        command.command_manager.commands["command2"] = (False, command.root_node_re)
-        command.command_manager.commands["command11"] = (True, command.account_type_node_re)
-        command.command_manager.commands["command12"] = (False, command.account_type_node_re)
-        command.command_manager.commands["command21"] = (True, command.account_node_re)
-        command.command_manager.commands["command22"] = (False, command.account_node_re)
+        command.command_manager.commands["command1"] = (True,
+                                                        command.root_node_re)
+        command.command_manager.commands["command2"] = (False,
+                                                        command.root_node_re)
+        command.command_manager.commands["command11"] = (\
+            True, command.account_type_node_re)
+        command.command_manager.commands["command12"] = (\
+            False, command.account_type_node_re)
+        command.command_manager.commands["command21"] = (\
+            True, command.account_node_re)
+        command.command_manager.commands["command22"] = (\
+            False, command.account_node_re)
         command.command_manager.component = MockComponent()
-        disco_items = command.command_manager.list_commands(jid=JID("user@test.com"),
-                                                            to_jid=JID("jcl.test.com"),
-                                                            disco_items=DiscoItems(),
-                                                            lang_class=Lang.en)
+        disco_items = command.command_manager.list_commands(\
+            jid=JID("user@test.com"),
+            to_jid=JID("jcl.test.com"),
+            disco_items=DiscoItems(),
+            lang_class=Lang.en)
         items = disco_items.get_items()
         self.assertEquals(len(items), 1)
         self.assertEquals(items[0].get_node(), "command2")
         self.assertEquals(items[0].get_name(), "command2")
 
     def test_list_accounttype_commands(self):
-        command.command_manager.commands["command1"] = (True, command.root_node_re)
-        command.command_manager.commands["command2"] = (False, command.root_node_re)
-        command.command_manager.commands["command11"] = (True, command.account_type_node_re)
-        command.command_manager.commands["command12"] = (False, command.account_type_node_re)
-        command.command_manager.commands["command21"] = (True, command.account_node_re)
-        command.command_manager.commands["command22"] = (False, command.account_node_re)
+        command.command_manager.commands["command1"] = (True,
+                                                        command.root_node_re)
+        command.command_manager.commands["command2"] = (False,
+                                                        command.root_node_re)
+        command.command_manager.commands["command11"] = (\
+            True, command.account_type_node_re)
+        command.command_manager.commands["command12"] = (\
+            False, command.account_type_node_re)
+        command.command_manager.commands["command21"] = (\
+            True, command.account_node_re)
+        command.command_manager.commands["command22"] = (\
+            False, command.account_node_re)
         command.command_manager.component = MockComponent()
-        disco_items = command.command_manager.list_commands(jid=JID("user@test.com"),
-                                                            to_jid=JID("jcl.test.com/Example"),
-                                                            disco_items=DiscoItems(),
-                                                            lang_class=Lang.en)
+        disco_items = command.command_manager.list_commands(\
+            jid=JID("user@test.com"),
+            to_jid=JID("jcl.test.com/Example"),
+            disco_items=DiscoItems(),
+            lang_class=Lang.en)
         items = disco_items.get_items()
         self.assertEquals(len(items), 1)
         self.assertEquals(items[0].get_node(), "command12")
         self.assertEquals(items[0].get_name(), "command12")
 
     def test_list_account_commands(self):
-        command.command_manager.commands["command1"] = (True, command.root_node_re)
-        command.command_manager.commands["command2"] = (False, command.root_node_re)
-        command.command_manager.commands["command11"] = (True, command.account_type_node_re)
-        command.command_manager.commands["command12"] = (False, command.account_type_node_re)
-        command.command_manager.commands["command21"] = (True, command.account_node_re)
-        command.command_manager.commands["command22"] = (False, command.account_node_re)
+        command.command_manager.commands["command1"] = (True,
+                                                        command.root_node_re)
+        command.command_manager.commands["command2"] = (False,
+                                                        command.root_node_re)
+        command.command_manager.commands["command11"] = (\
+            True, command.account_type_node_re)
+        command.command_manager.commands["command12"] = (\
+            False, command.account_type_node_re)
+        command.command_manager.commands["command21"] = (\
+            True, command.account_node_re)
+        command.command_manager.commands["command22"] = (\
+            False, command.account_node_re)
         command.command_manager.component = MockComponent()
-        disco_items = command.command_manager.list_commands(jid=JID("user@test.com"),
-                                                            to_jid=JID("account@jcl.test.com/Example"),
-                                                            disco_items=DiscoItems(),
-                                                            lang_class=Lang.en)
+        disco_items = command.command_manager.list_commands(\
+            jid=JID("user@test.com"),
+            to_jid=JID("account@jcl.test.com/Example"),
+            disco_items=DiscoItems(),
+            lang_class=Lang.en)
         items = disco_items.get_items()
         self.assertEquals(len(items), 1)
         self.assertEquals(items[0].get_node(), "command22")
         self.assertEquals(items[0].get_name(), "command22")
 
     def test_list_commands_as_admin(self):
-        command.command_manager.commands["command1"] = (True, command.root_node_re)
-        command.command_manager.commands["command2"] = (False, command.root_node_re)
+        command.command_manager.commands["command1"] = (True,
+                                                        command.root_node_re)
+        command.command_manager.commands["command2"] = (False,
+                                                        command.root_node_re)
         command.command_manager.component = MockComponent()
-        disco_items = command.command_manager.list_commands(jid=JID("admin@test.com"),
-                                                            to_jid=JID("jcl.test.com"),
-                                                            disco_items=DiscoItems(),
-                                                            lang_class=Lang.en)
+        disco_items = command.command_manager.list_commands(\
+            jid=JID("admin@test.com"),
+            to_jid=JID("jcl.test.com"),
+            disco_items=DiscoItems(),
+            lang_class=Lang.en)
         items = disco_items.get_items()
         self.assertEquals(len(items), 2)
         self.assertEquals(items[0].get_node(), "command1")
@@ -141,13 +166,16 @@ class CommandManager_TestCase(unittest.TestCase):
         self.assertEquals(items[1].get_name(), "command2")
 
     def test_list_commands_as_admin_fulljid(self):
-        command.command_manager.commands["command1"] = (True, command.root_node_re)
-        command.command_manager.commands["command2"] = (False, command.root_node_re)
+        command.command_manager.commands["command1"] = (True,
+                                                        command.root_node_re)
+        command.command_manager.commands["command2"] = (False,
+                                                        command.root_node_re)
         command.command_manager.component = MockComponent()
-        disco_items = command.command_manager.list_commands(jid=JID("admin@test.com/full"),
-                                                            to_jid=JID("jcl.test.com"),
-                                                            disco_items=DiscoItems(),
-                                                            lang_class=Lang.en)
+        disco_items = command.command_manager.list_commands(\
+            jid=JID("admin@test.com/full"),
+            to_jid=JID("jcl.test.com"),
+            disco_items=DiscoItems(),
+            lang_class=Lang.en)
         items = disco_items.get_items()
         self.assertEquals(len(items), 2)
         self.assertEquals(items[0].get_node(), "command1")
@@ -156,7 +184,8 @@ class CommandManager_TestCase(unittest.TestCase):
         self.assertEquals(items[1].get_name(), "command2")
 
     def test_apply_admin_command_action_as_admin(self):
-        command.command_manager.commands["command1"] = (True, command.root_node_re)
+        command.command_manager.commands["command1"] = (True,
+                                                        command.root_node_re)
         command.command_manager.apply_execute_command = \
             lambda iq, command_name: []
         command.command_manager.component = MockComponent()
@@ -169,7 +198,8 @@ class CommandManager_TestCase(unittest.TestCase):
         self.assertEquals(result, [])
 
     def test_apply_admin_command_action_as_admin_fulljid(self):
-        command.command_manager.commands["command1"] = (True, command.root_node_re)
+        command.command_manager.commands["command1"] = (True,
+                                                        command.root_node_re)
         command.command_manager.apply_execute_command = \
             lambda iq, command_name: []
         command.command_manager.component = MockComponent()
@@ -182,7 +212,8 @@ class CommandManager_TestCase(unittest.TestCase):
         self.assertEquals(result, [])
 
     def test_apply_admin_command_action_as_user(self):
-        command.command_manager.commands["command1"] = (True, command.root_node_re)
+        command.command_manager.commands["command1"] = (True,
+                                                        command.root_node_re)
         command.command_manager.apply_execute_command = \
             lambda iq, command_name: []
         command.command_manager.component = MockComponent()
@@ -199,7 +230,8 @@ class CommandManager_TestCase(unittest.TestCase):
         self.assertEquals(result[0].xmlnode.children.children.name, "forbidden")
 
     def test_apply_non_admin_command_action_as_admin(self):
-        command.command_manager.commands["command1"] = (False, command.root_node_re)
+        command.command_manager.commands["command1"] = (False,
+                                                        command.root_node_re)
         command.command_manager.apply_execute_command = \
             lambda iq, command_name: []
         command.command_manager.component = MockComponent()
@@ -212,7 +244,8 @@ class CommandManager_TestCase(unittest.TestCase):
         self.assertEquals(result, [])
 
     def test_apply_non_admin_command_action_as_user(self):
-        command.command_manager.commands["command1"] = (False, command.root_node_re)
+        command.command_manager.commands["command1"] = (False,
+                                                        command.root_node_re)
         command.command_manager.apply_execute_command = \
             lambda iq, command_name: []
         command.command_manager.component = MockComponent()
@@ -225,7 +258,8 @@ class CommandManager_TestCase(unittest.TestCase):
         self.assertEquals(result, [])
 
     def test_apply_command_action_to_wrong_jid(self):
-        command.command_manager.commands["command1"] = (False, command.account_node_re)
+        command.command_manager.commands["command1"] = (False,
+                                                        command.account_node_re)
         command.command_manager.apply_execute_command = \
             lambda iq, command_name: []
         command.command_manager.component = MockComponent()
@@ -242,7 +276,8 @@ class CommandManager_TestCase(unittest.TestCase):
         self.assertEquals(result[0].xmlnode.children.children.name, "forbidden")
 
     def test_apply_command_non_existing_action(self):
-        command.command_manager.commands["command1"] = (False, command.root_node_re)
+        command.command_manager.commands["command1"] = (False,
+                                                        command.root_node_re)
         command.command_manager.component = MockComponent()
         info_query = Iq(stanza_type="set",
                         from_jid="user@test.com",
@@ -255,6 +290,45 @@ class CommandManager_TestCase(unittest.TestCase):
         self.assertEquals(result[0].xmlnode.children.name, "error")
         self.assertEquals(result[0].xmlnode.children.prop("type"), "cancel")
         self.assertEquals(result[0].xmlnode.children.children.name,
+                          "feature-not-implemented")
+
+    def test_apply_command_unknown_command(self):
+        command.command_manager.component = MockComponent()
+        info_query = Iq(stanza_type="set",
+                        from_jid="user@test.com",
+                        to_jid="jcl.test.com")
+        result = command.command_manager.apply_command_action(info_query,
+                                                              "command1",
+                                                              "noexecute")
+        self.assertEquals(len(result), 1)
+        self.assertEquals(result[0].get_type(), "error")
+        self.assertEquals(result[0].xmlnode.children.name, "error")
+        self.assertEquals(result[0].xmlnode.children.prop("type"), "cancel")
+        self.assertEquals(result[0].xmlnode.children.children.name,
+                          "feature-not-implemented")
+
+    def test_multi_step_command_unknown_step(self):
+        command.command_manager.commands["command1"] = (False,
+                                                        command.root_node_re)
+        command.command_manager.component = MockComponent()
+        info_query = Iq(stanza_type="set",
+                        from_jid="user@test.com",
+                        to_jid="jcl.test.com")
+        command_node = info_query.set_new_content(command.COMMAND_NS,
+                                                  "command")
+        command_node.setProp("node",
+                             "command1")
+        result = command.command_manager.execute_multi_step_command(info_query,
+                                                                    "command1",
+                                                                    None)
+        self.assertEquals(result[0].get_type(), "error")
+        child = result[0].xmlnode.children
+        self.assertEquals(child.name, "command")
+        self.assertEquals(child.prop("node"), "command1")
+        child = result[0].xmlnode.children.next
+        self.assertEquals(child.name, "error")
+        self.assertEquals(child.prop("type"), "cancel")
+        self.assertEquals(child.children.name,
                           "feature-not-implemented")
 
 class JCLCommandManager_TestCase(JCLTestCase):
@@ -280,6 +354,11 @@ class JCLCommandManager_TestCase(JCLTestCase):
         JCLTestCase.tearDown(self)
         if os.path.exists(self.config_file):
             os.unlink(self.config_file)
+
+    def test_init(self):
+        command_manager = JCLCommandManager(self.comp,
+                                            self.comp.account_manager)
+        self.assertEquals(len(command_manager.commands), 23)
 
     def _check_actions(self, info_query, expected_actions=None, action_index=0):
         actions = info_query.xpath_eval("c:command/c:actions",
@@ -409,6 +488,80 @@ class JCLCommandManager_TestCase(JCLTestCase):
                           "account11/test2@test.com")
         self.assertEquals(options[3].prop("label"),
                           "account12 (Example2) (test1@test.com)")
+        self.assertEquals(options[3].children.name, "value")
+        self.assertEquals(options[3].children.content,
+                          "account12/test1@test.com")
+
+    def test_add_form_select_accounts_without_user_jid(self):
+        self.comp.account_manager.account_classes = (ExampleAccount,
+                                                     Example2Account)
+        model.db_connect()
+        user1 = User(jid="test1@test.com")
+        account11 = ExampleAccount(user=user1,
+                                   name="account11",
+                                   jid="account11@jcl.test.com")
+        account12 = Example2Account(user=user1,
+                                    name="account12",
+                                    jid="account12@jcl.test.com")
+        user2 = User(jid="test2@test.com")
+        account21 = ExampleAccount(user=user2,
+                                   name="account21",
+                                   jid="account21@jcl.test.com")
+        account22 = ExampleAccount(user=user2,
+                                   name="account11",
+                                   jid="account11@jcl.test.com")
+        user3 = User(jid="test3@test.com")
+        account31 = ExampleAccount(user=user3,
+                                   name="account31",
+                                   jid="account31@jcl.test.com")
+        account32 = Example2Account(user=user3,
+                                    name="account32",
+                                    jid="account32@jcl.test.com")
+        model.db_disconnect()
+        info_query = Iq(stanza_type="set",
+                        from_jid="admin@test.com",
+                        to_jid=self.comp.jid)
+        command_node = info_query.set_new_content(command.COMMAND_NS, "command")
+        session_context = {}
+        session_context["user_jids"] = ["test1@test.com", "test2@test.com"]
+        self.command_manager.add_form_select_accounts(session_context,
+                                                      command_node,
+                                                      Lang.en,
+                                                      "title", "description",
+                                                      show_user_jid=False)
+        x_data = info_query.xpath_eval("c:command/data:x",
+                                       {"c": "http://jabber.org/protocol/commands",
+                                        "data": "jabber:x:data"})
+        self.assertEquals(len(x_data), 1)
+        self.assertEquals(x_data[0].prop("type"), "form")
+        fields = info_query.xpath_eval("c:command/data:x/data:field",
+                                       {"c": "http://jabber.org/protocol/commands",
+                                        "data": "jabber:x:data"})
+        self.assertEquals(len(fields), 1)
+        self.assertEquals(fields[0].prop("var"), "account_names")
+        self.assertEquals(fields[0].prop("type"), "list-multi")
+        self.assertEquals(fields[0].prop("label"), Lang.en.field_accounts)
+        options = info_query.xpath_eval("c:command/data:x/data:field[1]/data:option",
+                                        {"c": "http://jabber.org/protocol/commands",
+                                         "data": "jabber:x:data"})
+        self.assertEquals(len(options), 4)
+        self.assertEquals(options[0].prop("label"),
+                          "account11 (Example)")
+        self.assertEquals(options[0].children.name, "value")
+        self.assertEquals(options[0].children.content,
+                          "account11/test1@test.com")
+        self.assertEquals(options[1].prop("label"),
+                          "account21 (Example)")
+        self.assertEquals(options[1].children.name, "value")
+        self.assertEquals(options[1].children.content,
+                          "account21/test2@test.com")
+        self.assertEquals(options[2].prop("label"),
+                          "account11 (Example)")
+        self.assertEquals(options[2].children.name, "value")
+        self.assertEquals(options[2].children.content,
+                          "account11/test2@test.com")
+        self.assertEquals(options[3].prop("label"),
+                          "account12 (Example2)")
         self.assertEquals(options[3].children.name, "value")
         self.assertEquals(options[3].children.content,
                           "account12/test1@test.com")

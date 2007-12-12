@@ -41,6 +41,13 @@ def suite():
     return jcl.tests.suite()
 
 if __name__ == '__main__':
+    class MyTestProgram(unittest.TestProgram):
+        def runTests(self):
+            """run tests but do not exit after"""
+            if self.testRunner is None:
+                self.testRunner = unittest.TextTestRunner(verbosity=self.verbosity)
+            self.testRunner.run(self.test)
+
     logger = logging.getLogger()
     logger.addHandler(logging.StreamHandler())
     logger.setLevel(logging.CRITICAL)
@@ -50,27 +57,19 @@ if __name__ == '__main__':
         testoob.main(defaultTest='suite')
     except ImportError:
         print "Falling back to standard unittest"
-        unittest.main(defaultTest='suite')
+        MyTestProgram(defaultTest='suite')
 
-coverage.stop()
-coverage.analysis(jcl.jabber)
-coverage.analysis(jcl.jabber.component)
-coverage.analysis(jcl.jabber.feeder)
-coverage.analysis(jcl.jabber.message)
-coverage.analysis(jcl.jabber.presence)
-coverage.analysis(jcl.jabber.disco)
-coverage.analysis(jcl.lang)
-coverage.analysis(jcl.runner)
-coverage.analysis(jcl.model)
-coverage.analysis(jcl.model.account)
-
-coverage.report([jcl.jabber,
-                 jcl.jabber.component,
-                 jcl.jabber.feeder,
-                 jcl.jabber.message,
-                 jcl.jabber.presence,
-                 jcl.jabber.disco,
-                 jcl.lang,
-                 jcl.runner,
-                 jcl.model,
-                 jcl.model.account])
+coverage.report(["src/jcl/__init__.py",
+                 "src/jcl/lang.py",
+                 "src/jcl/runner.py",
+                 "src/jcl/error.py",
+                 "src/jcl/jabber/__init__.py",
+                 "src/jcl/jabber/component.py",
+                 "src/jcl/jabber/command.py",
+                 "src/jcl/jabber/feeder.py",
+                 "src/jcl/jabber/message.py",
+                 "src/jcl/jabber/presence.py",
+                 "src/jcl/jabber/disco.py",
+                 "src/jcl/jabber/register.py",
+                 "src/jcl/model/__init__.py",
+                 "src/jcl/model/account.py"])

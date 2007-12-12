@@ -282,8 +282,6 @@ class JCLCommandManager(CommandManager):
             (True, root_node_re)
         self.commands["http://jabber.org/protocol/admin#end-user-session"] = \
             (True, root_node_re)
-        #self.commands["http://jabber.org/protocol/admin#get-user-password"] = True
-        #self.commands["http://jabber.org/protocol/admin#change-user-password"] = True
         self.commands["http://jabber.org/protocol/admin#get-user-roster"] = \
             (True, root_node_re)
         self.commands["http://jabber.org/protocol/admin#get-user-lastlogin"] = \
@@ -319,6 +317,9 @@ class JCLCommandManager(CommandManager):
         self.commands["http://jabber.org/protocol/admin#shutdown"] = \
             (True, root_node_re)
         self.commands["jcl#get-last-error"] = (False, account_node_re)
+
+        #self.commands["http://jabber.org/protocol/admin#get-user-password"] = True
+        #self.commands["http://jabber.org/protocol/admin#change-user-password"] = True
 
     def get_name_and_jid(self, mixed_name_and_jid):
         return mixed_name_and_jid.split("/", 1)[:2]
@@ -363,7 +364,7 @@ class JCLCommandManager(CommandManager):
                         label = _account.name + " (" + account_type \
                             + ") (" + user_jid + ")"
                     else:
-                        label = _account.name+ " (" + account_type \
+                        label = _account.name + " (" + account_type \
                             + ")"
                     field.add_option(label=label,
                                      values=[_account.name + "/" + user_jid])
