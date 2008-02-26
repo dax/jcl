@@ -3412,6 +3412,16 @@ class JCLCommandManager_TestCase(JCLTestCase):
             info_query,
             "http://jabber.org/protocol/admin#restart",
             "execute")
+        self.assertFalse(self.comp.restart)
+        self.assertTrue(self.comp.running)
+        threads = threading.enumerate()
+        self.assertEquals(len(threads), 2)
+        threading.Event().wait(1)
+        threads = threading.enumerate()
+        self.assertEquals(len(threads), 1)
+        self.assertTrue(self.comp.restart)
+        self.assertFalse(self.comp.running)
+
         self.assertNotEquals(result, None)
         self.assertEquals(len(result), 3)
         xml_command = result[0].xpath_eval("c:command",
@@ -3430,6 +3440,15 @@ class JCLCommandManager_TestCase(JCLTestCase):
         self.assertEquals(result[2].get_from(), self.comp.jid)
         self.assertEquals(result[2].get_to(), "test2@test.com")
         self.assertEquals(result[2].get_body(), "service will be restarted in 0 second")
+
+    def test_execute_restart_no_announcement(self):
+        (submit_form, command_node, info_query,
+         xml_command, session_id) = self._common_execute_restart()
+        submit_form.as_xml(command_node)
+        result = self.command_manager.apply_command_action(\
+            info_query,
+            "http://jabber.org/protocol/admin#restart",
+            "execute")
         self.assertFalse(self.comp.restart)
         self.assertTrue(self.comp.running)
         threads = threading.enumerate()
@@ -3440,14 +3459,6 @@ class JCLCommandManager_TestCase(JCLTestCase):
         self.assertTrue(self.comp.restart)
         self.assertFalse(self.comp.running)
 
-    def test_execute_restart_no_announcement(self):
-        (submit_form, command_node, info_query,
-         xml_command, session_id) = self._common_execute_restart()
-        submit_form.as_xml(command_node)
-        result = self.command_manager.apply_command_action(\
-            info_query,
-            "http://jabber.org/protocol/admin#restart",
-            "execute")
         self.assertNotEquals(result, None)
         self.assertEquals(len(result), 1)
         xml_command = result[0].xpath_eval("c:command",
@@ -3459,15 +3470,6 @@ class JCLCommandManager_TestCase(JCLTestCase):
         self.assertFalse(context_session.has_key("announcement"))
         self.assertEquals(context_session["delay"],
                           ["0"])
-        self.assertFalse(self.comp.restart)
-        self.assertTrue(self.comp.running)
-        threads = threading.enumerate()
-        self.assertEquals(len(threads), 2)
-        threading.Event().wait(1)
-        threads = threading.enumerate()
-        self.assertEquals(len(threads), 1)
-        self.assertTrue(self.comp.restart)
-        self.assertFalse(self.comp.running)
 
     def _common_execute_shutdown(self):
         self.comp.account_manager.account_classes = (ExampleAccount,
@@ -3568,6 +3570,16 @@ class JCLCommandManager_TestCase(JCLTestCase):
             info_query,
             "http://jabber.org/protocol/admin#shutdown",
             "execute")
+        self.assertFalse(self.comp.restart)
+        self.assertTrue(self.comp.running)
+        threads = threading.enumerate()
+        self.assertEquals(len(threads), 2)
+        threading.Event().wait(1)
+        threads = threading.enumerate()
+        self.assertEquals(len(threads), 1)
+        self.assertFalse(self.comp.restart)
+        self.assertFalse(self.comp.running)
+
         self.assertNotEquals(result, None)
         self.assertEquals(len(result), 3)
         xml_command = result[0].xpath_eval("c:command",
@@ -3586,6 +3598,15 @@ class JCLCommandManager_TestCase(JCLTestCase):
         self.assertEquals(result[2].get_from(), self.comp.jid)
         self.assertEquals(result[2].get_to(), "test2@test.com")
         self.assertEquals(result[2].get_body(), "service will be shut in 0 second")
+
+    def test_execute_shutdown_no_announcement(self):
+        (submit_form, command_node, info_query,
+         xml_command, session_id) = self._common_execute_shutdown()
+        submit_form.as_xml(command_node)
+        result = self.command_manager.apply_command_action(\
+            info_query,
+            "http://jabber.org/protocol/admin#shutdown",
+            "execute")
         self.assertFalse(self.comp.restart)
         self.assertTrue(self.comp.running)
         threads = threading.enumerate()
@@ -3596,14 +3617,6 @@ class JCLCommandManager_TestCase(JCLTestCase):
         self.assertFalse(self.comp.restart)
         self.assertFalse(self.comp.running)
 
-    def test_execute_shutdown_no_announcement(self):
-        (submit_form, command_node, info_query,
-         xml_command, session_id) = self._common_execute_shutdown()
-        submit_form.as_xml(command_node)
-        result = self.command_manager.apply_command_action(\
-            info_query,
-            "http://jabber.org/protocol/admin#shutdown",
-            "execute")
         self.assertNotEquals(result, None)
         self.assertEquals(len(result), 1)
         xml_command = result[0].xpath_eval("c:command",
@@ -3615,15 +3628,6 @@ class JCLCommandManager_TestCase(JCLTestCase):
         self.assertFalse(context_session.has_key("announcement"))
         self.assertEquals(context_session["delay"],
                           ["0"])
-        self.assertFalse(self.comp.restart)
-        self.assertTrue(self.comp.running)
-        threads = threading.enumerate()
-        self.assertEquals(len(threads), 2)
-        threading.Event().wait(1)
-        threads = threading.enumerate()
-        self.assertEquals(len(threads), 1)
-        self.assertFalse(self.comp.restart)
-        self.assertFalse(self.comp.running)
 
     def test_execute_get_last_error_no_error(self):
         self.comp.account_manager.account_classes = (Account,)
