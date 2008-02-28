@@ -795,7 +795,7 @@ class JCLCommandManager(CommandManager):
 
     def execute_get_user_lastlogin_3(self, info_query, session_context,
                                      command_node, lang_class):
-        self.__logger.debug("Executing command 'get-user-roster' step 2")
+        self.__logger.debug("Executing command 'get-user-roster' step 3")
         result_form = Form(xmlnode_or_type="result")
         result_form.add_field(field_type="hidden",
                               name="FORM_TYPE",
