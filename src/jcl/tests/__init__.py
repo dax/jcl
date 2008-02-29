@@ -36,10 +36,12 @@ def is_xml_equal(xml_ref, xml_test, strict=False, test_sibling=True):
             return True
     if (xml_ref is None) and (xml_test is None):
         return True
-    if isinstance(xml_ref, types.StringType):
-        xml_ref = libxml2.parseDoc(xml_ref)
-    if isinstance(xml_test, types.StringType):
-        xml_test = libxml2.parseDoc(xml_test)
+    if isinstance(xml_ref, types.StringType) \
+            or isinstance(xml_ref, types.UnicodeType):
+        xml_ref = libxml2.parseDoc(xml_ref).children
+    if isinstance(xml_test, types.StringType) \
+            or isinstance(xml_test, types.UnicodeType):
+        xml_test = libxml2.parseDoc(xml_test).children
 
     def check_equality(test_func, ref, test, strict):
         """
@@ -65,7 +67,7 @@ def is_xml_equal(xml_ref, xml_test, strict=False, test_sibling=True):
                           xml_ref, xml_test, strict):
         return False
 
-    if not check_equality(lambda ref, test: ref.ns() == test.ns(),
+    if not check_equality(lambda ref, test: str(ref.ns()) == str(test.ns()),
                           xml_ref, xml_test, strict):
         return False
 
@@ -109,6 +111,31 @@ def is_xml_equal(xml_ref, xml_test, strict=False, test_sibling=True):
     return True
 
 class JCLTest_TestCase(unittest.TestCase):
+    def test_is_xml_equal_str_node_vs_xml_node(self):
+        """
+        Test if an xml node is equal to its string representation.
+        """
+        # Get xml_node children because parseDoc return an xmlDocument
+        # and we usually test against an xmlNode
+        xml_node = libxml2.parseDoc("<test />").children
+        self.assertTrue(is_xml_equal(str(xml_node), xml_node))
+
+    def test_is_xml_equal_xml_node_vs_str_node(self):
+        """
+        Test if an xml node is equal to its string representation.
+        """
+        # Get xml_node children because parseDoc return an xmlDocument
+        # and we usually test against an xmlNode
+        xml_node = libxml2.parseDoc("<test />").children
+        self.assertTrue(is_xml_equal(xml_node, str(xml_node)))
+
+    def test_is_xml_equal_namespace(self):
+        """
+        Test for namespace equality.
+        """
+        self.assertTrue(is_xml_equal("<test xmlns='http://test.com' />",
+                                     "<test xmlns='http://test.com' />"))
+
     ###########################################################################
     ## Test weak equality
     ###########################################################################

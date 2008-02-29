@@ -383,19 +383,13 @@ class JCLCommandManager_TestCase(JCLTestCase):
         self.command_manager.add_form_select_users_jids(command_node, "title",
                                                         "description",
                                                         Lang.en.field_users_jids)
-        x_data = info_query.xpath_eval("c:command/data:x",
-                                       {"c": "http://jabber.org/protocol/commands",
-                                        "data": "jabber:x:data"})
-        self.assertEquals(len(x_data), 1)
-        self.assertEquals(x_data[0].prop("type"), "form")
-        user_jid_field = info_query.xpath_eval("c:command/data:x/data:field[1]",
-                                               {"c": "http://jabber.org/protocol/commands",
-                                                "data": "jabber:x:data"})
-        self.assertNotEquals(user_jid_field, None)
-        self.assertEquals(len(user_jid_field), 1)
-        self.assertEquals(user_jid_field[0].prop("var"), "user_jids")
-        self.assertEquals(user_jid_field[0].prop("type"), "jid-multi")
-        self.assertEquals(user_jid_field[0].prop("label"), Lang.en.field_users_jids)
+        self.assertTrue(jcl.tests.is_xml_equal(\
+                u"<command xmlns='http://jabber.org/protocol/commands'>"
+                + "<x xmlns='jabber:x:data' type='form'>"
+                + "<field var='user_jids' type='jid-multi' label='"
+                + Lang.en.field_users_jids + "' />"
+                + "</x></command>",
+                info_query.xmlnode.children))
 
     def test_add_form_select_user_jid(self):
         info_query = Iq(stanza_type="set",
