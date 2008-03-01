@@ -7,6 +7,7 @@ import tempfile
 import sys
 import types
 import libxml2
+import logging
 
 from sqlobject.dbconnection import TheURIOpener
 import jcl.model
@@ -16,21 +17,30 @@ if sys.platform == "win32":
 else:
     DB_DIR = "/tmp/"
 
-def is_xml_equal(xml_ref, xml_test, strict=False, test_sibling=True):
+__logger = logging.getLogger("jcl.tests")
+
+def is_xml_equal(xml_ref, xml_test, strict=False,
+                 strict_attribut=False, test_sibling=True):
     """
     Test for xml structures equality.
     By default (`strict`=False), it only test if `xml_ref` structure is included
     in `xml_test` (ie. if all elements of `xml_ref` exists in `xml_test`).
     if `strict`=True, it also checks if all elements of `xml_test` are in `xml_ref`.
-    siblings are tested only if `test_sibling` is True.
+    siblings are tested only if `test_sibling` is True. Attribut equality is
+    tested only if `strict_attribut`=True.
     `xml_ref`.
     `xml_ref`: xml node
     `xml_test`: xml node
     `strict`: boolean
+    `strict_attribut`: boolean
     `test_sibling`: boolean
     """
+    __logger.info("Testing xml node equality:\n--\n" + str(xml_ref) + "\n--\n"
+                  + str(xml_test) + "\n--\n")
     if (xml_ref is None) ^ (xml_test is None):
         if strict or xml_test is None:
+            __logger.error("xml_test (" + str(xml_test) + ") or xml_ref ("
+                           + str(xml_ref) + ") is None")
             return False
         else:
             return True
@@ -53,7 +63,8 @@ def is_xml_equal(xml_ref, xml_test, strict=False, test_sibling=True):
                 return False
             else:
                 if test.next is not None:
-                    return is_xml_equal(ref, test.next, strict, False)
+                    return is_xml_equal(ref, test.next, strict,
+                                        strict_attribut, False)
                 else:
                     return False
         else:
@@ -61,14 +72,20 @@ def is_xml_equal(xml_ref, xml_test, strict=False, test_sibling=True):
 
     if not check_equality(lambda ref, test: ref.type == test.type,
                           xml_ref, xml_test, strict):
+        __logger.error("XML node types are different: " + str(xml_ref.type)
+                       + " != " + str(xml_test.type))
         return False
 
     if not check_equality(lambda ref, test: ref.name == test.name,
                           xml_ref, xml_test, strict):
+        __logger.error("XML node names are different: " + str(xml_ref.name)
+                       + " != " + str(xml_test.name))
         return False
 
     if not check_equality(lambda ref, test: str(ref.ns()) == str(test.ns()),
                           xml_ref, xml_test, strict):
+        __logger.error("XML node namespaces are different: " + str(xml_ref.ns())
+                       + " != " + str(xml_test.ns()))
         return False
 
     def check_attribut_equality(ref, test):
@@ -81,12 +98,18 @@ def is_xml_equal(xml_ref, xml_test, strict=False, test_sibling=True):
                 return False
             for attr in ref.properties:
                 if ref.prop(attr.name) != test.prop(attr.name):
+                    __logger.error("XML node attributs are different: " 
+                                   + str(attr)
+                                   + " != " + str(test.prop(attr.name)))
                     return False
-            if strict:
+            if strict_attribut:
                 for attr in test.properties:
                     if ref.prop(attr.name) != test.prop(attr.name):
+                        __logger.error("XML node attributs are different: " 
+                                       + str(attr)
+                                       + " != " + str(ref.prop(attr.name)))
                         return False
-        elif strict and test.properties is not None:
+        elif strict_attribut and test.properties is not None:
             return False
         return True
 
@@ -95,8 +118,12 @@ def is_xml_equal(xml_ref, xml_test, strict=False, test_sibling=True):
         return False
 
     if not check_equality(lambda ref, test: \
-                              is_xml_equal(ref.children, test.children, strict),
+                              is_xml_equal(ref.children, test.children,
+                                           strict, strict_attribut),
                           xml_ref, xml_test, strict):
+        __logger.error("XML node children are different: "
+                       + str(xml_ref.children)
+                       + " != " + str(xml_test.children))
         return False
 
     if test_sibling:
@@ -105,8 +132,10 @@ def is_xml_equal(xml_ref, xml_test, strict=False, test_sibling=True):
         else:
             new_xml_test = xml_test
         if not check_equality(lambda ref, test: \
-                                  is_xml_equal(ref, test, strict),
+                                  is_xml_equal(ref, test, strict,
+                                               strict_attribut),
                               xml_ref.next, new_xml_test, strict):
+            __logger.error("XML node siblings are different")
             return False
     return True
 
@@ -260,10 +289,18 @@ class JCLTest_TestCase(unittest.TestCase):
         Test with only one node (as string) strict equality 2
         differents structures (attribut added).
         """
-        self.assertFalse(is_xml_equal("<test />", "<test attr='value' />",
-                                      True))
+        self.assertTrue(is_xml_equal("<test />", "<test attr='value' />",
+                                     True))
 
-    def test_is_xml_equal_simple_str_node_strict_different(self):
+    def test_is_xml_equal_simple_str_node_strict_attribut_different(self):
+        """
+        Test with only one node (as string) strict equality 2
+        differents structures (attribut added).
+        """
+        self.assertFalse(is_xml_equal("<test />", "<test attr='value' />",
+                                      strict_attribut=True))
+
+    def test_is_xml_equal_simple_str_node_strict_different2(self):
         """
         Test with only one node (as string) strict equality 2
         differents structures (attribut missing).
@@ -335,9 +372,18 @@ class JCLTest_TestCase(unittest.TestCase):
         Test 2 complex not strictly equal (attribut added) xml structures
         (strict equality).
         """
+        self.assertTrue(is_xml_equal("""<test attr="value"><subnode subattr="subvalue" /></test>""",
+                                     """<test attr="value"><subnode subattr="subvalue" other_subattribut="other_value" /></test>""",
+                                     True))
+
+    def test_is_xml_equal_complex_str_node_strict_attribut_different(self):
+        """
+        Test 2 complex not strictly equal (attribut added) xml structures
+        (strict equality).
+        """
         self.assertFalse(is_xml_equal("""<test attr="value"><subnode subattr="subvalue" /></test>""",
                                       """<test attr="value"><subnode subattr="subvalue" other_subattribut="other_value" /></test>""",
-                                      True))
+                                      strict_attribut=True))
 
     def test_is_xml_equal_complex_str_node_strict_different_missing_attribut(self):
         """
@@ -406,4 +452,6 @@ def suite():
     return test_suite
 
 if __name__ == '__main__':
+    if "-v" in sys.argv:
+        __logger.setLevel(logging.INFO)
     unittest.main(defaultTest='suite')
