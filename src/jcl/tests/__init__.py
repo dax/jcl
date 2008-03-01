@@ -76,6 +76,8 @@ def is_xml_equal(xml_ref, xml_test, strict=False,
                        + " != " + str(xml_test.type))
         return False
 
+    if xml_ref.type == "text":
+        return xml_ref.content.strip() == xml_test.content.strip()
     if not check_equality(lambda ref, test: ref.name == test.name,
                           xml_ref, xml_test, strict):
         __logger.error("XML node names are different: " + str(xml_ref.name)
@@ -226,6 +228,20 @@ class JCLTest_TestCase(unittest.TestCase):
         self.assertTrue(is_xml_equal("""<test attr="value"><subnode subattr="subvalue" /></test>""",
                                      """<test attr="value"><subnode subattr="subvalue" /></test>"""))
 
+    def test_is_xml_equal_complex_str_node_weak_equal_content(self):
+        """
+        Test 2 complex equal xml structures with equal content.
+        """
+        self.assertTrue(is_xml_equal("<test><subnode>content</subnode></test>",
+                                     "<test><subnode>content</subnode></test>"))
+
+    def test_is_xml_equal_complex_str_node_weak_different_content(self):
+        """
+        Test 2 complex equal xml structures with different content.
+        """
+        self.assertFalse(is_xml_equal("<test><subnode>other</subnode></test>",
+                                      "<test><subnode>content</subnode></test>"))
+
     def test_is_xml_equal_complex_str_node_weak_different_node_order(self):
         """
         Test 2 complex equal xml structures (weak equality) but with different
@@ -348,6 +364,22 @@ class JCLTest_TestCase(unittest.TestCase):
         self.assertTrue(is_xml_equal("""<test attr="value"><subnode subattr="subvalue" /></test>""",
                                      """<test attr="value"><subnode subattr="subvalue" /></test>""",
                                      True))
+
+    def test_is_xml_equal_complex_str_node_strict_equal_content(self):
+        """
+        Test 2 complex equal xml structures with equal content.
+        """
+        self.assertTrue(is_xml_equal("<test><subnode>content</subnode></test>",
+                                     "<test><subnode>content</subnode></test>",
+                                     True))
+
+    def test_is_xml_equal_complex_str_node_strict_different_content(self):
+        """
+        Test 2 complex equal xml structures with different content.
+        """
+        self.assertFalse(is_xml_equal("<test><subnode>other</subnode></test>",
+                                      "<test><subnode>content</subnode></test>",
+                                      True))
 
     def test_is_xml_equal_complex_str_node_strict_different_node_order(self):
         """
