@@ -155,11 +155,11 @@ class Lang:
         command_change_user_password_2_description = \
             u"Select account for which to change password"
 
-        command_get_user_roster = u"Get user&apos;s accounts"
+        command_get_user_roster = u"Get user's accounts"
         command_get_user_roster_1_description = \
             u"Fill out this form with user Jabber ID for which to retrieve accounts"
 
-        command_get_user_lastlogin = u"Get user&apos;s last login time"
+        command_get_user_lastlogin = u"Get user's last login time"
         command_get_user_lastlogin_1_description = \
             u"Fill out this form with user Jabber ID to search account" \
             u" for which to retrieve last login time"
