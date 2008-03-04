@@ -3133,6 +3133,39 @@ class AccountManager_TestCase(JCLTestCase):
         self.account_manager.populate_account(account11, Lang.en, x_data,
                                               False, False)
         self.assertTrue(account11.populate_handler_called)
+        AccountPopulateHandlerMock.dropTable(ifExists=True)
+
+    def test_populate_account_handler_error(self):
+        self.comp.stream = MockStream()
+        self.comp.stream_class = MockStream
+        x_data = Form("submit")
+        x_data.add_field(name="name",
+                         value="account1",
+                         field_type="text-single")
+        class AccountPopulateHandlerErrorMock(Account):
+            def _init(self, *args, **kw):
+                Account._init(self, *args, **kw)
+                self.populate_handler_called = False
+
+            def populate_handler(self):
+                self.populate_handler_called = True
+                raise Exception()
+
+        AccountPopulateHandlerErrorMock.createTable(ifNotExists=True)
+        user1 = User(jid="test1@test.com")
+        account11 = AccountPopulateHandlerErrorMock(\
+            user=user1, name="account11", jid="account11@jcl.test.com")
+        self.assertFalse(account11.populate_handler_called)
+        result = self.account_manager.populate_account(account11, Lang.en,
+                                                       x_data, False, False)
+        self.assertEquals(len(result), 2)
+        self.assertEquals(result[0].get_type(), "error")
+        self.assertEquals(result[0].get_from(), "account11@jcl.test.com")
+        self.assertEquals(result[0].get_to(), "test1@test.com")
+        self.assertEquals(result[1].get_type(), None)
+        self.assertEquals(result[1].get_from(), "jcl.test.com")
+        self.assertEquals(result[1].get_to(), "test1@test.com")
+        self.assertTrue(account11.populate_handler_called)
 
 def suite():
     test_suite = unittest.TestSuite()

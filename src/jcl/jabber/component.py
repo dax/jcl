@@ -203,7 +203,6 @@ class AccountManager(object):
             from_jid = _account.user.jid
         field = None
         result = []
-        model.db_connect()
         for (field, field_type, field_options, field_post_func,
              field_default_func) in _account.get_register_fields():
             if field is not None:
@@ -219,11 +218,13 @@ class AccountManager(object):
             try:
                 getattr(_account, "populate_handler")()
             except Exception, exception:
-                type, value, stack = sys.exc_info()
-                self.__logger.error("Error in timer thread\n%s\n%s"
-                                    % (exception, "".join(traceback.format_exception
-                                                          (type, value, stack, 5))))
-                return self.send_error_from_account(_account, exception)
+                typ, value, stack = sys.exc_info()
+                self.__logger.error(\
+                    "Error in timer thread\n%s\n%s"
+                    % (exception, "".join(traceback.format_exception
+                                          (typ, value, stack, 5))))
+                result.extend(self.send_error_from_account(_account,
+                                                           exception))
 
         if first_account:
             # component subscribe user presence when registering the first
@@ -253,7 +254,6 @@ class AccountManager(object):
                     to_jid=from_jid,
                     subject=_account.get_update_message_subject(lang_class),
                     body=_account.get_update_message_body(lang_class)))
-        model.db_disconnect()
         return result
 
     def update_account(self,
