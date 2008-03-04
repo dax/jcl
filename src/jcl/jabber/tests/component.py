@@ -499,6 +499,7 @@ class JCLComponent_TestCase(JCLTestCase):
                         from_jid="user1@test.com",
                         to_jid="jcl.test.com")
         disco_info = self.comp.disco_get_info(None, info_query)
+        self.assertEquals(disco_info.get_node(), None)
         self.assertEquals(len(self.comp.stream.sent), 0)
         self.assertEquals(disco_info.get_identities()[0].get_name(), self.comp.name)
         self.assertTrue(disco_info.has_feature("jabber:iq:version"))
@@ -512,6 +513,7 @@ class JCLComponent_TestCase(JCLTestCase):
                         from_jid="user1@test.com",
                         to_jid="jcl.test.com")
         disco_info = self.comp.disco_get_info(None, info_query)
+        self.assertEquals(disco_info.get_node(), None)
         self.assertEquals(len(self.comp.stream.sent), 0)
         self.assertEquals(disco_info.get_identities()[0].get_name(),
                           self.comp.name)
@@ -525,6 +527,7 @@ class JCLComponent_TestCase(JCLTestCase):
                         from_jid="user1@test.com",
                         to_jid="node_test@jcl.test.com")
         disco_info = self.comp.disco_get_info("node_test", info_query)
+        self.assertEquals(disco_info.get_node(), "node_test")
         self.assertEquals(len(self.comp.stream.sent), 0)
         self.assertTrue(disco_info.has_feature("jabber:iq:register"))
 
@@ -537,6 +540,7 @@ class JCLComponent_TestCase(JCLTestCase):
                         to_jid="node_test@jcl.test.com/node_type")
         disco_info = self.comp.disco_get_info("node_type/node_test",
                                               info_query)
+        self.assertEquals(disco_info.get_node(), "node_type/node_test")
         self.assertEquals(len(self.comp.stream.sent), 0)
         self.assertTrue(disco_info.has_feature("jabber:iq:register"))
 
@@ -553,9 +557,13 @@ class JCLComponent_TestCase(JCLTestCase):
         info_query = Iq(stanza_type="get",
                         from_jid="user1@test.com",
                         to_jid="jcl.test.com")
-        disco_info = self.comp.disco_get_info("http://jabber.org/protocol/admin#get-disabled-users-num",
-                                              info_query)
+        disco_info = self.comp.disco_get_info(\
+            "http://jabber.org/protocol/admin#get-disabled-users-num",
+            info_query)
         self.assertEquals(len(self.comp.stream.sent), 0)
+        self.assertEquals(\
+            disco_info.get_node(),
+            "http://jabber.org/protocol/admin#get-disabled-users-num")
         self.assertTrue(disco_info.has_feature("http://jabber.org/protocol/commands"))
         self.assertEquals(len(disco_info.get_identities()), 1)
         self.assertEquals(disco_info.get_identities()[0].get_category(),
@@ -570,17 +578,16 @@ class JCLComponent_TestCase(JCLTestCase):
     ###########################################################################
     def test_disco_get_items_1type_no_node(self):
         """get_items on main entity. Must list accounts"""
-        model.db_connect()
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
         account1 = Account(user=User(jid="user1@test.com"),
                            name="account1",
                            jid="account1@jcl.test.com")
-        model.db_disconnect()
         info_query = Iq(stanza_type="get",
                         from_jid="user1@test.com",
                         to_jid="jcl.test.com")
         disco_items = self.comp.disco_get_items(None, info_query)
+        self.assertEquals(disco_items.get_node(), None)
         self.assertEquals(len(disco_items.get_items()), 1)
         disco_item = disco_items.get_items()[0]
         self.assertEquals(disco_item.get_jid(), account1.jid)
@@ -589,11 +596,9 @@ class JCLComponent_TestCase(JCLTestCase):
 
     def test_disco_get_items_unknown_node(self):
         self.comp.account_manager.account_classes = (ExampleAccount, )
-        model.db_connect()
         account11 = ExampleAccount(user=User(jid="user1@test.com"),
                                    name="account11",
                                    jid="account11@jcl.test.com")
-        model.db_disconnect()
         info_query = Iq(stanza_type="get",
                         from_jid="user1@test.com",
                         to_jid="jcl.test.com")
@@ -602,7 +607,6 @@ class JCLComponent_TestCase(JCLTestCase):
 
     def test_disco_get_items_unknown_node_multiple_account_types(self):
         self.comp.account_manager.account_classes = (ExampleAccount, Example2Account)
-        model.db_connect()
         user1 = User(jid="user1@test.com")
         account11 = ExampleAccount(user=user1,
                                    name="account11",
@@ -610,7 +614,6 @@ class JCLComponent_TestCase(JCLTestCase):
         account21 = Example2Account(user=user1,
                                     name="account21",
                                     jid="account21@jcl.test.com")
-        model.db_disconnect()
         info_query = Iq(stanza_type="get",
                         from_jid="user1@test.com",
                         to_jid="jcl.test.com")
@@ -620,11 +623,9 @@ class JCLComponent_TestCase(JCLTestCase):
 
     def test_disco_get_items_1type_with_node(self):
         """get_items on an account. Must return nothing"""
-        model.db_connect()
         account1 = Account(user=User(jid="user1@test.com"),
                            name="account1",
                            jid="account1@jcl.test.com")
-        model.db_disconnect()
         info_query = Iq(stanza_type="get",
                         from_jid="user1@test.com",
                         to_jid="account1@jcl.test.com")
@@ -637,7 +638,6 @@ class JCLComponent_TestCase(JCLTestCase):
         self.comp.account_manager.account_classes = (ExampleAccount, Example2Account)
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
-        model.db_connect()
         user1 = User(jid="user1@test.com")
         account11 = ExampleAccount(user=user1,
                                    name="account11",
@@ -645,11 +645,11 @@ class JCLComponent_TestCase(JCLTestCase):
         account21 = Example2Account(user=user1,
                                     name="account21",
                                     jid="account21@jcl.test.com")
-        model.db_disconnect()
         info_query = Iq(stanza_type="get",
                         from_jid="user1@test.com",
                         to_jid="jcl.test.com")
         disco_items = self.comp.disco_get_items(None, info_query)
+        self.assertEquals(disco_items.get_node(), None)
         self.assertEquals(len(disco_items.get_items()), 2)
         disco_item = disco_items.get_items()[0]
         self.assertEquals(unicode(disco_item.get_jid()),
@@ -672,7 +672,6 @@ class JCLComponent_TestCase(JCLTestCase):
         self.comp.account_manager.account_classes = (ExampleAccount, Example2Account)
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
-        model.db_connect()
         user1 = User(jid="user1@test.com")
         user2 = User(jid="user2@test.com")
         account11 = ExampleAccount(user=user1,
@@ -687,11 +686,11 @@ class JCLComponent_TestCase(JCLTestCase):
         account22 = Example2Account(user=user2,
                                     name="account22",
                                     jid="account22@jcl.test.com")
-        model.db_disconnect()
         info_query = Iq(stanza_type="get",
                         from_jid="user1@test.com",
                         to_jid="jcl.test.com/Example")
         disco_items = self.comp.disco_get_items("Example", info_query)
+        self.assertEquals(disco_items.get_node(), "Example")
         self.assertEquals(len(disco_items.get_items()), 1)
         disco_item = disco_items.get_items()[0]
         self.assertEquals(unicode(disco_item.get_jid()), unicode(account11.jid) + "/Example")
@@ -704,7 +703,6 @@ class JCLComponent_TestCase(JCLTestCase):
         self.comp.account_manager.account_classes = (ExampleAccount, Example2Account)
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
-        model.db_connect()
         user1 = User(jid="user1@test.com")
         user2 = User(jid="user2@test.com")
         account11 = ExampleAccount(user=user1,
@@ -719,12 +717,12 @@ class JCLComponent_TestCase(JCLTestCase):
         account22 = Example2Account(user=user2,
                                     name="account22",
                                     jid="account22@jcl.test.com")
-        model.db_disconnect()
         info_query = Iq(stanza_type="get",
                         from_jid="user2@test.com",
                         to_jid="jcl.test.com/Example2")
         disco_items = self.comp.disco_get_items("Example2", info_query)
         self.assertEquals(len(disco_items.get_items()), 1)
+        self.assertEquals(disco_items.get_node(), "Example2")
         disco_item = disco_items.get_items()[0]
         self.assertEquals(unicode(disco_item.get_jid()), unicode(account22.jid) + "/Example2")
         self.assertEquals(disco_item.get_node(), "Example2/" + account22.name)
@@ -733,11 +731,9 @@ class JCLComponent_TestCase(JCLTestCase):
     def test_disco_get_items_2types_with_long_node(self):
         """get_items on a first type account. Must return nothing"""
         self.comp.account_manager.account_classes = (ExampleAccount, Example2Account)
-        model.db_connect()
         account1 = ExampleAccount(user=User(jid="user1@test.com"),
                                   name="account1",
                                   jid="account1@jcl.test.com")
-        model.db_disconnect()
         info_query = Iq(stanza_type="get",
                         from_jid="user1@test.com",
                         to_jid="account1@jcl.test.com/Example")
@@ -747,15 +743,14 @@ class JCLComponent_TestCase(JCLTestCase):
     def test_disco_get_items_2types_with_long_node2(self):
         """get_items on a second type account. Must return nothing"""
         self.comp.account_manager.account_classes = (ExampleAccount, Example2Account)
-        model.db_connect()
         account1 = Example2Account(user=User(jid="user1@test.com"),
                                    name="account1",
                                    jid="account1@jcl.test.com")
-        model.db_disconnect()
         info_query = Iq(stanza_type="get",
                         from_jid="user1@test.com",
                         to_jid="account1@jcl.test.com/Example2")
-        disco_items = self.comp.disco_get_items("Example2/account1", info_query)
+        disco_items = self.comp.disco_get_items("Example2/account1",
+                                                info_query)
         self.assertEquals(disco_items, None)
 
     def test_disco_root_get_items_list_commands(self):
@@ -773,8 +768,11 @@ class JCLComponent_TestCase(JCLTestCase):
         info_query = Iq(stanza_type="get",
                         from_jid="admin@test.com",
                         to_jid="jcl.test.com")
-        disco_items = self.comp.disco_get_items("http://jabber.org/protocol/commands",
-                                                info_query)
+        disco_items = self.comp.disco_get_items(\
+            "http://jabber.org/protocol/commands",
+            info_query)
+        self.assertEquals(disco_items.get_node(),
+                          "http://jabber.org/protocol/commands")
         self.assertEquals(len(disco_items.get_items()), 22)
 
     ###########################################################################

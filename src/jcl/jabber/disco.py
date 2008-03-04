@@ -52,7 +52,7 @@ class RootDiscoGetInfoHandler(DiscoHandler):
     def handle(self, stanza, lang_class, node, disco_obj, data):
         """Implement discovery get_info on main component JID"""
         self.__logger.debug("root_disco_get_info")
-        disco_info = DiscoInfo()
+        disco_info = DiscoInfo(node)
         disco_info.add_feature("jabber:iq:version")
         disco_info.add_feature("http://jabber.org/protocol/disco#info")
         disco_info.add_feature("http://jabber.org/protocol/disco#items")
@@ -74,7 +74,7 @@ class AccountDiscoGetInfoHandler(DiscoHandler):
     def handle(self, stanza, lang_class, node, disco_obj, data):
         """Implement discovery get_info on an account node"""
         self.__logger.debug("account_disco_get_info")
-        disco_info = DiscoInfo()
+        disco_info = DiscoInfo(node)
         disco_info.add_feature("jabber:iq:register")
         return [disco_info]
 
@@ -101,7 +101,7 @@ class RootDiscoGetItemsHandler(DiscoHandler):
             return None
         disco_items = None
         if self.component.account_manager.has_multiple_account_type: # list accounts with only one type declared
-            disco_items = DiscoItems()
+            disco_items = DiscoItems(node)
             for (account_type, type_label) in \
                     self.component.account_manager.list_account_types(lang_class):
                 DiscoItem(disco_items,
@@ -111,7 +111,7 @@ class RootDiscoGetItemsHandler(DiscoHandler):
                           type_label)
 
         else:
-            disco_items = DiscoItems()
+            disco_items = DiscoItems(node)
             for (_account, resource, account_type) in \
                     self.component.account_manager.list_accounts(unicode(from_jid.bare())):
                 DiscoItem(disco_items,
@@ -135,7 +135,7 @@ class AccountTypeDiscoGetItemsHandler(DiscoHandler):
         self.__logger.debug("Listing account for " + account_type)
         account_class = self.component.account_manager.get_account_class(account_type)
         if account_class is not None:
-            disco_items = DiscoItems()
+            disco_items = DiscoItems(node)
             for (_account, resource, account_type) in \
                     self.component.account_manager.list_accounts(unicode(from_jid.bare()),
                                                                  account_class,

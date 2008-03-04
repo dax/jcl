@@ -94,6 +94,7 @@ class CommandManager_TestCase(unittest.TestCase):
             to_jid=JID("jcl.test.com"),
             disco_items=DiscoItems(),
             lang_class=Lang.en)
+        self.assertEquals(disco_items.get_node(), None)
         items = disco_items.get_items()
         self.assertEquals(len(items), 1)
         self.assertEquals(items[0].get_node(), "command2")
@@ -117,8 +118,9 @@ class CommandManager_TestCase(unittest.TestCase):
         disco_items = command.command_manager.list_commands(\
             jid=JID("user@test.com"),
             to_jid=JID("jcl.test.com/Example"),
-            disco_items=DiscoItems(),
+            disco_items=DiscoItems("Example"),
             lang_class=Lang.en)
+        self.assertEquals(disco_items.get_node(), "Example")
         items = disco_items.get_items()
         self.assertEquals(len(items), 1)
         self.assertEquals(items[0].get_node(), "command12")
@@ -142,8 +144,9 @@ class CommandManager_TestCase(unittest.TestCase):
         disco_items = command.command_manager.list_commands(\
             jid=JID("user@test.com"),
             to_jid=JID("account@jcl.test.com/Example"),
-            disco_items=DiscoItems(),
+            disco_items=DiscoItems("Example/account1"),
             lang_class=Lang.en)
+        self.assertEquals(disco_items.get_node(), "Example/account1")
         items = disco_items.get_items()
         self.assertEquals(len(items), 1)
         self.assertEquals(items[0].get_node(), "command22")
@@ -161,6 +164,7 @@ class CommandManager_TestCase(unittest.TestCase):
             to_jid=JID("jcl.test.com"),
             disco_items=DiscoItems(),
             lang_class=Lang.en)
+        self.assertEquals(disco_items.get_node(), None)
         items = disco_items.get_items()
         self.assertEquals(len(items), 2)
         self.assertEquals(items[0].get_node(), "command1")
@@ -181,6 +185,7 @@ class CommandManager_TestCase(unittest.TestCase):
             to_jid=JID("jcl.test.com"),
             disco_items=DiscoItems(),
             lang_class=Lang.en)
+        self.assertEquals(disco_items.get_node(), None)
         items = disco_items.get_items()
         self.assertEquals(len(items), 2)
         self.assertEquals(items[0].get_node(), "command1")
@@ -325,9 +330,8 @@ class CommandManager_TestCase(unittest.TestCase):
                                                   "command")
         command_node.setProp("node",
                              "command1")
-        result = command.command_manager.execute_multi_step_command(info_query,
-                                                                    "command1",
-                                                                    None)
+        result = command.command_manager.execute_multi_step_command(\
+            info_query, "command1", None)
         self.assertEquals(result[0].get_type(), "error")
         child = result[0].xmlnode.children
         self.assertEquals(child.name, "command")

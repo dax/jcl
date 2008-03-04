@@ -1263,7 +1263,7 @@ class CommandDiscoGetInfoHandler(DiscoHandler):
         Return infos for given command
         """
         if not disco_obj:
-            disco_obj = DiscoInfo()
+            disco_obj = DiscoInfo(node)
         return [command_manager.get_command_info(disco_info=disco_obj,
                                                  command_name=node,
                                                  lang_class=lang_class)]
@@ -1281,7 +1281,7 @@ class CommandDiscoGetItemsHandler(DiscoHandler):
         """
         """
         if not disco_obj:
-            disco_obj = DiscoItems()
+            disco_obj = DiscoItems(node)
         return [command_manager.list_commands(jid=info_query.get_from(),
                                               to_jid=info_query.get_to(),
                                               disco_items=disco_obj,
