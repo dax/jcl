@@ -98,6 +98,7 @@ class CommandManager_TestCase(unittest.TestCase):
         self.assertEquals(len(items), 1)
         self.assertEquals(items[0].get_node(), "command2")
         self.assertEquals(items[0].get_name(), "command2")
+        self.assertEquals(items[0].get_jid(), "jcl.test.com")
 
     def test_list_accounttype_commands(self):
         command.command_manager.commands["command1"] = (True,
@@ -122,6 +123,7 @@ class CommandManager_TestCase(unittest.TestCase):
         self.assertEquals(len(items), 1)
         self.assertEquals(items[0].get_node(), "command12")
         self.assertEquals(items[0].get_name(), "command12")
+        self.assertEquals(items[0].get_jid(), "jcl.test.com/Example")
 
     def test_list_account_commands(self):
         command.command_manager.commands["command1"] = (True,
@@ -146,6 +148,7 @@ class CommandManager_TestCase(unittest.TestCase):
         self.assertEquals(len(items), 1)
         self.assertEquals(items[0].get_node(), "command22")
         self.assertEquals(items[0].get_name(), "command22")
+        self.assertEquals(items[0].get_jid(), "account@jcl.test.com/Example")
 
     def test_list_commands_as_admin(self):
         command.command_manager.commands["command1"] = (True,
@@ -162,8 +165,10 @@ class CommandManager_TestCase(unittest.TestCase):
         self.assertEquals(len(items), 2)
         self.assertEquals(items[0].get_node(), "command1")
         self.assertEquals(items[0].get_name(), "command1")
+        self.assertEquals(items[0].get_jid(), "jcl.test.com")
         self.assertEquals(items[1].get_node(), "command2")
         self.assertEquals(items[1].get_name(), "command2")
+        self.assertEquals(items[1].get_jid(), "jcl.test.com")
 
     def test_list_commands_as_admin_fulljid(self):
         command.command_manager.commands["command1"] = (True,
@@ -180,8 +185,10 @@ class CommandManager_TestCase(unittest.TestCase):
         self.assertEquals(len(items), 2)
         self.assertEquals(items[0].get_node(), "command1")
         self.assertEquals(items[0].get_name(), "command1")
+        self.assertEquals(items[0].get_jid(), "jcl.test.com")
         self.assertEquals(items[1].get_node(), "command2")
         self.assertEquals(items[1].get_name(), "command2")
+        self.assertEquals(items[1].get_jid(), "jcl.test.com")
 
     def test_apply_admin_command_action_as_admin(self):
         command.command_manager.commands["command1"] = (True,
@@ -398,13 +405,14 @@ class JCLCommandManagerTestCase(JCLTestCase):
                 self.assertEquals(children.name, action)
                 children = children.next
 
-    def prepare_submit(self, node, session_id, from_jid, fields=[], action="next"):
+    def prepare_submit(self, node, session_id, from_jid,
+                       to_jid="jcl.test.com", fields=[], action="next"):
         """
         Prepare IQ form to be submitted
         """
         info_query = Iq(stanza_type="set",
                         from_jid=from_jid,
-                        to_jid=self.comp.jid)
+                        to_jid=to_jid)
         command_node = info_query.set_new_content(command.COMMAND_NS, "command")
         command_node.setProp("node", node)
         command_node.setProp("sessionid", session_id)

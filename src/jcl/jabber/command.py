@@ -98,7 +98,7 @@ class CommandManager(object):
                 command_desc = self.get_command_desc(command_name,
                                                      lang_class)
                 DiscoItem(disco_items,
-                          self.component.jid,
+                          to_jid,
                           command_name,
                           command_desc)
         return disco_items
