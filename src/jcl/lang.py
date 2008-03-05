@@ -70,7 +70,7 @@ class Lang:
         """Return default lang class according to self.default_lang"""
         return self.get_lang_class(self.default_lang)
 
-    class en:
+    class en(object):
         component_name = u"Jabber Component Library generic component"
         register_title = u"Create new account"
         register_instructions = u"Enter account parameters"
@@ -243,7 +243,7 @@ class Lang:
         field_last_error = u"Last error"
         account_no_error = u"This account has no error"
 
-    class fr:
+    class fr(en):
         component_name = u"composant générique Jabber Component Library"
         register_title = u"Enregistrement d'un nouveau compte"
         register_instructions = u"Entrer les paramètres du compte"
@@ -431,7 +431,7 @@ class Lang:
         field_last_error = u"Dernière erreur"
         account_no_error = u"Ce compte n'a pas d'erreur"
 
-    class nl:
+    class nl(en):
         # TODO: when finish, delete this line and uncomment in tests/lang.py the makeSuite(Language_nl_TestCase, 'test') line
         register_title = u"Registratie van verbindingen voor Jabber Mail"
         register_instructions = u"Instellingen voor verbinding"
@@ -477,7 +477,7 @@ class Lang:
         new_mail_subject = u"Nieuwe e-mail van %s"
         new_digest_subject = u"%i nieuwe e-mail(s)"
 
-    class es:
+    class es(en):
         # TODO: when finish, delete this line and uncomment in tests/lang.py the makeSuite(Language_es_TestCase, 'test') line
         register_title = u"Registro de nueva cuenta de email"
         register_instructions = u"Inserta los datos para la nueva cuenta"
@@ -527,7 +527,7 @@ class Lang:
         new_mail_subject = u"Nuevo email en %s"
         new_digest_subject = u"%i email(s) nuevo(s)"
 
-    class pl:
+    class pl(en):
         # TODO: when finish, delete this line and uncomment in tests/lang.py the makeSuite(Language_pl_TestCase, 'test') line
         register_title = u"Rejestracja w komponencie E-Mail"
         register_instructions = u"Wprowadź parametry połączenia"
@@ -573,7 +573,7 @@ class Lang:
         new_mail_subject = u"Nowy email od %s"
         new_digest_subject = u"%i nowy(ch) email(i)"
 
-    class cs:
+    class cs(en):
         # TODO: when finish, delete this line and uncomment in tests/lang.py the makeSuite(Language_cs_TestCase, 'test') line
         register_title = u"Jabber MailNotify registrace"
         register_instructions = u"Vložte nastavení spojení"
@@ -616,7 +616,7 @@ class Lang:
         new_mail_subject = u"Nový email od %s"
         new_digest_subject = u"%i má nový(é) email(y)"
 
-    class ru:
+    class ru(en):
         # TODO: when finish, delete this line and uncomment in tests/lang.py the makeSuite(Language_ru_TestCase, 'test') line
         register_title = u"Учетные данные соединения"
         register_instructions = u"Введите данные для соединения"
