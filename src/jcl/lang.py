@@ -458,18 +458,18 @@ class Lang:
         update_title = u"Bijwerken van JMC"
         update_instructions = u"Verbinding '%s' aanpassen"
         connection_label = u"%s verbinding '%s'"
-        update_account_message_subject = u"Verbinding %s '%s' werd bijgewerkt"
+#        update_account_message_subject = u"Verbinding %s '%s' werd bijgewerkt"
         update_account_message_body = u"Geregistreerd met gebruikersnaam '%s'"\
                                       u"en wachtwoord '%s' op '%s'"
-        new_account_message_subject = u"Nieuwe %s verbinding '%s' aangemaakt"
+#         new_account_message_subject = u"Nieuwe %s verbinding '%s' aangemaakt"
         new_account_message_body = u"Geregistreerd met " \
                                    u"gebruikersnaam '%s' en wachtwoord " \
                                    u"'%s' op '%s'"
         ask_password_subject = u"Wachtwoordaanvraag"
-        ask_password_body = u"Antwoord dit bericht met het volgende " \
-                            u"wachtwoord voor de volgende account: \n" \
-                            u"\thost = %s\n" \
-                            u"\tlogin = %s\n"
+#         ask_password_body = u"Antwoord dit bericht met het volgende " \
+#                             u"wachtwoord voor de volgende account: \n" \
+#                             u"\thost = %s\n" \
+#                             u"\tlogin = %s\n"
         password_saved_for_session = u"Het wachtwoord zal worden bewaard " \
                                      u"tijdens uw Jabber-sessie"
         check_error_subject = u"Fout tijdens controle op e-mails."
@@ -508,18 +508,18 @@ class Lang:
         update_title = u"Actualización de cuenta de email"
         update_instructions = u"Modifica los datos de la cuenta '%s'"
         connection_label = u"%s conexión '%s'"
-        update_account_message_subject = u"Actualizada %s conexión '%s'"
+#        update_account_message_subject = u"Actualizada %s conexión '%s'"
         update_account_message_body = u"Registrado con el usuario '%s' y " \
                                       u"contraseña '%s' en '%s'"
-        new_account_message_subject = u"Nueva %s conexión '%s' creada"
+#        new_account_message_subject = u"Nueva %s conexión '%s' creada"
         new_account_message_body = u"Registrado con usuario '%s' y " \
                                    u"contraseña '%s' en '%s'"
         ask_password_subject = u"Petición de contraseña"
-        ask_password_body = u"Para avisarte de emails nuevos, contesta a " \
-                            u"este mensaje con la contraseña " \
-                            u"de la cuenta: \n" \
-                            u"\tHost = %s\n" \
-                            u"\tUsuario = %s\n"
+#         ask_password_body = u"Para avisarte de emails nuevos, contesta a " \
+#                             u"este mensaje con la contraseña " \
+#                             u"de la cuenta: \n" \
+#                             u"\tHost = %s\n" \
+#                             u"\tUsuario = %s\n"
         password_saved_for_session = u"La contraseña será guardada para " \
                                      u"esta sesión únicamente."
         check_error_subject = u"Error al revisar los emails."
@@ -554,17 +554,17 @@ class Lang:
         update_title = u"Modyfikacja połączenia z komponentem mailowym"
         update_instructions = u"Modyfikacja połączenia '%s'"
         connection_label = u"%s połączenie '%s'"
-        update_account_message_subject = u"Zmodyfikowane %s połączenie '%s'"
+#        update_account_message_subject = u"Zmodyfikowane %s połączenie '%s'"
         update_account_message_body = u"Zarejestrowany z nazwą użytkownika " \
                                       u"'%s' i hasłem '%s' na '%s'"
-        new_account_message_subject = u"Nowe %s połączenie '%s' utworzone"
+#        new_account_message_subject = u"Nowe %s połączenie '%s' utworzone"
         new_account_message_body = u"Zarejestrowany z nazwą użytkownika " \
                                    u"'%s' i hasłem '%s' na '%s'"
         ask_password_subject = u"Żądanie hasła"
-        ask_password_body = u"Odpowiedz na ta wiadomosc z hasłem dla " \
-                            u"podanego konta: \n" \
-                            u"\tnazwa hosta = %s\n" \
-                            u"\tnazwa uzytkownika = %s\n"
+#         ask_password_body = u"Odpowiedz na ta wiadomosc z hasłem dla " \
+#                             u"podanego konta: \n" \
+#                             u"\tnazwa hosta = %s\n" \
+#                             u"\tnazwa uzytkownika = %s\n"
         password_saved_for_session = u"Hasło będzie przechowywane podczas " \
                                      u"Twojej sesji Jabbera"
         check_error_subject = u"Błąd podczas sprawdzania emaili."
@@ -599,17 +599,17 @@ class Lang:
         update_title = u"Jabber - aktualizace spojení k emailu"
         update_instructions = u"Aktualizace spojení '%s'"
         connection_label = u"%s spojení '%s'"
-        update_account_message_subject = u"Aktualizováno %s spojení '%s'"
+#        update_account_message_subject = u"Aktualizováno %s spojení '%s'"
         update_account_message_body = u"Registrováno s přihlašovacím jménem '%s' a " \
                                       u"heslem '%s' v '%s'"
-        new_account_message_subject = u"Nové spojení %s '%s' aktualizováno"
+#        new_account_message_subject = u"Nové spojení %s '%s' aktualizováno"
         new_account_message_body = u"Registrováno " \
                                    u"s přihlašovacím jménem '%s' a heslem '%s' v '%s'"
         ask_password_subject = u"Žádost o heslo"
-        ask_password_body = u"Odpovězte na tuto zprávu posláním hesla " \
-                            u"pro následující spojení: \n" \
-                            u"\thost = %s\n" \
-                            u"\tlogin = %s\n"
+#         ask_password_body = u"Odpovězte na tuto zprávu posláním hesla " \
+#                             u"pro následující spojení: \n" \
+#                             u"\thost = %s\n" \
+#                             u"\tlogin = %s\n"
         password_saved_for_session = u"Heslo bude uchováno během vašeho připojení k Jabberu"
         check_error_subject = u"Chyba při kontrole emailů."
         check_error_body = u"Nějaká chyba nastala při kontrole emailů:\n\t%s"
@@ -642,17 +642,17 @@ class Lang:
         update_title = u"Уточнение параметров"
         update_instructions = u"Изменяем соединение '%s'"
         connection_label = u"%s соединение '%s'"
-        update_account_message_subject = u"Данные для  %s обновлены '%s'"
+#        update_account_message_subject = u"Данные для  %s обновлены '%s'"
         update_account_message_body = u"Зарегистрирован с логином '%s' и " \
                                       u"паролем '%s' на '%s'"
-        new_account_message_subject = u"Новое %s соединение '%s' создано"
+#        new_account_message_subject = u"Новое %s соединение '%s' создано"
         new_account_message_body = u"Перерегистрирован с " \
                                    u"логином '%s' и паролем '%s' на '%s'"
         ask_password_subject = u"Запрос пароля"
-        ask_password_body = u"Ответьте на это сообщение с паролем " \
-                            u"для следующей учетной записи: \n" \
-                            u"\tХост = %s\n" \
-                            u"\tЛогин = %s\n"
+#         ask_password_body = u"Ответьте на это сообщение с паролем " \
+#                             u"для следующей учетной записи: \n" \
+#                             u"\tХост = %s\n" \
+#                             u"\tЛогин = %s\n"
         password_saved_for_session = u"Пароль будет сохранен только на время Вашей сессии."
         check_error_subject = u"Ошибка при проверке почты."
         check_error_body = u"Возникла ошибка при проверке почты:\n\t%s"
