@@ -38,7 +38,7 @@ import jcl.tests
 from jcl.lang import Lang
 from jcl.jabber.component import JCLComponent
 import jcl.jabber.command as command
-from jcl.jabber.command import FieldNoType, JCLCommandManager
+from jcl.jabber.command import FieldNoType, CommandManager, JCLCommandManager
 import jcl.model.account as account
 from jcl.model.account import Account, PresenceAccount, LegacyJID, User
 from jcl.model.tests.account import ExampleAccount, Example2Account
@@ -62,6 +62,22 @@ class MockComponent(JCLComponent):
 
     def get_admins(self):
         return ["admin@test.com"]
+
+class MockCommandManager(CommandManager):
+    """ """
+    def __init__ (self):
+        """ """
+        CommandManager.__init__(self)
+        self.commands["command1"] = (False,
+                                     command.root_node_re)
+        self.component = MockComponent()
+        self.command1_step_1_called = False
+
+    def execute_command1_1(self, info_query, session_context,
+                           command_node, lang_class):
+        """ """
+        self.command1_step_1_called = True
+        return (None, [])
 
 class CommandManager_TestCase(unittest.TestCase):
     def setUp(self):
@@ -320,18 +336,17 @@ class CommandManager_TestCase(unittest.TestCase):
                           "feature-not-implemented")
 
     def test_multi_step_command_unknown_step(self):
-        command.command_manager.commands["command1"] = (False,
-                                                        command.root_node_re)
-        command.command_manager.component = MockComponent()
+        command.command_manager = MockCommandManager()
+        command.command_manager.sessions["session_id"] = (1, {})
         info_query = Iq(stanza_type="set",
                         from_jid="user@test.com",
                         to_jid="jcl.test.com")
         command_node = info_query.set_new_content(command.COMMAND_NS,
                                                   "command")
-        command_node.setProp("node",
-                             "command1")
+        command_node.setProp("sessionid", "session_id")
+        command_node.setProp("node", "command1")
         result = command.command_manager.execute_multi_step_command(\
-            info_query, "command1", None)
+            info_query, "command1", lambda session_id: (2, {}))
         self.assertEquals(result[0].get_type(), "error")
         child = result[0].xmlnode.children
         self.assertEquals(child.name, "command")
@@ -341,6 +356,44 @@ class CommandManager_TestCase(unittest.TestCase):
         self.assertEquals(child.prop("type"), "cancel")
         self.assertEquals(child.children.name,
                           "feature-not-implemented")
+
+    def test_multi_step_command_first_step(self):
+        command.command_manager = MockCommandManager()
+        info_query = Iq(stanza_type="set",
+                        from_jid="user@test.com",
+                        to_jid="jcl.test.com")
+        command_node = info_query.set_new_content(command.COMMAND_NS,
+                                                  "command")
+        command_node.setProp("node", "command1")
+        result = command.command_manager.execute_multi_step_command(\
+            info_query, "command1", None)
+        self.assertTrue(command.command_manager.command1_step_1_called)
+
+    def test_multi_step_command_multi_step_method(self):
+        """
+        Test if the multi steps method is called if no specific method
+        is implemented
+        """
+        command.command_manager = MockCommandManager()        
+        command.command_manager.sessions["session_id"] = (1, {})
+        self.multi_step_command1_called = False
+        def execute_command1(info_query, session_context,
+                             command_node, lang_class):
+            """ """
+            self.multi_step_command1_called = True
+            return (None, [])
+            
+        command.command_manager.__dict__["execute_command1"] = execute_command1
+        info_query = Iq(stanza_type="set",
+                        from_jid="user@test.com",
+                        to_jid="jcl.test.com")
+        command_node = info_query.set_new_content(command.COMMAND_NS,
+                                                  "command")
+        command_node.setProp("sessionid", "session_id")
+        command_node.setProp("node", "command1")
+        result = command.command_manager.execute_multi_step_command(\
+            info_query, "command1", lambda session_id: (2, {}))
+        self.assertTrue(self.multi_step_command1_called)
 
 class JCLCommandManagerTestCase(JCLTestCase):
     def setUp(self, tables=[]):

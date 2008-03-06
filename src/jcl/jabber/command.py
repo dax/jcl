@@ -229,8 +229,8 @@ class CommandManager(object):
         else:
             self.sessions[session_id] = update_step_func(session_id)
         step = self.sessions[session_id][0]
-        step_method = "execute_" + short_node + "_" + str(step)
         self.parse_form(info_query, session_id)
+        step_method = "execute_" + short_node + "_" + str(step)
         if hasattr(self, step_method):
             (form, result) = getattr(self, step_method)(\
                 info_query,
@@ -239,8 +239,18 @@ class CommandManager(object):
                 lang_class)
             return [response] + result
         else:
-            return [info_query.make_error_response(\
-                "feature-not-implemented")]
+            # A method that can execute all other step
+            step_method = "execute_" + short_node
+            if hasattr(self, step_method):
+                (form, result) = getattr(self, step_method)(\
+                    info_query,
+                    self.sessions[session_id][1],
+                    command_node,
+                    lang_class)
+                return [response] + result
+            else:
+                return [info_query.make_error_response(\
+                        "feature-not-implemented")]
 
     def add_actions(self, command_node, actions, default_action_idx=0):
         actions_node = command_node.newTextChild(None, "actions", None)

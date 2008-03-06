@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 ##
-## component.py
+## feeder.py
 ## Login : David Rousselie <dax@happycoders.org>
 ## Started on  Wed Aug  9 21:04:42 2006 David Rousselie
 ## $Id$
