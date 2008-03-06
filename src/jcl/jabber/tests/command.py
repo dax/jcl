@@ -79,33 +79,52 @@ class MockCommandManager(CommandManager):
         self.command1_step_1_called = True
         return (None, [])
 
+def prepare_submit(node, session_id, from_jid, to_jid="jcl.test.com",
+                   fields=[], action="next"):
+    """
+    Prepare IQ form to be submitted
+    """
+    info_query = Iq(stanza_type="set",
+                    from_jid=from_jid,
+                    to_jid=to_jid)
+    command_node = info_query.set_new_content(command.COMMAND_NS,
+                                              "command")
+    command_node.setProp("node", node)
+    command_node.setProp("sessionid", session_id)
+    command_node.setProp("action", action)
+    submit_form = Form(xmlnode_or_type="submit")
+    submit_form.fields.extend(fields)
+    submit_form.as_xml(command_node)
+    return info_query
+
 class CommandManager_TestCase(unittest.TestCase):
     def setUp(self):
-        command.command_manager.commands = {}
+        self.command_manager = CommandManager()
+        self.command_manager.commands = {}
 
     def test_get_short_command_name_form_long_name(self):
-        command_name = command.command_manager.get_short_command_name("http://jabber.org/protocol/admin#test-command")
+        command_name = self.command_manager.get_short_command_name("http://jabber.org/protocol/admin#test-command")
         self.assertEquals(command_name, "test_command")
 
     def test_get_short_command_name(self):
-        command_name = command.command_manager.get_short_command_name("test-command")
+        command_name = self.command_manager.get_short_command_name("test-command")
         self.assertEquals(command_name, "test_command")
 
     def test_list_root_commands(self):
-        command.command_manager.commands["command1"] = (True,
-                                                        command.root_node_re)
-        command.command_manager.commands["command2"] = (False,
-                                                        command.root_node_re)
-        command.command_manager.commands["command11"] = (\
+        self.command_manager.commands["command1"] = (True,
+                                                     command.root_node_re)
+        self.command_manager.commands["command2"] = (False,
+                                                     command.root_node_re)
+        self.command_manager.commands["command11"] = (\
             True, command.account_type_node_re)
-        command.command_manager.commands["command12"] = (\
+        self.command_manager.commands["command12"] = (\
             False, command.account_type_node_re)
-        command.command_manager.commands["command21"] = (\
+        self.command_manager.commands["command21"] = (\
             True, command.account_node_re)
-        command.command_manager.commands["command22"] = (\
+        self.command_manager.commands["command22"] = (\
             False, command.account_node_re)
-        command.command_manager.component = MockComponent()
-        disco_items = command.command_manager.list_commands(\
+        self.command_manager.component = MockComponent()
+        disco_items = self.command_manager.list_commands(\
             jid=JID("user@test.com"),
             to_jid=JID("jcl.test.com"),
             disco_items=DiscoItems(),
@@ -118,20 +137,20 @@ class CommandManager_TestCase(unittest.TestCase):
         self.assertEquals(items[0].get_jid(), "jcl.test.com")
 
     def test_list_accounttype_commands(self):
-        command.command_manager.commands["command1"] = (True,
-                                                        command.root_node_re)
-        command.command_manager.commands["command2"] = (False,
-                                                        command.root_node_re)
-        command.command_manager.commands["command11"] = (\
+        self.command_manager.commands["command1"] = (True,
+                                                     command.root_node_re)
+        self.command_manager.commands["command2"] = (False,
+                                                     command.root_node_re)
+        self.command_manager.commands["command11"] = (\
             True, command.account_type_node_re)
-        command.command_manager.commands["command12"] = (\
+        self.command_manager.commands["command12"] = (\
             False, command.account_type_node_re)
-        command.command_manager.commands["command21"] = (\
+        self.command_manager.commands["command21"] = (\
             True, command.account_node_re)
-        command.command_manager.commands["command22"] = (\
+        self.command_manager.commands["command22"] = (\
             False, command.account_node_re)
-        command.command_manager.component = MockComponent()
-        disco_items = command.command_manager.list_commands(\
+        self.command_manager.component = MockComponent()
+        disco_items = self.command_manager.list_commands(\
             jid=JID("user@test.com"),
             to_jid=JID("jcl.test.com/Example"),
             disco_items=DiscoItems("Example"),
@@ -144,20 +163,20 @@ class CommandManager_TestCase(unittest.TestCase):
         self.assertEquals(items[0].get_jid(), "jcl.test.com/Example")
 
     def test_list_account_commands(self):
-        command.command_manager.commands["command1"] = (True,
-                                                        command.root_node_re)
-        command.command_manager.commands["command2"] = (False,
-                                                        command.root_node_re)
-        command.command_manager.commands["command11"] = (\
+        self.command_manager.commands["command1"] = (True,
+                                                     command.root_node_re)
+        self.command_manager.commands["command2"] = (False,
+                                                     command.root_node_re)
+        self.command_manager.commands["command11"] = (\
             True, command.account_type_node_re)
-        command.command_manager.commands["command12"] = (\
+        self.command_manager.commands["command12"] = (\
             False, command.account_type_node_re)
-        command.command_manager.commands["command21"] = (\
+        self.command_manager.commands["command21"] = (\
             True, command.account_node_re)
-        command.command_manager.commands["command22"] = (\
+        self.command_manager.commands["command22"] = (\
             False, command.account_node_re)
-        command.command_manager.component = MockComponent()
-        disco_items = command.command_manager.list_commands(\
+        self.command_manager.component = MockComponent()
+        disco_items = self.command_manager.list_commands(\
             jid=JID("user@test.com"),
             to_jid=JID("account@jcl.test.com/Example"),
             disco_items=DiscoItems("Example/account1"),
@@ -170,12 +189,12 @@ class CommandManager_TestCase(unittest.TestCase):
         self.assertEquals(items[0].get_jid(), "account@jcl.test.com/Example")
 
     def test_list_commands_as_admin(self):
-        command.command_manager.commands["command1"] = (True,
-                                                        command.root_node_re)
-        command.command_manager.commands["command2"] = (False,
-                                                        command.root_node_re)
-        command.command_manager.component = MockComponent()
-        disco_items = command.command_manager.list_commands(\
+        self.command_manager.commands["command1"] = (True,
+                                                     command.root_node_re)
+        self.command_manager.commands["command2"] = (False,
+                                                     command.root_node_re)
+        self.command_manager.component = MockComponent()
+        disco_items = self.command_manager.list_commands(\
             jid=JID("admin@test.com"),
             to_jid=JID("jcl.test.com"),
             disco_items=DiscoItems(),
@@ -191,12 +210,12 @@ class CommandManager_TestCase(unittest.TestCase):
         self.assertEquals(items[1].get_jid(), "jcl.test.com")
 
     def test_list_commands_as_admin_fulljid(self):
-        command.command_manager.commands["command1"] = (True,
-                                                        command.root_node_re)
-        command.command_manager.commands["command2"] = (False,
-                                                        command.root_node_re)
-        command.command_manager.component = MockComponent()
-        disco_items = command.command_manager.list_commands(\
+        self.command_manager.commands["command1"] = (True,
+                                                     command.root_node_re)
+        self.command_manager.commands["command2"] = (False,
+                                                     command.root_node_re)
+        self.command_manager.component = MockComponent()
+        disco_items = self.command_manager.list_commands(\
             jid=JID("admin@test.com/full"),
             to_jid=JID("jcl.test.com"),
             disco_items=DiscoItems(),
@@ -212,132 +231,138 @@ class CommandManager_TestCase(unittest.TestCase):
         self.assertEquals(items[1].get_jid(), "jcl.test.com")
 
     def test_apply_admin_command_action_as_admin(self):
-        command.command_manager.commands["command1"] = (True,
-                                                        command.root_node_re)
-        command.command_manager.apply_execute_command = \
+        self.command_manager.commands["command1"] = (True,
+                                                     command.root_node_re)
+        self.command_manager.apply_execute_command = \
             lambda iq, command_name: []
-        command.command_manager.component = MockComponent()
+        self.command_manager.component = MockComponent()
         info_query = Iq(stanza_type="set",
                         from_jid="admin@test.com",
                         to_jid="jcl.test.com")
-        result = command.command_manager.apply_command_action(info_query,
-                                                              "command1",
-                                                              "execute")
+        result = self.command_manager.apply_command_action(info_query,
+                                                           "command1",
+                                                           "execute")
         self.assertEquals(result, [])
 
     def test_apply_admin_command_action_as_admin_fulljid(self):
-        command.command_manager.commands["command1"] = (True,
-                                                        command.root_node_re)
-        command.command_manager.apply_execute_command = \
+        self.command_manager.commands["command1"] = (True,
+                                                     command.root_node_re)
+        self.command_manager.apply_execute_command = \
             lambda iq, command_name: []
-        command.command_manager.component = MockComponent()
+        self.command_manager.component = MockComponent()
         info_query = Iq(stanza_type="set",
                         from_jid="admin@test.com/full",
                         to_jid="jcl.test.com")
-        result = command.command_manager.apply_command_action(info_query,
-                                                              "command1",
-                                                              "execute")
+        result = self.command_manager.apply_command_action(info_query,
+                                                           "command1",
+                                                           "execute")
         self.assertEquals(result, [])
 
     def test_apply_admin_command_action_as_user(self):
-        command.command_manager.commands["command1"] = (True,
-                                                        command.root_node_re)
-        command.command_manager.apply_execute_command = \
+        self.command_manager.commands["command1"] = (True,
+                                                     command.root_node_re)
+        self.command_manager.apply_execute_command = \
             lambda iq, command_name: []
-        command.command_manager.component = MockComponent()
+        self.command_manager.component = MockComponent()
         info_query = Iq(stanza_type="set",
                         from_jid="user@test.com",
                         to_jid="jcl.test.com")
-        result = command.command_manager.apply_command_action(info_query,
-                                                              "command1",
-                                                              "execute")
+        result = self.command_manager.apply_command_action(info_query,
+                                                           "command1",
+                                                           "execute")
         self.assertEquals(len(result), 1)
         self.assertEquals(result[0].get_type(), "error")
         self.assertEquals(result[0].xmlnode.children.name, "error")
-        self.assertEquals(result[0].xmlnode.children.prop("type"), "auth")
-        self.assertEquals(result[0].xmlnode.children.children.name, "forbidden")
+        self.assertEquals(result[0].xmlnode.children.prop("type"),
+                          "auth")
+        self.assertEquals(result[0].xmlnode.children.children.name,
+                          "forbidden")
 
     def test_apply_non_admin_command_action_as_admin(self):
-        command.command_manager.commands["command1"] = (False,
-                                                        command.root_node_re)
-        command.command_manager.apply_execute_command = \
+        self.command_manager.commands["command1"] = (False,
+                                                     command.root_node_re)
+        self.command_manager.apply_execute_command = \
             lambda iq, command_name: []
-        command.command_manager.component = MockComponent()
+        self.command_manager.component = MockComponent()
         info_query = Iq(stanza_type="set",
                         from_jid="admin@test.com",
                         to_jid="jcl.test.com")
-        result = command.command_manager.apply_command_action(info_query,
-                                                              "command1",
-                                                              "execute")
+        result = self.command_manager.apply_command_action(info_query,
+                                                           "command1",
+                                                           "execute")
         self.assertEquals(result, [])
 
     def test_apply_non_admin_command_action_as_user(self):
-        command.command_manager.commands["command1"] = (False,
-                                                        command.root_node_re)
-        command.command_manager.apply_execute_command = \
+        self.command_manager.commands["command1"] = (False,
+                                                     command.root_node_re)
+        self.command_manager.apply_execute_command = \
             lambda iq, command_name: []
-        command.command_manager.component = MockComponent()
+        self.command_manager.component = MockComponent()
         info_query = Iq(stanza_type="set",
                         from_jid="user@test.com",
                         to_jid="jcl.test.com")
-        result = command.command_manager.apply_command_action(info_query,
-                                                              "command1",
-                                                              "execute")
+        result = self.command_manager.apply_command_action(info_query,
+                                                           "command1",
+                                                           "execute")
         self.assertEquals(result, [])
 
     def test_apply_command_action_to_wrong_jid(self):
-        command.command_manager.commands["command1"] = (False,
-                                                        command.account_node_re)
-        command.command_manager.apply_execute_command = \
+        self.command_manager.commands["command1"] = (False,
+                                                     command.account_node_re)
+        self.command_manager.apply_execute_command = \
             lambda iq, command_name: []
-        command.command_manager.component = MockComponent()
+        self.command_manager.component = MockComponent()
         info_query = Iq(stanza_type="set",
                         from_jid="user@test.com",
                         to_jid="jcl.test.com")
-        result = command.command_manager.apply_command_action(info_query,
-                                                              "command1",
-                                                              "execute")
+        result = self.command_manager.apply_command_action(info_query,
+                                                           "command1",
+                                                           "execute")
         self.assertEquals(len(result), 1)
         self.assertEquals(result[0].get_type(), "error")
         self.assertEquals(result[0].xmlnode.children.name, "error")
-        self.assertEquals(result[0].xmlnode.children.prop("type"), "auth")
-        self.assertEquals(result[0].xmlnode.children.children.name, "forbidden")
+        self.assertEquals(result[0].xmlnode.children.prop("type"),
+                          "auth")
+        self.assertEquals(result[0].xmlnode.children.children.name,
+                          "forbidden")
 
     def test_apply_command_non_existing_action(self):
-        command.command_manager.commands["command1"] = (False,
-                                                        command.root_node_re)
-        command.command_manager.component = MockComponent()
+        self.command_manager.commands["command1"] = (False,
+                                                     command.root_node_re)
+        self.command_manager.component = MockComponent()
         info_query = Iq(stanza_type="set",
                         from_jid="user@test.com",
                         to_jid="jcl.test.com")
-        result = command.command_manager.apply_command_action(info_query,
-                                                              "command1",
-                                                              "noexecute")
+        result = self.command_manager.apply_command_action(info_query,
+                                                           "command1",
+                                                           "noexecute")
         self.assertEquals(len(result), 1)
         self.assertEquals(result[0].get_type(), "error")
         self.assertEquals(result[0].xmlnode.children.name, "error")
-        self.assertEquals(result[0].xmlnode.children.prop("type"), "cancel")
+        self.assertEquals(result[0].xmlnode.children.prop("type"),
+                          "cancel")
         self.assertEquals(result[0].xmlnode.children.children.name,
                           "feature-not-implemented")
 
     def test_apply_command_unknown_command(self):
-        command.command_manager.component = MockComponent()
+        self.command_manager.component = MockComponent()
         info_query = Iq(stanza_type="set",
                         from_jid="user@test.com",
                         to_jid="jcl.test.com")
-        result = command.command_manager.apply_command_action(info_query,
-                                                              "command1",
-                                                              "noexecute")
+        result = self.command_manager.apply_command_action(info_query,
+                                                           "command1",
+                                                           "noexecute")
         self.assertEquals(len(result), 1)
         self.assertEquals(result[0].get_type(), "error")
         self.assertEquals(result[0].xmlnode.children.name, "error")
-        self.assertEquals(result[0].xmlnode.children.prop("type"), "cancel")
+        self.assertEquals(result[0].xmlnode.children.prop("type"),
+                          "cancel")
         self.assertEquals(result[0].xmlnode.children.children.name,
                           "feature-not-implemented")
 
     def test_multi_step_command_unknown_step(self):
-        command.command_manager = MockCommandManager()
-        command.command_manager.sessions["session_id"] = (1, {})
+        self.command_manager = MockCommandManager()
+        self.command_manager.sessions["session_id"] = (1, {})
         info_query = Iq(stanza_type="set",
                         from_jid="user@test.com",
                         to_jid="jcl.test.com")
@@ -345,7 +370,7 @@ class CommandManager_TestCase(unittest.TestCase):
                                                   "command")
         command_node.setProp("sessionid", "session_id")
         command_node.setProp("node", "command1")
-        result = command.command_manager.execute_multi_step_command(\
+        result = self.command_manager.execute_multi_step_command(\
             info_query, "command1", lambda session_id: (2, {}))
         self.assertEquals(result[0].get_type(), "error")
         child = result[0].xmlnode.children
@@ -358,32 +383,32 @@ class CommandManager_TestCase(unittest.TestCase):
                           "feature-not-implemented")
 
     def test_multi_step_command_first_step(self):
-        command.command_manager = MockCommandManager()
+        self.command_manager = MockCommandManager()
         info_query = Iq(stanza_type="set",
                         from_jid="user@test.com",
                         to_jid="jcl.test.com")
         command_node = info_query.set_new_content(command.COMMAND_NS,
                                                   "command")
         command_node.setProp("node", "command1")
-        result = command.command_manager.execute_multi_step_command(\
+        result = self.command_manager.execute_multi_step_command(\
             info_query, "command1", None)
-        self.assertTrue(command.command_manager.command1_step_1_called)
+        self.assertTrue(self.command_manager.command1_step_1_called)
 
     def test_multi_step_command_multi_step_method(self):
         """
         Test if the multi steps method is called if no specific method
         is implemented
         """
-        command.command_manager = MockCommandManager()        
-        command.command_manager.sessions["session_id"] = (1, {})
+        self.command_manager = MockCommandManager()
+        self.command_manager.sessions["session_id"] = (1, {})
         self.multi_step_command1_called = False
         def execute_command1(info_query, session_context,
                              command_node, lang_class):
             """ """
             self.multi_step_command1_called = True
             return (None, [])
-            
-        command.command_manager.__dict__["execute_command1"] = execute_command1
+
+        self.command_manager.__dict__["execute_command1"] = execute_command1
         info_query = Iq(stanza_type="set",
                         from_jid="user@test.com",
                         to_jid="jcl.test.com")
@@ -391,9 +416,48 @@ class CommandManager_TestCase(unittest.TestCase):
                                                   "command")
         command_node.setProp("sessionid", "session_id")
         command_node.setProp("node", "command1")
-        result = command.command_manager.execute_multi_step_command(\
+        result = self.command_manager.execute_multi_step_command(\
             info_query, "command1", lambda session_id: (2, {}))
         self.assertTrue(self.multi_step_command1_called)
+
+    def test_parse_form(self):
+        """
+        Check if parse_form method correctly set the session variables
+        from given Form.
+        """
+        session_id = "session_id"
+        self.command_manager.sessions[session_id] = (1, {})
+        info_query = prepare_submit(\
+            node="http://jabber.org/protocol/admin#add-user",
+            session_id=session_id,
+            from_jid="test1@test.com",
+            fields=[Field(field_type="list-multi",
+                          name="test",
+                          values=["1", "2"])])
+        self.command_manager.parse_form(info_query, session_id)
+        self.assertEquals(\
+            self.command_manager.sessions[session_id][1]["test"],
+            ["1", "2"])
+
+    def test_parse_form_multiple_calls(self):
+        """
+        Check if parse_form method correctly set the session variables
+        from given Form. It should append data to an existing session
+        variable.
+        """
+        session_id = "session_id"
+        self.command_manager.sessions[session_id] = (1, {"test": ["1", "2"]})
+        info_query = prepare_submit(\
+            node="http://jabber.org/protocol/admin#add-user",
+            session_id=session_id,
+            from_jid="test1@test.com",
+            fields=[Field(field_type="list-multi",
+                          name="test",
+                          values=["3", "4"])])
+        self.command_manager.parse_form(info_query, session_id)
+        self.assertEquals(\
+            self.command_manager.sessions[session_id][1]["test"],
+            ["1", "2", "3", "4"])
 
 class JCLCommandManagerTestCase(JCLTestCase):
     def setUp(self, tables=[]):
@@ -461,23 +525,6 @@ class JCLCommandManagerTestCase(JCLTestCase):
                 self.assertNotEquals(children, None)
                 self.assertEquals(children.name, action)
                 children = children.next
-
-    def prepare_submit(self, node, session_id, from_jid,
-                       to_jid="jcl.test.com", fields=[], action="next"):
-        """
-        Prepare IQ form to be submitted
-        """
-        info_query = Iq(stanza_type="set",
-                        from_jid=from_jid,
-                        to_jid=to_jid)
-        command_node = info_query.set_new_content(command.COMMAND_NS, "command")
-        command_node.setProp("node", node)
-        command_node.setProp("sessionid", session_id)
-        command_node.setProp("action", action)
-        submit_form = Form(xmlnode_or_type="submit")
-        submit_form.fields.extend(fields)
-        submit_form.as_xml(command_node)
-        return info_query
 
 class JCLCommandManager_TestCase(JCLCommandManagerTestCase):
     def test_init(self):
@@ -787,7 +834,7 @@ class JCLCommandManagerAddUserCommand_TestCase(JCLCommandManagerTestCase):
         session_id = self.check_step_1(result, "admin@test.com", is_admin=True)
 
         # Second step
-        info_query = self.prepare_submit(\
+        info_query = prepare_submit(\
             node="http://jabber.org/protocol/admin#add-user",
             session_id=session_id,
             from_jid="admin@test.com",
@@ -805,7 +852,7 @@ class JCLCommandManagerAddUserCommand_TestCase(JCLCommandManagerTestCase):
                           "admin@test.com", "user2@test.com")
 
         # Third step
-        info_query = self.prepare_submit(\
+        info_query = prepare_submit(\
             node="http://jabber.org/protocol/admin#add-user",
             session_id=session_id,
             from_jid="admin@test.com",
@@ -847,7 +894,7 @@ class JCLCommandManagerAddUserCommand_TestCase(JCLCommandManagerTestCase):
         session_id = self.check_step_1(result, "test4@test.com")
 
         # Second step
-        info_query = self.prepare_submit(\
+        info_query = prepare_submit(\
             node="http://jabber.org/protocol/admin#add-user",
             session_id=session_id,
             from_jid="test4@test.com",
@@ -862,7 +909,7 @@ class JCLCommandManagerAddUserCommand_TestCase(JCLCommandManagerTestCase):
                                             "test4@test.com", "test4@test.com")
 
         # Third step
-        info_query = self.prepare_submit(\
+        info_query = prepare_submit(\
             node="http://jabber.org/protocol/admin#add-user",
             session_id=session_id,
             from_jid="test4@test.com",
@@ -903,7 +950,7 @@ class JCLCommandManagerAddUserCommand_TestCase(JCLCommandManagerTestCase):
         session_id = self.check_step_1(result, "admin@test.com", is_admin=True)
 
         # Second step
-        info_query = self.prepare_submit(\
+        info_query = prepare_submit(\
             node="http://jabber.org/protocol/admin#add-user",
             session_id=session_id,
             from_jid="admin@test.com",
@@ -921,7 +968,7 @@ class JCLCommandManagerAddUserCommand_TestCase(JCLCommandManagerTestCase):
                           "admin@test.com", "user2@test.com")
 
         # First step again
-        info_query = self.prepare_submit(\
+        info_query = prepare_submit(\
             node="http://jabber.org/protocol/admin#add-user",
             session_id=session_id,
             from_jid="admin@test.com",
@@ -963,7 +1010,7 @@ class JCLCommandManagerAddUserCommand_TestCase(JCLCommandManagerTestCase):
         session_id = self.check_step_1(result, "admin@test.com", is_admin=True)
 
         # Second step
-        info_query = self.prepare_submit(\
+        info_query = prepare_submit(\
             node="http://jabber.org/protocol/admin#add-user",
             session_id=session_id,
             from_jid="admin@test.com",
@@ -1018,7 +1065,7 @@ class JCLCommandManagerDeleteUserCommand_TestCase(JCLCommandManagerTestCase):
         self.assertNotEquals(session_id, None)
 
         # Second step
-        info_query = self.prepare_submit(\
+        info_query = prepare_submit(\
             node="http://jabber.org/protocol/admin#delete-user",
             session_id=session_id,
             from_jid="admin@test.com",
@@ -1057,7 +1104,7 @@ class JCLCommandManagerDeleteUserCommand_TestCase(JCLCommandManagerTestCase):
                           ["test1@test.com", "test2@test.com"])
 
         # Third step
-        info_query = self.prepare_submit(\
+        info_query = prepare_submit(\
             node="http://jabber.org/protocol/admin#delete-user",
             session_id=session_id,
             from_jid="admin@test.com",
@@ -1162,7 +1209,7 @@ class JCLCommandManagerDisableUserCommand_TestCase(JCLCommandManagerTestCase):
         self.assertNotEquals(session_id, None)
 
         # Second step
-        info_query = self.prepare_submit(\
+        info_query = prepare_submit(\
             node="http://jabber.org/protocol/admin#disable-user",
             session_id=session_id,
             from_jid="admin@test.com",
@@ -1197,7 +1244,7 @@ class JCLCommandManagerDisableUserCommand_TestCase(JCLCommandManagerTestCase):
                           ["test1@test.com", "test2@test.com"])
 
         # Third step
-        info_query = self.prepare_submit(\
+        info_query = prepare_submit(\
             node="http://jabber.org/protocol/admin#disable-user",
             session_id=session_id,
             from_jid="admin@test.com",
@@ -1267,7 +1314,7 @@ class JCLCommandManagerReenableUserCommand_TestCase(JCLCommandManagerTestCase):
         self.assertNotEquals(session_id, None)
 
         # Second step
-        info_query = self.prepare_submit(\
+        info_query = prepare_submit(\
             node="http://jabber.org/protocol/admin#reenable-user",
             session_id=session_id,
             from_jid="admin@test.com",
@@ -1302,7 +1349,7 @@ class JCLCommandManagerReenableUserCommand_TestCase(JCLCommandManagerTestCase):
                           ["test1@test.com", "test2@test.com"])
 
         # Third step
-        info_query = self.prepare_submit(\
+        info_query = prepare_submit(\
             node="http://jabber.org/protocol/admin#reenable-user",
             session_id=session_id,
             from_jid="admin@test.com",
@@ -1368,7 +1415,7 @@ class JCLCommandManagerEndUserSessionCommand_TestCase(JCLCommandManagerTestCase)
         self.assertNotEquals(session_id, None)
 
         # Second step
-        info_query = self.prepare_submit(\
+        info_query = prepare_submit(\
             node="http://jabber.org/protocol/admin#end-user-session",
             session_id=session_id,
             from_jid="admin@test.com",
@@ -1403,7 +1450,7 @@ class JCLCommandManagerEndUserSessionCommand_TestCase(JCLCommandManagerTestCase)
                           ["test1@test.com", "test2@test.com"])
 
         # Third step
-        info_query = self.prepare_submit(\
+        info_query = prepare_submit(\
             node="http://jabber.org/protocol/admin#end-user-session",
             session_id=session_id,
             from_jid="admin@test.com",
@@ -1709,7 +1756,7 @@ class JCLCommandManagerGetUserRosterCommand_TestCase(JCLCommandManagerTestCase):
         self.assertNotEquals(session_id, None)
 
         # Second step
-        info_query = self.prepare_submit(\
+        info_query = prepare_submit(\
             node="http://jabber.org/protocol/admin#get-user-roster",
             session_id=session_id,
             from_jid="admin@test.com",
@@ -1784,7 +1831,7 @@ class JCLCommandManagerGetUserLastLoginCommand_TestCase(JCLCommandManagerTestCas
         self.assertNotEquals(session_id, None)
 
         # Second step
-        info_query = self.prepare_submit(\
+        info_query = prepare_submit(\
             node="http://jabber.org/protocol/admin#get-user-lastlogin",
             session_id=session_id,
             from_jid="admin@test.com",
@@ -1819,7 +1866,7 @@ class JCLCommandManagerGetUserLastLoginCommand_TestCase(JCLCommandManagerTestCas
                           ["test1@test.com"])
 
         # Third step
-        info_query = self.prepare_submit(\
+        info_query = prepare_submit(\
             node="http://jabber.org/protocol/admin#get-user-lastlogin",
             session_id=session_id,
             from_jid="admin@test.com",
@@ -2026,7 +2073,7 @@ class JCLCommandManagerGetRegisteredUsersListCommand_TestCase(JCLCommandManagerT
         self.assertNotEquals(session_id, None)
 
         # Second step
-        info_query = self.prepare_submit(\
+        info_query = prepare_submit(\
             node="http://jabber.org/protocol/admin#get-registered-users-list",
             session_id=session_id,
             from_jid="admin@test.com",
@@ -2162,7 +2209,7 @@ class JCLCommandManagerGetDisabledUsersListCommand_TestCase(JCLCommandManagerTes
         self.assertNotEquals(session_id, None)
 
         # Second step
-        info_query = self.prepare_submit(\
+        info_query = prepare_submit(\
             node="http://jabber.org/protocol/admin#get-disabled-users-list",
             session_id=session_id,
             from_jid="admin@test.com",
@@ -2298,7 +2345,7 @@ class JCLCommandManagerGetOnlineUsersListCommand_TestCase(JCLCommandManagerTestC
         self.assertNotEquals(session_id, None)
 
         # Second step
-        info_query = self.prepare_submit(\
+        info_query = prepare_submit(\
             node="http://jabber.org/protocol/admin#get-online-users-list",
             session_id=session_id,
             from_jid="admin@test.com",
@@ -2395,7 +2442,7 @@ class JCLCommandManagerAnnounceCommand_TestCase(JCLCommandManagerTestCase):
 
     def test_execute_announce(self):
         session_id = self._common_execute_announce()
-        info_query = self.prepare_submit(\
+        info_query = prepare_submit(\
             node="http://jabber.org/protocol/admin#announce",
             session_id=session_id,
             from_jid="admin@test.com",
@@ -2434,7 +2481,7 @@ class JCLCommandManagerAnnounceCommand_TestCase(JCLCommandManagerTestCase):
 
     def test_execute_announce_no_announcement(self):
         session_id = self._common_execute_announce()
-        info_query = self.prepare_submit(\
+        info_query = prepare_submit(\
             node="http://jabber.org/protocol/admin#announce",
             session_id=session_id,
             from_jid="admin@test.com")
@@ -2496,7 +2543,7 @@ class JCLCommandManagerSetMOTDCommand_TestCase(JCLCommandManagerTestCase):
         self.assertNotEquals(session_id, None)
 
         # Second step
-        info_query = self.prepare_submit(\
+        info_query = prepare_submit(\
             node="http://jabber.org/protocol/admin#edit-motd",
             session_id=session_id,
             from_jid="admin@test.com",
@@ -2573,7 +2620,7 @@ class JCLCommandManagerEditMOTDCommand_TestCase(JCLCommandManagerTestCase):
         self.assertNotEquals(session_id, None)
 
         # Second step
-        info_query = self.prepare_submit(\
+        info_query = prepare_submit(\
             node="http://jabber.org/protocol/admin#edit-motd",
             session_id=session_id,
             from_jid="admin@test.com",
@@ -2689,7 +2736,7 @@ class JCLCommandManagerSetWelcomeCommand_TestCase(JCLCommandManagerTestCase):
         self.assertNotEquals(session_id, None)
 
         # Second step
-        info_query = self.prepare_submit(\
+        info_query = prepare_submit(\
             node="http://jabber.org/protocol/admin#set-welcome",
             session_id=session_id,
             from_jid="admin@test.com",
@@ -2801,7 +2848,7 @@ class JCLCommandManagerEditAdminCommand_TestCase(JCLCommandManagerTestCase):
         self.assertNotEquals(session_id, None)
 
         # Second step
-        info_query = self.prepare_submit(\
+        info_query = prepare_submit(\
             node="http://jabber.org/protocol/admin#edit-admin",
             session_id=session_id,
             from_jid="admin1@test.com",
@@ -2889,7 +2936,7 @@ class JCLCommandManagerRestartCommand_TestCase(JCLCommandManagerTestCase):
 
     def test_execute_restart(self):
         session_id = self._common_execute_restart()
-        info_query = self.prepare_submit(\
+        info_query = prepare_submit(\
             node="http://jabber.org/protocol/admin#restart",
             session_id=session_id,
             from_jid="admin@test.com",
@@ -2943,7 +2990,7 @@ class JCLCommandManagerRestartCommand_TestCase(JCLCommandManagerTestCase):
 
     def test_execute_restart_no_announcement(self):
         session_id = self._common_execute_restart()
-        info_query = self.prepare_submit(\
+        info_query = prepare_submit(\
             node="http://jabber.org/protocol/admin#restart",
             session_id=session_id,
             from_jid="admin@test.com",
@@ -3038,7 +3085,7 @@ class JCLCommandManagerShutdownCommand_TestCase(JCLCommandManagerTestCase):
 
     def test_execute_shutdown(self):
         session_id = self._common_execute_shutdown()
-        info_query = self.prepare_submit(\
+        info_query = prepare_submit(\
             node="http://jabber.org/protocol/admin#shutdown",
             session_id=session_id,
             from_jid="admin@test.com",
@@ -3092,7 +3139,7 @@ class JCLCommandManagerShutdownCommand_TestCase(JCLCommandManagerTestCase):
 
     def test_execute_shutdown_no_announcement(self):
         session_id = self._common_execute_shutdown()
-        info_query = self.prepare_submit(\
+        info_query = prepare_submit(\
             node="http://jabber.org/protocol/admin#shutdown",
             session_id=session_id,
             from_jid="admin@test.com",

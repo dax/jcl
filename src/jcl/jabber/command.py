@@ -213,7 +213,10 @@ class CommandManager(object):
                 self.__logger.debug("Adding to session '" + session_id
                                     + "': " + field_name + "="
                                     + str(values))
-                self.sessions[session_id][1][field_name] = values
+                if field_name in self.sessions[session_id][1]:
+                    self.sessions[session_id][1][field_name] += values
+                else:
+                    self.sessions[session_id][1][field_name] = values
 
     def execute_multi_step_command(self, info_query, short_node,
                                    update_step_func):
