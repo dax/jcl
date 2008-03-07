@@ -53,11 +53,28 @@ account_type_node_re = re.compile("^[^@/]+/.*$")
 account_node_re = re.compile("^[^@/]+@[^/]+/?.*$")
 
 class FieldNoType(Field):
+    """
+    Field with no 'type' attribut
+    """
+
     def complete_xml_element(self, xmlnode, doc):
+        """Remove the 'type' attribut"""
         result = Field.complete_xml_element(self, xmlnode, doc)
         result.unsetProp("type")
         return result
 
+class CommandError(Exception):
+    """
+    Exception use by commands to report errors
+    """
+
+    def __init__ (self, error_type="service-unavailable"):
+        """
+        CommandError constructor
+        """
+        Exception.__init__(self)
+        self.type = error_type
+    
 class CommandManager(object):
     """Handle Ad-Hoc commands"""
 
@@ -233,17 +250,8 @@ class CommandManager(object):
             self.sessions[session_id] = update_step_func(session_id)
         step = self.sessions[session_id][0]
         self.parse_form(info_query, session_id)
-        step_method = "execute_" + short_node + "_" + str(step)
-        if hasattr(self, step_method):
-            (form, result) = getattr(self, step_method)(\
-                info_query,
-                self.sessions[session_id][1],
-                command_node,
-                lang_class)
-            return [response] + result
-        else:
-            # A method that can execute all other step
-            step_method = "execute_" + short_node
+        try:
+            step_method = "execute_" + short_node + "_" + str(step)
             if hasattr(self, step_method):
                 (form, result) = getattr(self, step_method)(\
                     info_query,
@@ -252,8 +260,20 @@ class CommandManager(object):
                     lang_class)
                 return [response] + result
             else:
-                return [info_query.make_error_response(\
-                        "feature-not-implemented")]
+                # A method that can execute all other step
+                step_method = "execute_" + short_node
+                if hasattr(self, step_method):
+                    (form, result) = getattr(self, step_method)(\
+                        info_query,
+                        self.sessions[session_id][1],
+                        command_node,
+                        lang_class)
+                    return [response] + result
+                else:
+                    return [info_query.make_error_response(\
+                            "feature-not-implemented")]
+        except CommandError, error:
+            return [info_query.make_error_response(error.type)]
 
     def add_actions(self, command_node, actions, default_action_idx=0):
         actions_node = command_node.newTextChild(None, "actions", None)
