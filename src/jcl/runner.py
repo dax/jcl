@@ -32,12 +32,14 @@ import jcl.model as model
 from jcl.model.account import Account, PresenceAccount, User, LegacyJID
 
 class JCLRunner(object):
+
     def __init__(self, component_name, component_version):
         """
         options: list of tuples:
         - short_opt: same as getopt
         - long_opt: same as getopt
         """
+        self.component_short_name = "JCL"
         self.component_name = component_name
         self.component_version = component_version
         self.config_file = "jcl.conf"
@@ -50,6 +52,7 @@ class JCLRunner(object):
         self.pid_file = "/var/run/jabber/jcl.pid"
         self.log_stdout = False
         self.log_file = None
+        self.console = False
         self.options = [("c:", "config-file=", None,
                          " FILE\t\t\t\tConfiguration file to use",
                          lambda arg: self.set_attr("config_file", arg)),
@@ -77,6 +80,9 @@ class JCLRunner(object):
                         ("d", "debug", None,
                          "\t\t\t\t\tEnable debug traces",
                          lambda arg: self.set_attr("debug", True)),
+                        ("C", "console", None,
+                         "\t\t\t\t\tRun in console mode",
+                         lambda arg: self.set_attr("console", True)),
                         ("o", "log-stdout", None,
                          "\t\t\t\t\tLog on stdout",
                          lambda arg: self.set_attr("log_stdout", True)),
@@ -198,21 +204,24 @@ class JCLRunner(object):
         pidfile.close()
 
     def _run(self, run_func):
-        try:
-            self.setup_pidfile()
-            model.db_connection_str = self.db_url
-            model.db_connect()
-            self.setup_db()
-            model.db_disconnect()
-            self.logger.debug(self.component_name + " v" +
-                              self.component_version + " is starting ...")
-            restart = True
-            while restart:
-                restart = run_func()
-            self.logger.debug(self.component_name + " is exiting")
-        finally:
-            if os.path.exists(self.pid_file):
-                os.remove(self.pid_file)
+        if self.console:
+            self.run_console()
+        else:
+            try:
+                self.setup_pidfile()
+                model.db_connection_str = self.db_url
+                model.db_connect()
+                self.setup_db()
+                model.db_disconnect()
+                self.logger.debug(self.component_name + " v" +
+                                  self.component_version + " is starting ...")
+                restart = True
+                while restart:
+                    restart = run_func()
+                self.logger.debug(self.component_name + " is exiting")
+            finally:
+                if os.path.exists(self.pid_file):
+                    os.remove(self.pid_file)
 
     def run(self):
         def run_func():
@@ -226,6 +235,22 @@ class JCLRunner(object):
             return component.run()
         self._run(run_func)
 
+    def run_console(self):
+        """
+        Run JCL console. Used to access SQLObject connection
+        """
+        from IPython.Shell import IPShellEmbed
+        # pre-import jcl.model.account to be used in the shell
+        import jcl.model.account as account
+        model.db_connection_str = self.db_url
+        model.db_connect()
+        self.setup_db()
+        ipshell = IPShellEmbed(["-pi1", self.component_short_name + "[\\#]: "], 
+                               "Starting " + self.component_name + " v" \
+                                   + self.component_version + " console.",
+                               "Ending " + self.component_name + " v" \
+                                   + self.component_version + " console.")
+        ipshell()
 
 def main():
     import sys
