@@ -452,6 +452,37 @@ class CommandManager_TestCase(unittest.TestCase):
                 + "</iq>",
                 result_iq, True))
 
+    def test_multi_step_command_unknown_error_in_command(self):
+        """
+        Test if the multi steps method catch the CommandError exception 
+        and translate it into an IQ error
+        """
+        self.command_manager = MockCommandManager()
+        def execute_command1(info_query, session_context,
+                             command_node, lang_class):
+            raise Exception("error")
+            
+        self.command_manager.__dict__["execute_command1_1"] = execute_command1
+        info_query = Iq(stanza_type="set",
+                        from_jid="user@test.com",
+                        to_jid="jcl.test.com")
+        command_node = info_query.set_new_content(command.COMMAND_NS,
+                                                  "command")
+        command_node.setProp("node", "command1")
+        result = self.command_manager.execute_multi_step_command(\
+            info_query, "command1", None)
+        result_iq = result[0].xmlnode
+        self.assertTrue(jcl.tests.is_xml_equal(\
+                u"<iq from='" + unicode(self.command_manager.component.jid) 
+                + "' to='user@test.com' type='error' "
+                + "xmlns='http://pyxmpp.jabberstudio.org/xmlns/common'>"
+                + "<command xmlns='http://jabber.org/protocol/commands'"
+                + "node='command1' />"
+                + "<error type='cancel'><service-unavailable "
+                + "xmlns='urn:ietf:params:xml:ns:xmpp-stanzas'/></error>"
+                + "</iq>",
+                result_iq, True))
+
     def test_parse_form(self):
         """
         Check if parse_form method correctly set the session variables

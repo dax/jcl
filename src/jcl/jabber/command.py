@@ -274,6 +274,8 @@ class CommandManager(object):
                             "feature-not-implemented")]
         except CommandError, error:
             return [info_query.make_error_response(error.type)]
+        except Exception:
+            return [info_query.make_error_response("service-unavailable")]
 
     def add_actions(self, command_node, actions, default_action_idx=0):
         actions_node = command_node.newTextChild(None, "actions", None)
