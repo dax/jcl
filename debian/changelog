@@ -1,3 +1,9 @@
+jcl (0.1b1) unstable; urgency=low
+
+  * JCL v0.1 beta 1
+
+ -- David Rousselie <dax@happycoders.org>  Sat, 08 Mar 2008 22:07:12 +0100
+
 jcl (0.1.20071130) unstable; urgency=low
 
   * JCL first version

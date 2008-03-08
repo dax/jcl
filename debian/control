@@ -8,8 +8,7 @@ XS-Python-Version: all
 
 Package: python-jcl
 Architecture: all
-Depends: ${python:Depends}, python-sqlobject (>= 0.8), python-pyxmpp (>= 1.0)
-Recommends: python-pysqlite2
+Depends: ${python:Depends}, python-sqlobject (>= 0.8), python-pyxmpp (>= 1.0), python-pysqlite2 (>= 2.0)
 Suggests: 
 XB-Python-Version: ${python:Versions}
 Provides: ${python:Provides}
