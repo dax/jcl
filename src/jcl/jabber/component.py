@@ -425,7 +425,6 @@ class AccountManager(object):
             if field_name is None:
                 # TODO : Add page when empty tuple given
                 pass
-
             else:
                 lang_label_attr = "field_" + field_name
                 if hasattr(lang_class, lang_label_attr):
@@ -808,7 +807,7 @@ class JCLComponent(Component, object):
         elif account_type is None: # root
             self.__logger.debug("Applying behavior on root node")
             result = root_handler(name, from_jid, "",
-                                  lang_class) # TODO : account_type not needed
+                                  lang_class)
         else: # account type
             self.__logger.debug("Applying behavior on account type " +
                                 account_type)
@@ -882,14 +881,15 @@ class JCLComponent(Component, object):
         return 1
 
     def handle_set_gateway(self, info_query):
-        """Handle IQ-set "jabber:iq:gateway" requests.
+        """
+        Handle IQ-set "jabber:iq:gateway" requests.
         Return well formed JID from legacy ID.
         """
         self.__logger.debug("SET_GATEWAY")
         prompt_nodes = info_query.xpath_eval("jig:query/jig:prompt",
                                              {"jig" : "jabber:iq:gateway"})
-        # TODO : Add malformed content error handling
-        jid = prompt_nodes[0].content.replace("@", "%") + "@" + unicode(self.jid)
+        jid = prompt_nodes[0].content.replace("@", "%") \
+            + "@" + unicode(self.jid)
         info_query = info_query.make_result_response()
         query = info_query.new_query("jabber:iq:gateway")
         query.newTextChild(query.ns(), "jid", jid)

@@ -21,22 +21,24 @@
 ## Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 ##
 
-"""lang -- contains translations
+"""
+lang -- contains translations
 """
 
 __revision__ = "$Id: lang.py,v 1.3 2005/09/18 20:24:07 dax Exp $"
 
-# TODO delete JMC translation
 class Lang:
-    """Lang.
     """
-    # TODO get help on docstring
+    Lang.
+    """
+
     # pylint: disable-msg=W0232, R0903, C0103, C0111
     def __init__(self, default_lang = "en"):
         self.default_lang = default_lang
 
     def get_lang_from_node(self, node):
-        """Extract lang contain in a XML node.
+        """
+        Extract lang contain in a XML node.
 
         :Parameters:
            - `node`: XML node.
@@ -240,6 +242,7 @@ class Lang:
         help_message_subject = u"Help"
         help_message_body = u"No help"
 
+        command_last_error = u"Get account's last error"
         field_last_error = u"Last error"
         account_no_error = u"This account has no error"
 
@@ -428,6 +431,7 @@ class Lang:
         help_message_subject = u"Aide"
         help_message_body = u"Pas d'aide !"
 
+        command_last_error = u"Récupérer la dernière erreur du compte"
         field_last_error = u"Dernière erreur"
         account_no_error = u"Ce compte n'a pas d'erreur"
 

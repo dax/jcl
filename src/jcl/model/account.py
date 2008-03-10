@@ -58,7 +58,7 @@ def mandatory_field(field_name, field_value):
     """Used as default function for field that must be specified
     and cannot have an empty value"""
     if field_value is None or str(field_value) == "":
-        raise FieldError(field_name, "Field required") # TODO : add translated message
+        raise FieldError(field_name, "Field required")
     return field_value
 
 class User(InheritableSQLObject):
@@ -167,8 +167,6 @@ class Account(InheritableSQLObject):
                     setattr(self, 'password', None)
         else:
             if self._status == OFFLINE:
-                # TODO : first_check
-                self.first_check = True
                 self.lastlogin = datetime.datetime.today()
         self._status = status
 

@@ -27,7 +27,6 @@ import traceback
 import pyxmpp.error as error
 
 from jcl.error import FieldError
-import jcl.model as model
 import jcl.jabber as jabber
 
 class SetRegisterHandler(object):
@@ -76,14 +75,8 @@ class RootSetRegisterHandler(SetRegisterHandler):
         self.__logger.debug("root_set_register")
         _account = None
         if not "name" in x_data or x_data["name"].value == "":
-            # TODO : use handle_error
-            iq_error = info_query.make_error_response("not-acceptable")
-            text = iq_error.get_error().xmlnode.newTextChild(\
-                None,
-                "text",
-                lang_class.mandatory_field % ("name"))
-            text.setNs(text.newNs(error.STANZA_ERROR_NS, None))
-            return [iq_error]
+            return self.handle_error(FieldError("name", ""),
+                                     info_query, lang_class)
         try:
             info_queries = self.account_manager.create_default_account(\
                     x_data["name"].value,

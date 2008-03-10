@@ -252,7 +252,6 @@ class Account_TestCase(InheritableAccount_TestCase):
                             jid="account11@jcl.test.com")
         account11.status = account.OFFLINE
         self.assertEquals(account11.status, account.OFFLINE)
-        # TODO : test first_check attribute
         model.db_disconnect()
 
     def test_set_status_live_password(self):

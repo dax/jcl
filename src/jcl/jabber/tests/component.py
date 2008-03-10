@@ -870,7 +870,6 @@ class JCLComponent_TestCase(JCLTestCase):
         self.assertEquals(fields[4].prop("type"), "list-single")
         self.assertEquals(fields[4].prop("var"), "test_enum")
         self.assertEquals(fields[4].prop("label"), "test_enum")
-        # TODO : correct xpath expression (field[4])
         options = iq_sent.xpath_eval("jir:query/jxd:x/jxd:field/jxd:option", \
                                      {"jir" : "jabber:iq:register", \
                                       "jxd" : "jabber:x:data"})
@@ -1029,7 +1028,6 @@ class JCLComponent_TestCase(JCLTestCase):
         self.assertEquals(field.prop("label"), "test_enum")
         self.assertEquals(field.children.name, "value")
         self.assertEquals(field.children.content, "choice3")
-        # TODO : correct xpath expression (field[4])
         options = iq_sent.xpath_eval("jir:query/jxd:x/jxd:field/jxd:option",
                                      {"jir" : "jabber:iq:register",
                                       "jxd" : "jabber:x:data"})
