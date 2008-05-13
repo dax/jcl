@@ -423,14 +423,14 @@ class CommandManager_TestCase(unittest.TestCase):
 
     def test_multi_step_command_error_in_command(self):
         """
-        Test if the multi steps method catch the CommandError exception 
+        Test if the multi steps method catch the CommandError exception
         and translate it into an IQ error
         """
         self.command_manager = MockCommandManager()
         def execute_command1(info_query, session_context,
                              command_node, lang_class):
             raise CommandError("feature-not-implemented")
-            
+
         self.command_manager.__dict__["execute_command1_1"] = execute_command1
         info_query = Iq(stanza_type="set",
                         from_jid="user@test.com",
@@ -442,7 +442,7 @@ class CommandManager_TestCase(unittest.TestCase):
             info_query, "command1", None)
         result_iq = result[0].xmlnode
         self.assertTrue(jcl.tests.is_xml_equal(\
-                u"<iq from='" + unicode(self.command_manager.component.jid) 
+                u"<iq from='" + unicode(self.command_manager.component.jid)
                 + "' to='user@test.com' type='error' "
                 + "xmlns='http://pyxmpp.jabberstudio.org/xmlns/common'>"
                 + "<command xmlns='http://jabber.org/protocol/commands'"
@@ -454,14 +454,14 @@ class CommandManager_TestCase(unittest.TestCase):
 
     def test_multi_step_command_unknown_error_in_command(self):
         """
-        Test if the multi steps method catch the CommandError exception 
+        Test if the multi steps method catch the CommandError exception
         and translate it into an IQ error
         """
         self.command_manager = MockCommandManager()
         def execute_command1(info_query, session_context,
                              command_node, lang_class):
             raise Exception("error")
-            
+
         self.command_manager.__dict__["execute_command1_1"] = execute_command1
         info_query = Iq(stanza_type="set",
                         from_jid="user@test.com",
@@ -473,7 +473,7 @@ class CommandManager_TestCase(unittest.TestCase):
             info_query, "command1", None)
         result_iq = result[0].xmlnode
         self.assertTrue(jcl.tests.is_xml_equal(\
-                u"<iq from='" + unicode(self.command_manager.component.jid) 
+                u"<iq from='" + unicode(self.command_manager.component.jid)
                 + "' to='user@test.com' type='error' "
                 + "xmlns='http://pyxmpp.jabberstudio.org/xmlns/common'>"
                 + "<command xmlns='http://jabber.org/protocol/commands'"
@@ -3005,10 +3005,10 @@ class JCLCommandManagerRestartCommand_TestCase(JCLCommandManagerTestCase):
             from_jid="admin@test.com",
             fields=[Field(field_type="list-multi",
                           name="delay",
-                          value=[0]),
+                          value=[1]),
                     Field(field_type="text-multi",
                           name="announcement",
-                          value=["service will be restarted in 0 second"])])
+                          value=["service will be restarted in 1 second"])])
         result = self.command_manager.apply_command_action(\
             info_query,
             "http://jabber.org/protocol/admin#restart",
@@ -3036,20 +3036,20 @@ class JCLCommandManagerRestartCommand_TestCase(JCLCommandManagerTestCase):
                 u"<message from='" + unicode(self.comp.jid) + "' "
                 + "xmlns=\"http://pyxmpp.jabberstudio.org/xmlns/common\" "
                 + "to='test1@test.com'>"
-                + "<body>service will be restarted in 0 second</body></message>",
+                + "<body>service will be restarted in 1 second</body></message>",
                 result_iq, True, test_sibling=False))
         result_iq = result[2].xmlnode
         self.assertTrue(jcl.tests.is_xml_equal(\
                 u"<message from='" + unicode(self.comp.jid) + "' "
                 + "xmlns=\"http://pyxmpp.jabberstudio.org/xmlns/common\" "
                 + "to='test2@test.com'>"
-                + "<body>service will be restarted in 0 second</body></message>",
+                + "<body>service will be restarted in 1 second</body></message>",
                 result_iq, True, test_sibling=False))
         context_session = self.command_manager.sessions[session_id][1]
         self.assertEquals(context_session["announcement"],
-                          ["service will be restarted in 0 second"])
+                          ["service will be restarted in 1 second"])
         self.assertEquals(context_session["delay"],
-                          ["0"])
+                          ["1"])
 
     def test_execute_restart_no_announcement(self):
         session_id = self._common_execute_restart()
@@ -3059,7 +3059,7 @@ class JCLCommandManagerRestartCommand_TestCase(JCLCommandManagerTestCase):
             from_jid="admin@test.com",
             fields=[Field(field_type="list-multi",
                           name="delay",
-                          value=[0])])
+                          value=[1])])
         result = self.command_manager.apply_command_action(\
             info_query,
             "http://jabber.org/protocol/admin#restart",
@@ -3085,7 +3085,7 @@ class JCLCommandManagerRestartCommand_TestCase(JCLCommandManagerTestCase):
         context_session = self.command_manager.sessions[session_id][1]
         self.assertFalse(context_session.has_key("announcement"))
         self.assertEquals(context_session["delay"],
-                          ["0"])
+                          ["1"])
 
 class JCLCommandManagerShutdownCommand_TestCase(JCLCommandManagerTestCase):
     """
@@ -3154,10 +3154,10 @@ class JCLCommandManagerShutdownCommand_TestCase(JCLCommandManagerTestCase):
             from_jid="admin@test.com",
             fields=[Field(field_type="list-multi",
                           name="delay",
-                          value=[0]),
+                          value=[1]),
                     Field(field_type="text-multi",
                           name="announcement",
-                          value=["service will be shutdown in 0 second"])])
+                          value=["service will be shutdown in 1 second"])])
         result = self.command_manager.apply_command_action(\
             info_query,
             "http://jabber.org/protocol/admin#shutdown",
@@ -3185,20 +3185,20 @@ class JCLCommandManagerShutdownCommand_TestCase(JCLCommandManagerTestCase):
                 u"<message from='" + unicode(self.comp.jid) + "' "
                 + "xmlns=\"http://pyxmpp.jabberstudio.org/xmlns/common\" "
                 + "to='test1@test.com'>"
-                + "<body>service will be shutdown in 0 second</body></message>",
+                + "<body>service will be shutdown in 1 second</body></message>",
                 result_iq, True, test_sibling=False))
         result_iq = result[2].xmlnode
         self.assertTrue(jcl.tests.is_xml_equal(\
                 u"<message from='" + unicode(self.comp.jid) + "' "
                 + "xmlns=\"http://pyxmpp.jabberstudio.org/xmlns/common\" "
                 + "to='test2@test.com'>"
-                + "<body>service will be shutdown in 0 second</body></message>",
+                + "<body>service will be shutdown in 1 second</body></message>",
                 result_iq, True, test_sibling=False))
         context_session = self.command_manager.sessions[session_id][1]
         self.assertEquals(context_session["announcement"],
-                          ["service will be shutdown in 0 second"])
+                          ["service will be shutdown in 1 second"])
         self.assertEquals(context_session["delay"],
-                          ["0"])
+                          ["1"])
 
     def test_execute_shutdown_no_announcement(self):
         session_id = self._common_execute_shutdown()
@@ -3321,8 +3321,8 @@ def suite():
     return test_suite
 
 if __name__ == '__main__':
+    logger = logging.getLogger()
+    logger.addHandler(logging.StreamHandler())
     if '-v' in sys.argv:
-        logger = logging.getLogger()
-        logger.addHandler(logging.StreamHandler())
         logger.setLevel(logging.INFO)
     unittest.main(defaultTest='suite')

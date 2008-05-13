@@ -69,7 +69,7 @@ class DefaultUnsubscribeHandler(Handler):
 
 class AccountPresenceHandler(Handler):
     filter = jabber.get_account_filter
-    
+
     def get_account_presence(self, stanza, lang_class, _account):
         raise NotImplemented
 
@@ -82,15 +82,8 @@ class AccountPresenceHandler(Handler):
 
 class AccountPresenceAvailableHandler(AccountPresenceHandler):
     def get_account_presence(self, stanza, lang_class, _account):
-        show_status = account.ONLINE
-        if _account.error is not None:
-            show_status = account.DND
-        elif not _account.enabled:
-            show_status = account.XA
-        return self.component.account_manager.send_presence_available(\
-            _account,
-            show_status,
-            lang_class)
+        return self.component.account_manager.get_account_presence_available(\
+            _account, lang_class)
 
 class RootPresenceHandler(AccountPresenceHandler):
     filter = jabber.get_accounts_root_filter
@@ -109,15 +102,16 @@ class RootPresenceHandler(AccountPresenceHandler):
         if accounts_length > 0:
             result.extend(self.get_root_presence(stanza, lang_class, accounts_length))
         return result
-        
+
 class RootPresenceAvailableHandler(RootPresenceHandler, AccountPresenceAvailableHandler):
     def get_root_presence(self, stanza, lang_class, nb_accounts):
         from_jid = stanza.get_from()
-        result = self.component.account_manager.send_root_presence(from_jid,
-                                                                   "available",
-                                                                   "online",
-                                                                   str(nb_accounts) +
-                                                                   lang_class.message_status)
+        result = self.component.account_manager.get_root_presence(\
+            from_jid,
+            "available",
+            "online",
+            str(nb_accounts) +
+            lang_class.message_status)
         user = account.get_user(unicode(from_jid.bare()))
         if not user.has_received_motd:
             user.has_received_motd = True
@@ -127,16 +121,17 @@ class RootPresenceAvailableHandler(RootPresenceHandler, AccountPresenceAvailable
                                       to_jid=from_jid,
                                       body=motd))
         return result
-        
+
 
 class AccountPresenceUnavailableHandler(AccountPresenceHandler):
     def get_account_presence(self, stanza, lang_class, _account):
-        return self.component.account_manager.send_presence_unavailable(_account)
+        return self.component.account_manager.get_account_presence_unavailable(\
+            _account)
 
-class RootPresenceUnavailableHandler(RootPresenceHandler, AccountPresenceUnavailableHandler):    
+class RootPresenceUnavailableHandler(RootPresenceHandler, AccountPresenceUnavailableHandler):
     def get_root_presence(self, stanza, lang_class, nb_accounts):
-        return self.component.account_manager.send_root_presence(stanza.get_from(),
-                                                                 "unavailable")
+        return self.component.account_manager.get_root_presence(\
+            stanza.get_from(), "unavailable")
 
 class AccountPresenceSubscribeHandler(Handler):
     """"""

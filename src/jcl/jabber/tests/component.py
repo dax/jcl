@@ -3071,7 +3071,7 @@ class AccountManager_TestCase(JCLTestCase):
                                  None)
         self.account_manager = self.comp.account_manager
 
-    def test_send_presence_all(self):
+    def test_get_presence_all(self):
         user1 = User(jid="test1@test.com")
         account11 = Account(user=user1,
                             name="account11",
@@ -3086,7 +3086,7 @@ class AccountManager_TestCase(JCLTestCase):
         account22 = Account(user=user2,
                             name="account22",
                             jid="account22@jcl.test.com")
-        result = self.account_manager.send_presence_all("unavailable")
+        result = self.account_manager.get_presence_all("unavailable")
         self.assertEquals(len(result), 6)
         self.assertEquals(result[0].get_from(), "jcl.test.com")
         self.assertEquals(result[0].get_to(), "test1@test.com")

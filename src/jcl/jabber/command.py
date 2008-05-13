@@ -74,7 +74,7 @@ class CommandError(Exception):
         """
         Exception.__init__(self)
         self.type = error_type
-    
+
 class CommandManager(object):
     """Handle Ad-Hoc commands"""
 
@@ -110,7 +110,7 @@ class CommandManager(object):
         for command_name in self.commands.keys():
             (must_be_admin, to_jid_re) = self.commands[command_name]
             if to_jid_re.match(unicode(to_jid)) and \
-                    (not must_be_admin or 
+                    (not must_be_admin or
                      (must_be_admin and self.component.is_admin(jid))):
                 command_desc = self.get_command_desc(command_name,
                                                      lang_class)
@@ -274,7 +274,10 @@ class CommandManager(object):
                             "feature-not-implemented")]
         except CommandError, error:
             return [info_query.make_error_response(error.type)]
-        except Exception:
+        except Exception, exception:
+            self.__logger.error("Unknown error while executing "
+                                + str(short_node) + " command: ",
+                                exc_info=True)
             return [info_query.make_error_response("service-unavailable")]
 
     def add_actions(self, command_node, actions, default_action_idx=0):
@@ -700,7 +703,7 @@ class JCLCommandManager(CommandManager):
         for account_name in session_context["account_names"]:
             name, user_jid = self.get_name_and_jid(account_name)
             _account = account.get_account(user_jid, name)
-            result += self.component.account_manager.send_presence_unavailable(
+            result += self.component.account_manager.get_account_presence_unavailable(
                 _account)
         command_node.setProp("status", STATUS_COMPLETED)
         return (None, result)
@@ -1248,12 +1251,13 @@ class JCLCommandManager(CommandManager):
                                           to_jid=user.jid,
                                           body=announcement))
         command_node.setProp("status", STATUS_COMPLETED)
-        def delayed_restart(self, delay):
+        def delayed_shutdown(self, delay):
             threading.Event().wait(delay)
             self.component.running = False
-        restart_thread = threading.Thread(target=lambda : delayed_restart(self, delay),
-                                          name="TimerThread")
-        restart_thread.start()
+        shutdown_thread = threading.Thread(\
+            target=lambda : delayed_shutdown(self, delay),
+            name="TimerThread")
+        shutdown_thread.start()
         return (None, result)
 
     def execute_get_last_error_1(self, info_query, session_context,
@@ -1321,4 +1325,3 @@ class CommandDiscoGetItemsHandler(DiscoHandler):
                                               to_jid=info_query.get_to(),
                                               disco_items=disco_obj,
                                               lang_class=lang_class)]
-

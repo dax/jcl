@@ -218,11 +218,7 @@ class AccountManager(object):
             try:
                 getattr(_account, "populate_handler")()
             except Exception, exception:
-                typ, value, stack = sys.exc_info()
-                self.__logger.error(\
-                    "Error in timer thread\n%s\n%s"
-                    % (exception, "".join(traceback.format_exception
-                                          (typ, value, stack, 5))))
+                self.__logger.error("Error in timer thread:", exc_info=True)
                 result.extend(self.send_error_from_account(_account,
                                                            exception))
 
@@ -337,27 +333,85 @@ class AccountManager(object):
             return []
 
     ###### presence generic handlers ######
-    def send_presence_all(self, presence):
+    def get_presence_all(self, presence):
         """Send presence to all account. Optimized to use only one sql
         request"""
         result = []
         model.db_connect()
-        # Explicit reference to account table (clauseTables) to use
-        # "user_jid" column with Account subclasses
         for user in account.get_all_users():
-            result.extend(self.send_presence(self.component.jid,
-                                             user.jid,
-                                             presence))
+            result.extend(self.get_presence(self.component.jid,
+                                            user.jid,
+                                            presence))
         for _account in account.get_all_accounts():
-            result.extend(getattr(self, "send_presence_" +
+            result.extend(getattr(self, "get_account_presence_" +
                                   presence)(_account))
         model.db_disconnect()
         return result
 
+    def get_root_presence(self, to_jid, presence_type,
+                            show=None, status=None):
+        result = self.get_presence(self.component.jid, to_jid,
+                                   presence_type, show=show,
+                                   status=status)
+        for legacy_jid in account.get_legacy_jids(unicode(to_jid.bare())):
+            result.append(Presence(from_jid=legacy_jid.jid,
+                                   to_jid=to_jid,
+                                   show=show,
+                                   status=status,
+                                   stanza_type=presence_type))
+        return result
+
+    def get_presence(self, from_jid, to_jid, presence_type,
+                      status=None, show=None):
+        """Send presence stanza"""
+        return [Presence(from_jid=from_jid,
+                         to_jid=to_jid,
+                         status=status,
+                         show=show,
+                         stanza_type=presence_type)]
+
+    def get_account_presence_probe(self, _account):
+        """Send presence probe to account's user"""
+        return self.get_presence(from_jid=_account.jid,
+                                 to_jid=_account.user.jid,
+                                 presence_type="probe")
+
+    def get_account_presence_unavailable(self, _account):
+        """Send unavailable presence to account's user"""
+        _account.status = account.OFFLINE
+        return self.get_presence(from_jid=_account.jid,
+                                 to_jid=_account.user.jid,
+                                 presence_type="unavailable")
+
+    def get_account_presence_available(self, _account, lang_class):
+        """Send available presence to account's user and ask for password
+        if necessary"""
+        result = []
+        model.db_connect()
+        _account.default_lang_class = lang_class
+        old_status = _account.status
+        _account.status = account.ONLINE
+        if _account.error is not None:
+            _account.status = account.DND
+        elif not _account.enabled:
+            _account.status = account.XA
+        result.extend(self.get_presence(from_jid=_account.jid,
+                                        to_jid=_account.user.jid,
+                                        status=_account.status_msg,
+                                        show=_account.status,
+                                        presence_type="available"))
+        if hasattr(_account, 'store_password') \
+            and hasattr(_account, 'password') \
+            and _account.store_password == False \
+            and old_status == account.OFFLINE \
+            and _account.password == None :
+            result.extend(self.ask_password(_account, lang_class))
+        model.db_disconnect()
+        return result
 
     def probe_all_accounts_presence(self):
         """Send presence probe to all registered accounts"""
-        return self.send_presence_all("probe")
+        return self.get_presence_all("probe")
 
     ###### Utils methods ######
     def list_accounts(self, bare_from_jid, account_class=None,
@@ -468,78 +522,6 @@ class AccountManager(object):
     def get_account_jid(self, name):
         """Compose account jid from account name"""
         return name + u"@" + unicode(self.component.jid)
-
-    def send_presence_probe(self, _account):
-        """Send presence probe to account's user"""
-        return [Presence(from_jid=_account.jid,
-                         to_jid=_account.user.jid,
-                         stanza_type="probe")]
-
-    def send_presence_unavailable(self, _account):
-        """Send unavailable presence to account's user"""
-        model.db_connect()
-        _account.status = account.OFFLINE
-        result = [Presence(from_jid=_account.jid,
-                           to_jid=_account.user.jid,
-                           stanza_type="unavailable")]
-        model.db_disconnect()
-        return result
-
-    def send_root_presence(self, to_jid, presence_type,
-                            show=None, status=None):
-        result = self.send_presence(self.component.jid, to_jid,
-                                    presence_type, show=show,
-                                    status=status)
-        result.extend(self.send_root_presence_legacy(to_jid,
-                                                     presence_type,
-                                                     show=show,
-                                                     status=status))
-        return result
-
-    def send_presence(self, from_jid, to_jid, presence_type, status=None, show=None):
-        """Send presence stanza"""
-        return [Presence(from_jid=from_jid,
-                         to_jid=to_jid,
-                         status=status,
-                         show=show,
-                         stanza_type=presence_type)]
-
-    def send_presence_available(self, _account, show, lang_class):
-        """Send available presence to account's user and ask for password
-        if necessary"""
-        result = []
-        model.db_connect()
-        _account.default_lang_class = lang_class
-        old_status = _account.status
-        if show is None:
-            _account.status = account.ONLINE
-        else:
-            _account.status = show
-        result.append(Presence(from_jid=_account.jid,
-                               to_jid=_account.user.jid,
-                               status=_account.status_msg,
-                               show=show,
-                               stanza_type="available"))
-        if hasattr(_account, 'store_password') \
-            and hasattr(_account, 'password') \
-            and _account.store_password == False \
-            and old_status == account.OFFLINE \
-            and _account.password == None :
-            result.extend(self.ask_password(_account, lang_class))
-        model.db_disconnect()
-        return result
-
-    def send_root_presence_legacy(self, to_jid, presence_type,
-                                   status=None, show=None):
-        """Send presence from legacy JID"""
-        result = []
-        for legacy_jid in account.get_legacy_jids(unicode(to_jid.bare())):
-            result.append(Presence(from_jid=legacy_jid.jid,
-                                   to_jid=to_jid,
-                                   show=show,
-                                   status=status,
-                                   stanza_type=presence_type))
-        return result
 
     def ask_password(self, _account, lang_class):
         """Send a Jabber message to ask for account password
@@ -685,7 +667,7 @@ class JCLComponent(Component, object):
             self.running = False
             if self.stream and not self.stream.eof \
                    and self.stream.socket is not None:
-                presences = self.account_manager.send_presence_all("unavailable")
+                presences = self.account_manager.get_presence_all("unavailable")
                 self.send_stanzas(presences)
             self.wait_event.set()
             timer_thread.join(JCLComponent.timeout)
@@ -718,10 +700,7 @@ class JCLComponent(Component, object):
                 self.handle_tick()
                 self.__logger.debug(".")
         except Exception, exception:
-            type, value, stack = sys.exc_info()
-            self.__logger.error("Error in timer thread\n%s\n%s"
-                                % (exception, "".join(traceback.format_exception
-                                                      (type, value, stack, 5))))
+            self.__logger.error("Error in timer thread:", exc_info=True)
             self.queue.put(exception)
         self.__logger.info("Timer thread terminated...")
 
@@ -853,11 +832,9 @@ class JCLComponent(Component, object):
                             result += handler_result
                             break
                 except Exception, e:
-                    error_type, value, stack = sys.exc_info()
                     self.__logger.error("Error with handler " + str(handler) +
-                                        " with " + str(stanza) + "\n%s\n%s"
-                                        % (e, "".join(traceback.format_exception
-                                                      (error_type, value, stack, 5))))
+                                        " with " + str(stanza) + ": ",
+                                        exc_info=True)
                     result += [Message(from_jid=stanza.get_to(),
                                        to_jid=stanza.get_from(),
                                        stanza_type="error",
@@ -1067,15 +1044,9 @@ class JCLComponent(Component, object):
                                                                   action)
             self.send_stanzas(result)
         except:
-            type, value, stack = sys.exc_info()
             self.__logger.error("Error in command " + str(command_node) +
-                                " with " + str(info_query) + "\n%s"
-                                % ("".join(traceback.format_exception
-                                           (type, value, stack, 5))))
-            print("Error in command " + str(command_node) +
-                                " with " + str(info_query) + "\n%s"
-                                % ("".join(traceback.format_exception
-                                           (type, value, stack, 5))))
+                                " with " + str(info_query) + ":",
+                                exc_info=True)
         return 1
 
     ###########################################################################
@@ -1084,10 +1055,7 @@ class JCLComponent(Component, object):
     def send_error(self, _account, exception):
         """ """
         self.send_stanzas(self.account_manager.send_error_from_account(_account, exception))
-        type, value, stack = sys.exc_info()
-        self.__logger.debug("Error: %s\n%s"
-                            % (exception, "".join(traceback.format_exception
-                                                  (type, value, stack, 5))))
+        self.__logger.debug("Error: ", exc_info=True)
 
     def get_config_parameter(self, section, parameter):
         if self.config is not None \
@@ -1159,4 +1127,3 @@ class JCLComponent(Component, object):
         Called regularly
         """
         raise NotImplementedError
-
