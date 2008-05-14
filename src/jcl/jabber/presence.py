@@ -82,6 +82,7 @@ class AccountPresenceHandler(Handler):
 
 class AccountPresenceAvailableHandler(AccountPresenceHandler):
     def get_account_presence(self, stanza, lang_class, _account):
+        _account.default_lang_class = lang_class
         return self.component.account_manager.get_account_presence_available(\
             _account, lang_class)
 

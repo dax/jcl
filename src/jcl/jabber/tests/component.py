@@ -2772,28 +2772,31 @@ class JCLComponent_TestCase(JCLTestCase):
     def test_send_error_first(self):
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
-        model.db_connect()
         _account = Account(user=User(jid="user1@test.com"),
                            name="account11",
                            jid="account11@jcl.test.com")
         exception = Exception("test exception")
         self.assertEqual(_account.error, None)
         self.comp.send_error(_account, exception)
-        self.assertEqual(len(self.comp.stream.sent), 1)
+        self.assertEqual(len(self.comp.stream.sent), 2)
         error_sent = self.comp.stream.sent[0]
         self.assertEqual(error_sent.get_to(), _account.user.jid)
         self.assertEqual(error_sent.get_from(), _account.jid)
         self.assertEqual(error_sent.get_type(), "error")
-        self.assertEqual(error_sent.get_subject(), _account.default_lang_class.error_subject)
-        self.assertEqual(error_sent.get_body(), _account.default_lang_class.error_body \
-                         % (exception))
+        self.assertEqual(error_sent.get_subject(),
+                         _account.default_lang_class.error_subject)
+        self.assertEqual(error_sent.get_body(),
+                         _account.default_lang_class.error_body % (exception))
+        new_presence = self.comp.stream.sent[1].xmlnode
+        self.assertEquals(new_presence.prop("to"), _account.user.jid)
+        self.assertEquals(new_presence.prop("from"), _account.jid)
+        self.assertEquals(new_presence.children.name, "show")
+        self.assertEquals(new_presence.children.content, "dnd")
         self.assertEqual(_account.error, "test exception")
-        model.db_disconnect()
 
     def test_send_error_second(self):
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
-        model.db_connect()
         _account = Account(user=User(jid="user1@test.com"),
                            name="account11",
                            jid="account11@jcl.test.com")
@@ -3156,14 +3159,35 @@ class AccountManager_TestCase(JCLTestCase):
         self.assertFalse(account11.populate_handler_called)
         result = self.account_manager.populate_account(account11, Lang.en,
                                                        x_data, False, False)
-        self.assertEquals(len(result), 2)
+        self.assertEquals(len(result), 3)
         self.assertEquals(result[0].get_type(), "error")
         self.assertEquals(result[0].get_from(), "account11@jcl.test.com")
         self.assertEquals(result[0].get_to(), "test1@test.com")
-        self.assertEquals(result[1].get_type(), None)
-        self.assertEquals(result[1].get_from(), "jcl.test.com")
+        self.assertEquals(result[1].xmlnode.name, "presence")
+        self.assertEquals(result[1].get_from(), "account11@jcl.test.com")
         self.assertEquals(result[1].get_to(), "test1@test.com")
+        self.assertEquals(result[1].xmlnode.children.name, "show")
+        self.assertEquals(result[1].xmlnode.children.content, "dnd")
+        self.assertEquals(result[2].get_type(), None)
+        self.assertEquals(result[2].get_from(), "jcl.test.com")
+        self.assertEquals(result[2].get_to(), "test1@test.com")
         self.assertTrue(account11.populate_handler_called)
+
+    def test_cancel_account_error(self):
+        """Test Account error reset"""
+        _account = Account(user=User(jid="user1@test.com"),
+                           name="account11",
+                           jid="account11@jcl.test.com")
+        _account.error = "test exception"
+        result = self.account_manager.cancel_account_error(_account)
+        self.assertEquals(len(result), 1)
+        presence = result[0].xmlnode
+        self.assertEquals(presence.name, "presence")
+        self.assertEquals(presence.prop("type"), None)
+        self.assertEquals(presence.prop("from"), _account.jid)
+        self.assertEquals(presence.prop("to"), _account.user.jid)
+        self.assertEquals(presence.children.name, "show")
+        self.assertEquals(presence.children.content, "online")
 
 def suite():
     test_suite = unittest.TestSuite()

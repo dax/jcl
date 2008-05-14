@@ -219,8 +219,8 @@ class AccountManager(object):
                 getattr(_account, "populate_handler")()
             except Exception, exception:
                 self.__logger.error("Error in timer thread:", exc_info=True)
-                result.extend(self.send_error_from_account(_account,
-                                                           exception))
+                result.extend(self.get_account_error_stanzas(_account,
+                                                             exception))
 
         if first_account:
             # component subscribe user presence when registering the first
@@ -388,7 +388,6 @@ class AccountManager(object):
         if necessary"""
         result = []
         model.db_connect()
-        _account.default_lang_class = lang_class
         old_status = _account.status
         _account.status = account.ONLINE
         if _account.error is not None:
@@ -553,19 +552,28 @@ class AccountManager(object):
         model.db_disconnect()
         return result
 
-    def send_error_from_account(self, _account, exception):
+    def get_account_error_stanzas(self, _account, exception):
         """Send an error message only one time until _account.error
         has been reset to None"""
         result = []
-        if _account.error == None:
-            _account.error = str(exception)
+        str_exception = str(exception)
+        if _account.error != str_exception:
+            _account.error = str_exception
             result.append(Message(from_jid=_account.jid,
                                   to_jid=_account.user.jid,
                                   stanza_type="error",
                                   subject=_account.default_lang_class.error_subject,
                                   body=_account.default_lang_class.error_body \
                                       % (exception)))
+            result.extend(self.get_account_presence_available(\
+                    _account, _account.default_lang_class))
         return result
+
+    def cancel_account_error(self, _account):
+        """Reset Account error status and send new available presence"""
+        _account.error = None
+        return self.get_account_presence_available(_account,
+                                                   _account.default_lang_class)
 
 ###############################################################################
 # JCL implementation
@@ -1054,7 +1062,8 @@ class JCLComponent(Component, object):
     ###########################################################################
     def send_error(self, _account, exception):
         """ """
-        self.send_stanzas(self.account_manager.send_error_from_account(_account, exception))
+        self.send_stanzas(self.account_manager.get_account_error_stanzas(\
+                _account, exception))
         self.__logger.debug("Error: ", exc_info=True)
 
     def get_config_parameter(self, section, parameter):
