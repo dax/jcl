@@ -387,25 +387,24 @@ class AccountManager(object):
         """Send available presence to account's user and ask for password
         if necessary"""
         result = []
-        model.db_connect()
         old_status = _account.status
         _account.status = account.ONLINE
         if _account.error is not None:
             _account.status = account.DND
         elif not _account.enabled:
             _account.status = account.XA
-        result.extend(self.get_presence(from_jid=_account.jid,
-                                        to_jid=_account.user.jid,
-                                        status=_account.status_msg,
-                                        show=_account.status,
-                                        presence_type="available"))
+        if old_status != _account.status:
+            result.extend(self.get_presence(from_jid=_account.jid,
+                                            to_jid=_account.user.jid,
+                                            status=_account.status_msg,
+                                            show=_account.status,
+                                            presence_type="available"))
         if hasattr(_account, 'store_password') \
             and hasattr(_account, 'password') \
             and _account.store_password == False \
             and old_status == account.OFFLINE \
             and _account.password == None :
             result.extend(self.ask_password(_account, lang_class))
-        model.db_disconnect()
         return result
 
     def probe_all_accounts_presence(self):

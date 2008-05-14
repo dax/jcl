@@ -3189,6 +3189,16 @@ class AccountManager_TestCase(JCLTestCase):
         self.assertEquals(presence.children.name, "show")
         self.assertEquals(presence.children.content, "online")
 
+    def test_get_account_presence_available_no_change(self):
+        """Test when presence status does not change"""
+        _account = Account(user=User(jid="user1@test.com"),
+                           name="account11",
+                           jid="account11@jcl.test.com")
+        _account.status = account.ONLINE
+        result = self.account_manager.get_account_presence_available(\
+            _account, _account.default_lang_class)
+        self.assertEquals(len(result), 0)
+
 def suite():
     test_suite = unittest.TestSuite()
     test_suite.addTest(unittest.makeSuite(JCLComponent_TestCase, 'test'))
