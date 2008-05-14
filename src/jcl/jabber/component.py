@@ -571,8 +571,8 @@ class AccountManager(object):
     def cancel_account_error(self, _account):
         """Reset Account error status and send new available presence"""
         _account.error = None
-        return self.get_account_presence_available(_account,
-                                                   _account.default_lang_class)
+        self.component.send_stanzas(self.get_account_presence_available(\
+                _account, _account.default_lang_class))
 
 ###############################################################################
 # JCL implementation
@@ -1063,7 +1063,7 @@ class JCLComponent(Component, object):
         """ """
         self.send_stanzas(self.account_manager.get_account_error_stanzas(\
                 _account, exception))
-        self.__logger.debug("Error: ", exc_info=True)
+        self.__logger.error("Error: ", exc_info=True)
 
     def get_config_parameter(self, section, parameter):
         if self.config is not None \
