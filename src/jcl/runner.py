@@ -130,12 +130,14 @@ class JCLRunner(object):
                     (section, set_func) = cleanopts[opt]
                     if section is not None:
                         attr = opt.replace("-", "_")
-                        config_property = self.config.get(section, attr)
-                        self.logger.debug("Setting " + attr + " = " +
-                                          config_property +
-                                          " from configuration file " +
-                                          self.config_file)
-                        set_func(config_property)
+                        if self.config.has_section(section) \
+                                and self.config.has_option(section, attr):
+                            config_property = self.config.get(section, attr)
+                            self.logger.debug("Setting " + attr + " = " +
+                                              config_property +
+                                              " from configuration file " +
+                                              self.config_file)
+                            set_func(config_property)
 
     def configure(self):
         """
@@ -154,7 +156,9 @@ class JCLRunner(object):
             else:
                 cleanopts[option[1]] = (option[2], option[4])
 
-        commandline_args = self.__configure_commandline_args(shortopts, longopts, cleanopts)
+        commandline_args = self.__configure_commandline_args(shortopts,
+                                                             longopts,
+                                                             cleanopts)
         if commandline_args.has_key("debug") or commandline_args.has_key("d"):
             self.debug = True
             self.logger.debug("Debug activated")
@@ -245,7 +249,7 @@ class JCLRunner(object):
         model.db_connection_str = self.db_url
         model.db_connect()
         self.setup_db()
-        ipshell = IPShellEmbed(["-pi1", self.component_short_name + "[\\#]: "], 
+        ipshell = IPShellEmbed(["-pi1", self.component_short_name + "[\\#]: "],
                                "Starting " + self.component_name + " v" \
                                    + self.component_version + " console.",
                                "Ending " + self.component_name + " v" \
