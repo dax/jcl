@@ -86,7 +86,7 @@ class JCLRunner(object):
                         ("o", "log-stdout", None,
                          "\t\t\t\t\tLog on stdout",
                          lambda arg: self.set_attr("log_stdout", True)),
-                        ("f", "log-file", "component",
+                        ("f:", "log-file=", "component",
                          "\t\t\t\t\tLog in file",
                          lambda arg: self.set_attr("log_file", arg)),
                         ("h", "help", None,

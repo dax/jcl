@@ -247,7 +247,7 @@ def get_all_accounts_count(account_class=Account, filter=None):
     else:
         accounts_count = account_class.select(filter).count()
     return accounts_count
-    
+
 class PresenceAccount(Account):
     DO_NOTHING = 0
     DO_SOMETHING = 1
@@ -387,4 +387,3 @@ class LegacyJID(InheritableSQLObject):
     legacy_address = StringCol()
     jid = StringCol()
     account = ForeignKey('Account')
-

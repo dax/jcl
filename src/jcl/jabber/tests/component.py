@@ -3175,13 +3175,15 @@ class AccountManager_TestCase(JCLTestCase):
 
     def test_cancel_account_error(self):
         """Test Account error reset"""
+        self.comp.stream = MockStream()
+        self.comp.stream_class = MockStream
         _account = Account(user=User(jid="user1@test.com"),
                            name="account11",
                            jid="account11@jcl.test.com")
         _account.error = "test exception"
-        result = self.account_manager.cancel_account_error(_account)
-        self.assertEquals(len(result), 1)
-        presence = result[0].xmlnode
+        self.account_manager.cancel_account_error(_account)
+        self.assertEquals(len(self.comp.stream.sent), 1)
+        presence = self.comp.stream.sent[0].xmlnode
         self.assertEquals(presence.name, "presence")
         self.assertEquals(presence.prop("type"), None)
         self.assertEquals(presence.prop("from"), _account.jid)
