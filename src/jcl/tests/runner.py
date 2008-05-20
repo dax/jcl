@@ -24,14 +24,15 @@ import unittest
 import sys
 import os
 import tempfile
+import logging
 
 from sqlobject import *
 
 import jcl
 from jcl.runner import JCLRunner
-
 import jcl.model as model
 from jcl.model.account import Account, PresenceAccount, User, LegacyJID
+from jcl.jabber.component import JCLComponent
 
 if sys.platform == "win32":
     DB_DIR = "/c|/temp/"
@@ -57,6 +58,8 @@ class JCLRunner_TestCase(unittest.TestCase):
         self.assertEquals(self.runner.db_url, "sqlite:///var/spool/jabber/jcl.db")
         self.assertEquals(self.runner.pid_file, "/var/run/jabber/jcl.pid")
         self.assertFalse(self.runner.debug)
+        self.assertEquals(self.runner.logger.getEffectiveLevel(),
+                          logging.CRITICAL)
 
     def test_configure_configfile(self):
         self.runner.config_file = "src/jcl/tests/jcl.conf"
@@ -69,6 +72,8 @@ class JCLRunner_TestCase(unittest.TestCase):
         self.assertEquals(self.runner.db_url, "test_sqlite://root@localhost/var/spool/jabber/test_jcl.db")
         self.assertEquals(self.runner.pid_file, "/var/run/jabber/test_jcl.pid")
         self.assertFalse(self.runner.debug)
+        self.assertEquals(self.runner.logger.getEffectiveLevel(),
+                          logging.CRITICAL)
 
     def test_configure_uncomplete_configfile(self):
         self.runner.config_file = "src/jcl/tests/uncomplete_jcl.conf"
@@ -82,15 +87,17 @@ class JCLRunner_TestCase(unittest.TestCase):
         # pid_file is not in uncmplete_jcl.conf, must be default value
         self.assertEquals(self.runner.pid_file, "/var/run/jabber/jcl.pid")
         self.assertFalse(self.runner.debug)
+        self.assertEquals(self.runner.logger.getEffectiveLevel(),
+                          logging.CRITICAL)
 
     def test_configure_commandline_shortopt(self):
-        sys.argv = ["", "-c", "src/jcl/tests/jcl.conf", \
-                    "-S", "test2_localhost", \
-                    "-P", "43", \
-                    "-s", "test2_secret", \
-                    "-j", "test2_jcl.localhost", \
-                    "-l", "test2_en", \
-                    "-u", "sqlite:///tmp/test_jcl.db", \
+        sys.argv = ["", "-c", "src/jcl/test/jcl.conf",
+                    "-S", "test2_localhost",
+                    "-P", "43",
+                    "-s", "test2_secret",
+                    "-j", "test2_jcl.localhost",
+                    "-l", "test2_en",
+                    "-u", "sqlite:///tmp/test_jcl.db",
                     "-p", "/tmp/test_jcl.pid"]
         self.runner.configure()
         self.assertEquals(self.runner.server, "test2_localhost")
@@ -101,15 +108,17 @@ class JCLRunner_TestCase(unittest.TestCase):
         self.assertEquals(self.runner.db_url, "sqlite:///tmp/test_jcl.db")
         self.assertEquals(self.runner.pid_file, "/tmp/test_jcl.pid")
         self.assertFalse(self.runner.debug)
+        self.assertEquals(self.runner.logger.getEffectiveLevel(),
+                          logging.CRITICAL)
 
     def test_configure_commandline_longopt(self):
-        sys.argv = ["", "--config-file", "src/jcl/tests/jcl.conf", \
-                    "--server", "test2_localhost", \
-                    "--port", "43", \
-                    "--secret", "test2_secret", \
-                    "--service-jid", "test2_jcl.localhost", \
-                    "--language", "test2_en", \
-                    "--db-url", "sqlite:///tmp/test_jcl.db", \
+        sys.argv = ["", "--config-file", "src/jcl/tests/jcl.conf",
+                    "--server", "test2_localhost",
+                    "--port", "43",
+                    "--secret", "test2_secret",
+                    "--service-jid", "test2_jcl.localhost",
+                    "--language", "test2_en",
+                    "--db-url", "sqlite:///tmp/test_jcl.db",
                     "--pid-file", "/tmp/test_jcl.pid"]
         self.runner.configure()
         self.assertEquals(self.runner.server, "test2_localhost")
@@ -120,6 +129,66 @@ class JCLRunner_TestCase(unittest.TestCase):
         self.assertEquals(self.runner.db_url, "sqlite:///tmp/test_jcl.db")
         self.assertEquals(self.runner.pid_file, "/tmp/test_jcl.pid")
         self.assertFalse(self.runner.debug)
+        self.assertEquals(self.runner.logger.getEffectiveLevel(),
+                          logging.CRITICAL)
+
+    def test_configure_commandline_shortopts_configfile(self):
+        sys.argv = ["", "-c", "src/jcl/tests/jcl.conf"]
+        self.runner.configure()
+        self.assertEquals(self.runner.server, "test_localhost")
+        self.assertEquals(self.runner.port, 42)
+        self.assertEquals(self.runner.secret, "test_secret")
+        self.assertEquals(self.runner.service_jid, "test_jcl.localhost")
+        self.assertEquals(self.runner.language, "test_en")
+        self.assertEquals(self.runner.db_url, "test_sqlite://root@localhost/var/spool/jabber/test_jcl.db")
+        self.assertEquals(self.runner.pid_file, "/var/run/jabber/test_jcl.pid")
+        self.assertFalse(self.runner.debug)
+        self.assertEquals(self.runner.logger.getEffectiveLevel(),
+                          logging.CRITICAL)
+
+    def test_configure_commandline_longopts_configfile(self):
+        sys.argv = ["", "--config-file", "src/jcl/tests/jcl.conf"]
+        self.runner.configure()
+        self.assertEquals(self.runner.server, "test_localhost")
+        self.assertEquals(self.runner.port, 42)
+        self.assertEquals(self.runner.secret, "test_secret")
+        self.assertEquals(self.runner.service_jid, "test_jcl.localhost")
+        self.assertEquals(self.runner.language, "test_en")
+        self.assertEquals(self.runner.db_url, "test_sqlite://root@localhost/var/spool/jabber/test_jcl.db")
+        self.assertEquals(self.runner.pid_file, "/var/run/jabber/test_jcl.pid")
+        self.assertFalse(self.runner.debug)
+        self.assertEquals(self.runner.logger.getEffectiveLevel(),
+                          logging.CRITICAL)
+
+    def test_configure_commandline_short_debug(self):
+        sys.argv = ["", "-d"]
+        old_debug_func = self.runner.logger.debug
+        old_info_func = self.runner.logger.debug
+        try:
+            self.runner.logger.debug = lambda msg: None
+            self.runner.logger.info = lambda msg: None
+            self.runner.configure()
+            self.assertTrue(self.runner.debug)
+            self.assertEquals(self.runner.logger.getEffectiveLevel(),
+                              logging.DEBUG)
+        finally:
+            self.runner.logger.debug = old_debug_func
+            self.runner.logger.info = old_info_func
+
+    def test_configure_commandline_long_debug(self):
+        sys.argv = ["", "--debug"]
+        old_debug_func = self.runner.logger.debug
+        old_info_func = self.runner.logger.debug
+        try:
+            self.runner.logger.debug = lambda msg: None
+            self.runner.logger.info = lambda msg: None
+            self.runner.configure()
+            self.assertTrue(self.runner.debug)
+            self.assertEquals(self.runner.logger.getEffectiveLevel(),
+                              logging.DEBUG)
+        finally:
+            self.runner.logger.debug = old_debug_func
+            self.runner.logger.info = old_info_func
 
     def test_setup_pidfile(self):
         try:
@@ -131,6 +200,33 @@ class JCLRunner_TestCase(unittest.TestCase):
             self.assertEquals(pid, os.getpid())
         finally:
             os.remove("/tmp/jcl.pid")
+
+    def test_run(self):
+        """Test if run method of JCLComponent is executed"""
+        self.has_run_func = False
+        def run_func(component_self):
+            self.has_run_func = True
+            return False
+
+        self.runner.pid_file = "/tmp/jcl.pid"
+        db_path = tempfile.mktemp("db", "jcltest", DB_DIR)
+        db_url = "sqlite://" + db_path
+        self.runner.db_url = db_url
+        self.runner.config = None
+        old_run_func = JCLComponent.run
+        JCLComponent.run = run_func
+        try:
+            self.runner.run()
+        finally:
+            JCLComponent.run = old_run_func
+        self.assertTrue(self.has_run_func)
+        Account.dropTable()
+        PresenceAccount.dropTable()
+        User.dropTable()
+        LegacyJID.dropTable()
+        model.db_disconnect()
+        os.unlink(db_path)
+        self.assertFalse(os.access("/tmp/jcl.pid", os.F_OK))
 
     def test__run(self):
         self.runner.pid_file = "/tmp/jcl.pid"

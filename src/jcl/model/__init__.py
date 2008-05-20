@@ -17,8 +17,7 @@ def db_connect():
     pool) associated to the current thread.
     """
     #if not jcl.model.db_connected:
-    jcl.model.hub.threadConnection = \
-        connectionForURI(db_connection_str)
+    jcl.model.hub.threadConnection = connectionForURI(db_connection_str)
     #        account.hub.threadConnection.debug = True
     #jcl.model.db_connected = True
 

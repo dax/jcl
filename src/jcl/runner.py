@@ -115,8 +115,8 @@ class JCLRunner(object):
             cleanopts[arg][1](value)
 
     def __apply_configfile(self, commandline_args, cleanopts):
-        if commandline_args.has_key("config_file"):
-            self.config_file = commandline_args["config_file"]
+        if commandline_args.has_key("config-file"):
+            self.config_file = commandline_args["config-file"]
         elif commandline_args.has_key("c"):
             self.config_file = commandline_args["c"]
         self.config = ConfigParser()
@@ -162,6 +162,8 @@ class JCLRunner(object):
         if commandline_args.has_key("debug") or commandline_args.has_key("d"):
             self.debug = True
             self.logger.debug("Debug activated")
+        else:
+            self.debug = False
         self.__apply_configfile(commandline_args, cleanopts)
         self.__apply_commandline_args(commandline_args, cleanopts)
         if self.log_stdout:
@@ -194,7 +196,6 @@ class JCLRunner(object):
             self.logger.setLevel(logging.CRITICAL)
 
     debug = property(get_debug, set_debug)
-
 
     def setup_db(self):
         Account.createTable(ifNotExists=True)

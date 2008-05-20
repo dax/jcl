@@ -129,7 +129,10 @@ class AccountTypeDiscoGetItemsHandler(DiscoHandler):
         self.__logger = logging.getLogger("jcl.jabber.AccountTypeDiscoGetItemsHandler")
 
     def handle(self, stanza, lang_class, node, disco_obj, data):
-        """Discovery get_items on an account type node"""
+        """
+        Discovery get_items on an account type node:
+        return account list
+        """
         account_type = data
         from_jid = stanza.get_from()
         self.__logger.debug("Listing account for " + account_type)
