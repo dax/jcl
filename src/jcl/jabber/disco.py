@@ -93,7 +93,7 @@ class RootDiscoGetItemsHandler(DiscoHandler):
     def __init__(self, component):
         DiscoHandler.__init__(self, component)
         self.__logger = logging.getLogger("jcl.jabber.RootDiscoGetItemsHandler")
-        
+
     def handle(self, stanza, lang_class, node, disco_obj, data):
         """Discovery get_items on root node"""
         from_jid = stanza.get_from()
@@ -127,7 +127,7 @@ class AccountTypeDiscoGetItemsHandler(DiscoHandler):
     def __init__(self, component):
         DiscoHandler.__init__(self, component)
         self.__logger = logging.getLogger("jcl.jabber.AccountTypeDiscoGetItemsHandler")
-        
+
     def handle(self, stanza, lang_class, node, disco_obj, data):
         """Discovery get_items on an account type node"""
         account_type = data

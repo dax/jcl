@@ -72,8 +72,13 @@ class HelpMessageHandler(Handler):
         """
         Test if stanza body match the help regexp.
         """
-        return self.help_regexp.search(stanza.get_body()) \
-            or self.help_regexp.search(stanza.get_subject())
+        body = stanza.get_body()
+        subject = stanza.get_subject()
+        if subject and self.help_regexp.search(subject):
+            return subject
+        if body and self.help_regexp.search(body):
+            return body
+        return None
 
     def handle(self, stanza, lang_class, data):
         """
