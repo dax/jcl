@@ -24,19 +24,46 @@ import unittest
 import tempfile
 import os
 from ConfigParser import ConfigParser
+import time
 
 from pyxmpp.presence import Presence
 from pyxmpp.message import Message
+from pyxmpp.iq import Iq
 
 from jcl.jabber.component import JCLComponent
 from jcl.jabber.presence import DefaultSubscribeHandler, \
      DefaultUnsubscribeHandler, DefaultPresenceHandler, \
      RootPresenceAvailableHandler, AccountPresenceAvailableHandler, \
-     AccountPresenceUnavailableHandler
+     AccountPresenceUnavailableHandler, DefaultIQLastHandler
 from jcl.model.account import User, LegacyJID, Account
 from jcl.lang import Lang
 
 from jcl.tests import JCLTestCase
+
+class DefaultIQLastHandler_TestCase(JCLTestCase):
+    def setUp(self):
+        JCLTestCase.setUp(self, tables=[User, LegacyJID, Account])
+        self.comp = JCLComponent("jcl.test.com",
+                                 "password",
+                                 "localhost",
+                                 "5347",
+                                 None)
+        self.handler = DefaultIQLastHandler(self.comp)
+
+    def test_handle(self):
+        info_query = Iq(from_jid="user1@test.com",
+                        to_jid="jcl.test.com",
+                        stanza_type="get")
+        self.comp.last_activity = int(time.time())
+        time.sleep(1)
+        result = self.handler.handle(info_query, None, [])
+        self.assertEquals(len(result), 1)
+        self.assertEquals(result[0].get_to(), "user1@test.com")
+        self.assertEquals(result[0].get_from(), "jcl.test.com")
+        self.assertEquals(result[0].get_type(), "result")
+        self.assertNotEquals(result[0].xmlnode.children, None)
+        self.assertEquals(result[0].xmlnode.children.name, "query")
+        self.assertEquals(int(result[0].xmlnode.children.prop("seconds")), 1)
 
 class DefaultSubscribeHandler_TestCase(unittest.TestCase):
     def setUp(self):
@@ -362,6 +389,7 @@ class AccountPresenceUnavailableHandler_TestCase(JCLTestCase):
 
 def suite():
     test_suite = unittest.TestSuite()
+    test_suite.addTest(unittest.makeSuite(DefaultIQLastHandler_TestCase, 'test'))
     test_suite.addTest(unittest.makeSuite(DefaultSubscribeHandler_TestCase, 'test'))
     test_suite.addTest(unittest.makeSuite(DefaultUnsubscribeHandler_TestCase, 'test'))
     test_suite.addTest(unittest.makeSuite(DefaultPresenceHandler_TestCase, 'test'))

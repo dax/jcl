@@ -35,6 +35,7 @@ import signal
 import re
 import traceback
 import string
+import time
 
 from Queue import Queue
 
@@ -59,7 +60,7 @@ from jcl.jabber.presence import AccountPresenceAvailableHandler, \
      RootPresenceAvailableHandler, AccountPresenceUnavailableHandler, \
      RootPresenceUnavailableHandler, AccountPresenceSubscribeHandler, \
      RootPresenceSubscribeHandler, AccountPresenceUnsubscribeHandler, \
-     RootPresenceUnsubscribeHandler
+     RootPresenceUnsubscribeHandler, DefaultIQLastHandler
 from jcl.jabber.register import RootSetRegisterHandler, \
      AccountSetRegisterHandler, AccountTypeSetRegisterHandler
 from jcl.jabber.vcard import DefaultVCardHandler
@@ -646,12 +647,14 @@ class JCLComponent(Component, object):
                                        AccountSetRegisterHandler(self),
                                        AccountTypeSetRegisterHandler(self)]]
         self.vcard_handlers = [[DefaultVCardHandler(self)]]
+        self.iqlast_handlers = [[DefaultIQLastHandler(self)]]
 
         self.__logger = logging.getLogger("jcl.jabber.JCLComponent")
         self.lang = lang
         self.running = False
         self.wait_event = threading.Event()
         self._restart = False
+        self.last_activity = int(time.time())
 
         signal.signal(signal.SIGINT, self.signal_handler)
         signal.signal(signal.SIGTERM, self.signal_handler)
@@ -666,6 +669,7 @@ class JCLComponent(Component, object):
         """
         self.spool_dir += "/" + unicode(self.jid)
         self.running = True
+        self.last_activity = int(time.time())
         self.connect()
         timer_thread = threading.Thread(target=self.time_handler,
                                         name="TimerThread")
@@ -867,7 +871,8 @@ class JCLComponent(Component, object):
         """
         Handle IQ-get "jabber:iq:last" requests.
         """
-        # TODO
+        self.__logger.debug("IQ:Last request")
+        self.apply_registered_behavior(self.iqlast_handlers, info_query)
         return 1
 
     def handle_get_gateway(self, info_query):

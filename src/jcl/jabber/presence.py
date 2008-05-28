@@ -21,12 +21,25 @@
 ## Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 ##
 
+import time
+
 from pyxmpp.presence import Presence
 from pyxmpp.message import Message
 
 from jcl.jabber import Handler
 from jcl.model import account
 import jcl.jabber as jabber
+
+class DefaultIQLastHandler(Handler):
+    """Handle jabber:iq:last request"""
+
+    def handle(self, stanza, lang_class, data):
+        """Return same presence as receive one"""
+        result = stanza.make_result_response()
+        query = result.new_query("jabber:iq:last")
+        query.setProp("seconds",
+                      unicode(int(time.time()) - self.component.last_activity))
+        return [result]
 
 class DefaultPresenceHandler(Handler):
     """Handle presence"""
