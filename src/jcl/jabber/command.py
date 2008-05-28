@@ -704,7 +704,7 @@ class JCLCommandManager(CommandManager):
             name, user_jid = self.get_name_and_jid(account_name)
             _account = account.get_account(user_jid, name)
             result += self.component.account_manager.get_account_presence_unavailable(
-                _account)
+                _account.user.jid, _account)
         command_node.setProp("status", STATUS_COMPLETED)
         return (None, result)
 

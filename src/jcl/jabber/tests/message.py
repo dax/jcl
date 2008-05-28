@@ -55,7 +55,7 @@ class PasswordMessageHandler_TestCase(JCLTestCase):
         account12 = ExampleAccount(user=user1,
                                    name="account12",
                                    jid="account12@jcl.test.com")
-        message = Message(from_jid="user1@test.com",
+        message = Message(from_jid="user1@test.com/resource",
                           to_jid="account11@jcl.test.com",
                           subject="[PASSWORD]",
                           body="secret")
@@ -73,7 +73,7 @@ class PasswordMessageHandler_TestCase(JCLTestCase):
         account12 = ExampleAccount(user=user1,
                                    name="account12",
                                    jid="account12@jcl.test.com")
-        message = Message(from_jid="user1@test.com",
+        message = Message(from_jid="user1@test.com/resource",
                           to_jid="account11@jcl.test.com",
                           subject="[PASSWORD]",
                           body="secret")
@@ -125,7 +125,7 @@ class PasswordMessageHandler_TestCase(JCLTestCase):
         account12 = ExampleAccount(user=user1,
                                    name="account12",
                                    jid="account12@jcl.test.com")
-        message = Message(from_jid="user1@test.com",
+        message = Message(from_jid="user1@test.com/resource",
                           to_jid="account11@jcl.test.com",
                           subject="[PASSWORD]",
                           body="secret")
@@ -152,7 +152,7 @@ class HelpMessageHandler_TestCase(JCLTestCase):
         account12 = ExampleAccount(user=user1,
                                    name="account12",
                                    jid="account12@jcl.test.com")
-        message = Message(from_jid="user1@test.com",
+        message = Message(from_jid="user1@test.com/resource",
                           to_jid="account11@jcl.test.com",
                           subject="",
                           body="help")
@@ -167,7 +167,7 @@ class HelpMessageHandler_TestCase(JCLTestCase):
         account12 = ExampleAccount(user=user1,
                                    name="account12",
                                    jid="account12@jcl.test.com")
-        message = Message(from_jid="user1@test.com",
+        message = Message(from_jid="user1@test.com/resource",
                           to_jid="account11@jcl.test.com",
                           subject="",
                           body="help dalkjdjhbd")
@@ -212,14 +212,14 @@ class HelpMessageHandler_TestCase(JCLTestCase):
         account12 = ExampleAccount(user=user1,
                                    name="account12",
                                    jid="account12@jcl.test.com")
-        message = Message(from_jid="user1@test.com",
+        message = Message(from_jid="user1@test.com/resource",
                           to_jid="account11@jcl.test.com",
                           subject="",
                           body="help")
         messages = self.handler.handle(message, Lang.en, account11)
         self.assertEquals(len(messages), 1)
         self.assertEquals(messages[0].get_from(), "account11@jcl.test.com")
-        self.assertEquals(messages[0].get_to(), "user1@test.com")
+        self.assertEquals(messages[0].get_to(), "user1@test.com/resource")
         self.assertEquals(messages[0].get_subject(), Lang.en.help_message_subject)
         self.assertEquals(messages[0].get_body(), Lang.en.help_message_body)
 

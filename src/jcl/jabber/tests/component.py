@@ -1290,27 +1290,27 @@ class JCLComponent_TestCase(JCLTestCase):
         self.comp.stream_class = MockStream
         self.comp.account_manager.account_classes = (ExampleAccount,)
         x_data = Form("submit")
-        x_data.add_field(name = "name", \
-                         value = "account1", \
-                         field_type = "text-single")
-        x_data.add_field(name = "login", \
-                         value = "mylogin", \
-                         field_type = "text-single")
-        x_data.add_field(name = "password", \
-                         value = "mypassword", \
-                         field_type = "text-private")
-        x_data.add_field(name = "store_password", \
-                         value = False, \
-                         field_type = "boolean")
-        x_data.add_field(name = "test_enum", \
-                         value = "choice3", \
-                         field_type = "list-single")
-        x_data.add_field(name = "test_int", \
-                         value = 43, \
-                         field_type = "text-single")
-        iq_set = Iq(stanza_type = "set", \
-                    from_jid = "user1@test.com", \
-                    to_jid = "jcl.test.com")
+        x_data.add_field(name="name",
+                         value="account1",
+                         field_type="text-single")
+        x_data.add_field(name="login",
+                         value="mylogin",
+                         field_type="text-single")
+        x_data.add_field(name="password",
+                         value="mypassword",
+                         field_type="text-private")
+        x_data.add_field(name="store_password",
+                         value=False,
+                         field_type="boolean")
+        x_data.add_field(name="test_enum",
+                         value="choice3",
+                         field_type="list-single")
+        x_data.add_field(name="test_int",
+                         value=43,
+                         field_type="text-single")
+        iq_set = Iq(stanza_type="set",
+                    from_jid="user1@test.com/resource",
+                    to_jid="jcl.test.com")
         query = iq_set.new_query("jabber:iq:register")
         x_data.as_xml(query, None)
         self.comp.handle_set_register(iq_set)
@@ -1334,29 +1334,29 @@ class JCLComponent_TestCase(JCLTestCase):
         self.assertTrue(isinstance(iq_result, Iq))
         self.assertEquals(iq_result.get_node().prop("type"), "result")
         self.assertEquals(iq_result.get_from(), "jcl.test.com")
-        self.assertEquals(iq_result.get_to(), "user1@test.com")
+        self.assertEquals(iq_result.get_to(), "user1@test.com/resource")
 
         presence_component = stanza_sent[1]
         self.assertTrue(isinstance(presence_component, Presence))
         self.assertEquals(presence_component.get_from(), "jcl.test.com")
         self.assertEquals(presence_component.get_to(), "user1@test.com")
-        self.assertEquals(presence_component.get_node().prop("type"), \
+        self.assertEquals(presence_component.get_node().prop("type"),
                           "subscribe")
 
         message = stanza_sent[2]
         self.assertTrue(isinstance(message, Message))
         self.assertEquals(message.get_from(), "jcl.test.com")
-        self.assertEquals(message.get_to(), "user1@test.com")
-        self.assertEquals(message.get_subject(), \
+        self.assertEquals(message.get_to(), "user1@test.com/resource")
+        self.assertEquals(message.get_subject(),
                           _account.get_new_message_subject(Lang.en))
-        self.assertEquals(message.get_body(), \
+        self.assertEquals(message.get_body(),
                           _account.get_new_message_body(Lang.en))
 
         presence_account = stanza_sent[3]
         self.assertTrue(isinstance(presence_account, Presence))
         self.assertEquals(presence_account.get_from(), "account1@jcl.test.com")
         self.assertEquals(presence_account.get_to(), "user1@test.com")
-        self.assertEquals(presence_account.get_node().prop("type"), \
+        self.assertEquals(presence_account.get_node().prop("type"),
                           "subscribe")
 
     def test_handle_set_register_new_default_values(self):
@@ -1471,6 +1471,7 @@ class JCLComponent_TestCase(JCLTestCase):
         self.assertEquals(len(stanza_sent), 1)
         self.assertTrue(isinstance(stanza_sent[0], Iq))
         self.assertEquals(stanza_sent[0].get_node().prop("type"), "error")
+        self.assertEquals(stanza_sent[0].get_to(), "user1@test.com/res")
         stanza_error = stanza_sent[0].get_error()
         self.assertEquals(stanza_error.get_condition().name,
                           "not-acceptable")
@@ -1501,6 +1502,7 @@ class JCLComponent_TestCase(JCLTestCase):
         self.assertEquals(len(stanza_sent), 1)
         self.assertTrue(isinstance(stanza_sent[0], Iq))
         self.assertEquals(stanza_sent[0].get_node().prop("type"), "error")
+        self.assertEquals(stanza_sent[0].get_to(), "user1@test.com/res")
         stanza_error = stanza_sent[0].get_error()
         self.assertEquals(stanza_error.get_condition().name,
                           "not-acceptable")
@@ -1727,13 +1729,13 @@ class JCLComponent_TestCase(JCLTestCase):
         model.db_disconnect()
         self.comp.handle_presence_available(Presence(\
             stanza_type="available",
-            from_jid="user1@test.com",
+            from_jid="user1@test.com/resource",
             to_jid="jcl.test.com"))
         presence_sent = self.comp.stream.sent
         self.assertEqual(len(presence_sent), 3)
         self.assertEqual(len([presence
                               for presence in presence_sent
-                              if presence.get_to_jid() == "user1@test.com" \
+                              if presence.get_to_jid() == "user1@test.com/resource" \
                               and presence.get_type() is None]),
                           3)
         self.assertEqual(len([presence
@@ -1790,13 +1792,13 @@ class JCLComponent_TestCase(JCLTestCase):
         model.db_disconnect()
         self.comp.handle_presence_available(Presence(\
             stanza_type="available",
-            from_jid="user1@test.com",
+            from_jid="user1@test.com/resource",
             to_jid="jcl.test.com"))
         presence_sent = self.comp.stream.sent
         self.assertEqual(len(presence_sent), 7)
         self.assertEqual(len([presence
                               for presence in presence_sent
-                              if presence.get_to_jid() == "user1@test.com" \
+                              if presence.get_to_jid() == "user1@test.com/resource" \
                               and presence.get_type() is None]),
                          7)
         self.assertEqual(len([presence
@@ -1888,11 +1890,11 @@ class JCLComponent_TestCase(JCLTestCase):
         model.db_disconnect()
         self.comp.handle_presence_available(Presence(\
             stanza_type="available",
-            from_jid="user1@test.com",
+            from_jid="user1@test.com/resource",
             to_jid="account11@jcl.test.com"))
         presence_sent = self.comp.stream.sent
         self.assertEqual(len(presence_sent), 1)
-        self.assertEqual(presence_sent[0].get_to(), "user1@test.com")
+        self.assertEqual(presence_sent[0].get_to(), "user1@test.com/resource")
         self.assertEqual(presence_sent[0].get_from(), "account11@jcl.test.com")
         self.assertTrue(isinstance(presence_sent[0], Presence))
         self.assertEqual(presence_sent[0].get_type(), None)
@@ -1915,11 +1917,11 @@ class JCLComponent_TestCase(JCLTestCase):
         model.db_disconnect()
         self.comp.handle_presence_available(Presence(\
             stanza_type="available",
-            from_jid="user1@test.com",
+            from_jid="user1@test.com/resource",
             to_jid="user1%test.com@jcl.test.com"))
         presence_sent = self.comp.stream.sent
         self.assertEqual(len(presence_sent), 1)
-        self.assertEqual(presence_sent[0].get_to(), "user1@test.com")
+        self.assertEqual(presence_sent[0].get_to(), "user1@test.com/resource")
         self.assertEqual(presence_sent[0].get_from(),
                          "user1%test.com@jcl.test.com")
         self.assertTrue(isinstance(presence_sent[0], Presence))
@@ -1987,7 +1989,7 @@ class JCLComponent_TestCase(JCLTestCase):
         model.db_disconnect()
         self.comp.handle_presence_available(Presence(\
             stanza_type="available",
-            from_jid="user1@test.com",
+            from_jid="user1@test.com/resource",
             to_jid="account11@jcl.test.com"))
         messages_sent = self.comp.stream.sent
         self.assertEqual(len(messages_sent), 1)
@@ -1995,7 +1997,7 @@ class JCLComponent_TestCase(JCLTestCase):
         self.assertTrue(presence is not None)
         self.assertTrue(isinstance(presence, Presence))
         self.assertEqual(presence.get_from_jid(), "account11@jcl.test.com")
-        self.assertEqual(presence.get_to_jid(), "user1@test.com")
+        self.assertEqual(presence.get_to_jid(), "user1@test.com/resource")
         self.assertEqual(presence.get_type(), None)
 
     def test_handle_presence_available_to_account_live_password_complex(self):
@@ -2016,7 +2018,7 @@ class JCLComponent_TestCase(JCLTestCase):
         model.db_disconnect()
         self.comp.handle_presence_available(Presence(\
             stanza_type="available",
-            from_jid="user1@test.com",
+            from_jid="user1@test.com/resource",
             to_jid="account11@jcl.test.com"))
         messages_sent = self.comp.stream.sent
         self.assertEqual(len(messages_sent), 2)
@@ -2031,13 +2033,13 @@ class JCLComponent_TestCase(JCLTestCase):
         self.assertTrue(presence is not None)
         self.assertTrue(isinstance(presence, Presence))
         self.assertEqual(presence.get_from_jid(), "account11@jcl.test.com")
-        self.assertEqual(presence.get_to_jid(), "user1@test.com")
+        self.assertEqual(presence.get_to_jid(), "user1@test.com/resource")
         self.assertEqual(presence.get_type(), None)
 
         self.assertEqual(unicode(password_message.get_from_jid()), \
                          "account11@jcl.test.com")
         self.assertEqual(unicode(password_message.get_to_jid()), \
-                         "user1@test.com")
+                         "user1@test.com/resource")
         self.assertEqual(password_message.get_subject(), \
                          "[PASSWORD] Password request")
         self.assertEqual(password_message.get_body(), \
@@ -2060,13 +2062,13 @@ class JCLComponent_TestCase(JCLTestCase):
         model.db_disconnect()
         self.comp.handle_presence_unavailable(Presence(\
             stanza_type="unavailable",
-            from_jid="user1@test.com",
+            from_jid="user1@test.com/resource",
             to_jid="jcl.test.com"))
         presence_sent = self.comp.stream.sent
         self.assertEqual(len(presence_sent), 3)
         self.assertEqual(len([presence
                               for presence in presence_sent
-                              if presence.get_to_jid() == "user1@test.com" \
+                              if presence.get_to_jid() == "user1@test.com/resource" \
                               and presence.get_type() == "unavailable"]),
                           3)
         self.assertEqual(\
@@ -2126,13 +2128,13 @@ class JCLComponent_TestCase(JCLTestCase):
         model.db_disconnect()
         self.comp.handle_presence_unavailable(Presence(\
             stanza_type="unavailable",
-            from_jid="user1@test.com",
+            from_jid="user1@test.com/resource",
             to_jid="jcl.test.com"))
         presence_sent = self.comp.stream.sent
         self.assertEqual(len(presence_sent), 7)
         self.assertEqual(len([presence
                               for presence in presence_sent
-                              if presence.get_to_jid() == "user1@test.com" \
+                              if presence.get_to_jid() == "user1@test.com/resource" \
                               and presence.get_type() == "unavailable"]),
                          7)
         self.assertEqual(len([presence
@@ -2224,11 +2226,11 @@ class JCLComponent_TestCase(JCLTestCase):
         model.db_disconnect()
         self.comp.handle_presence_unavailable(Presence(\
             stanza_type="unavailable",
-            from_jid="user1@test.com",
+            from_jid="user1@test.com/resource",
             to_jid="account11@jcl.test.com"))
         presence_sent = self.comp.stream.sent
         self.assertEqual(len(presence_sent), 1)
-        self.assertEqual(presence_sent[0].get_to(), "user1@test.com")
+        self.assertEqual(presence_sent[0].get_to(), "user1@test.com/resource")
         self.assertEqual(presence_sent[0].get_from(), "account11@jcl.test.com")
         self.assertEqual(\
             presence_sent[0].xpath_eval("@type")[0].get_content(),
@@ -2252,12 +2254,13 @@ class JCLComponent_TestCase(JCLTestCase):
         model.db_disconnect()
         self.comp.handle_presence_unavailable(Presence(\
             stanza_type="unavailable",
-            from_jid="user1@test.com",
+            from_jid="user1@test.com/resource",
             to_jid="user1%test.com@jcl.test.com"))
         presence_sent = self.comp.stream.sent
         self.assertEqual(len(presence_sent), 1)
-        self.assertEqual(presence_sent[0].get_to(), "user1@test.com")
-        self.assertEqual(presence_sent[0].get_from(), "user1%test.com@jcl.test.com")
+        self.assertEqual(presence_sent[0].get_to(), "user1@test.com/resource")
+        self.assertEqual(presence_sent[0].get_from(),
+                         "user1%test.com@jcl.test.com")
         self.assertEqual(\
             presence_sent[0].xpath_eval("@type")[0].get_content(),
             "unavailable")
@@ -3202,6 +3205,18 @@ class AccountManager_TestCase(JCLTestCase):
         self.assertEquals(presence.children.name, "show")
         self.assertEquals(presence.children.content, "online")
 
+    def test_cancel_account_error_no_error(self):
+        """Test Account error reset"""
+        self.comp.stream = MockStream()
+        self.comp.stream_class = MockStream
+        _account = Account(user=User(jid="user1@test.com"),
+                           name="account11",
+                           jid="account11@jcl.test.com")
+        _account.error = None
+        _account.status = account.ONLINE
+        self.account_manager.cancel_account_error(_account)
+        self.assertEquals(len(self.comp.stream.sent), 0)
+
     def test_get_account_presence_available_no_change(self):
         """Test when presence status does not change"""
         _account = Account(user=User(jid="user1@test.com"),
@@ -3209,7 +3224,7 @@ class AccountManager_TestCase(JCLTestCase):
                            jid="account11@jcl.test.com")
         _account.status = account.ONLINE
         result = self.account_manager.get_account_presence_available(\
-            _account, _account.default_lang_class)
+            _account.user.jid, _account, _account.default_lang_class, True)
         self.assertEquals(len(result), 0)
 
 def suite():

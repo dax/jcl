@@ -3208,7 +3208,7 @@ class JCLCommandManagerShutdownCommand_TestCase(JCLCommandManagerTestCase):
             from_jid="admin@test.com",
             fields=[Field(field_type="list-multi",
                           name="delay",
-                          value=[0])])
+                          value=[1])])
         result = self.command_manager.apply_command_action(\
             info_query,
             "http://jabber.org/protocol/admin#shutdown",
@@ -3234,7 +3234,7 @@ class JCLCommandManagerShutdownCommand_TestCase(JCLCommandManagerTestCase):
         context_session = self.command_manager.sessions[session_id][1]
         self.assertFalse(context_session.has_key("announcement"))
         self.assertEquals(context_session["delay"],
-                          ["0"])
+                          ["1"])
 
 class JCLCommandManagerGetLastErrorCommand_TestCase(JCLCommandManagerTestCase):
     """

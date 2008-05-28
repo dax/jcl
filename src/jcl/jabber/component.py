@@ -345,7 +345,7 @@ class AccountManager(object):
                                             presence))
         for _account in account.get_all_accounts():
             result.extend(getattr(self, "get_account_presence_" +
-                                  presence)(_account))
+                                  presence)(_account.user.jid, _account))
         return result
 
     def get_root_presence(self, to_jid, presence_type,
@@ -370,32 +370,28 @@ class AccountManager(object):
                         show=show,
                         stanza_type=presence_type)
 
-    def get_account_presence_probe(self, _account):
-        """Send presence probe to account's user"""
-        return [self.get_presence(from_jid=_account.jid,
-                                  to_jid=_account.user.jid,
-                                  presence_type="probe")]
-
-    def get_account_presence_unavailable(self, _account):
+    def get_account_presence_unavailable(self, to_jid, _account):
         """Send unavailable presence to account's user"""
         _account.status = account.OFFLINE
         return [self.get_presence(from_jid=_account.jid,
-                                  to_jid=_account.user.jid,
+                                  to_jid=to_jid,
                                   presence_type="unavailable")]
 
-    def get_account_presence_available(self, _account, lang_class):
+    def get_account_presence_available(self, to_jid, _account, lang_class,
+                                       update=False):
         """Send available presence to account's user and ask for password
         if necessary"""
         result = []
         old_status = _account.status
-        _account.status = account.ONLINE
         if _account.error is not None:
             _account.status = account.DND
         elif not _account.enabled:
             _account.status = account.XA
-        if old_status != _account.status:
+        else:
+            _account.status = account.ONLINE
+        if not update or old_status != _account.status:
             result.append(self.get_presence(from_jid=_account.jid,
-                                            to_jid=_account.user.jid,
+                                            to_jid=to_jid,
                                             status=_account.status_msg,
                                             show=_account.status,
                                             presence_type="available"))
@@ -404,7 +400,7 @@ class AccountManager(object):
             and _account.store_password == False \
             and old_status == account.OFFLINE \
             and _account.password == None :
-            result.extend(self.ask_password(_account, lang_class))
+            result.extend(self.ask_password(to_jid, _account, lang_class))
         return result
 
     def probe_all_accounts_presence(self):
@@ -413,11 +409,9 @@ class AccountManager(object):
                                     user.jid,
                                     "available")
                   for user in account.get_all_users()]
-        result += [self.get_presence(from_jid=_account.jid,
-                                     to_jid=_account.user.jid,
-                                     status=_account.status_msg,
-                                     show=_account.status,
-                                     presence_type="available")
+        result += [self.get_account_presence_available(\
+                _account.user.jid, _account,
+                _account.default_lang_class)[0]
                    for _account in account.get_all_accounts()]
         return result
 
@@ -531,7 +525,7 @@ class AccountManager(object):
         """Compose account jid from account name"""
         return name + u"@" + unicode(self.component.jid)
 
-    def ask_password(self, _account, lang_class):
+    def ask_password(self, to_jid, _account, lang_class):
         """Send a Jabber message to ask for account password
         """
         result = []
@@ -540,7 +534,7 @@ class AccountManager(object):
             and _account.status != account.OFFLINE:
             _account.waiting_password_reply = True
             result.append(Message(from_jid=_account.jid,
-                                  to_jid=_account.user.jid,
+                                  to_jid=to_jid,
                                   subject=u"[PASSWORD] " + \
                                       lang_class.ask_password_subject,
                                   body=lang_class.ask_password_body % \
@@ -575,14 +569,16 @@ class AccountManager(object):
                                   body=_account.default_lang_class.error_body \
                                       % (exception)))
             result.extend(self.get_account_presence_available(\
-                    _account, _account.default_lang_class))
+                    _account.user.jid, _account, _account.default_lang_class,
+                    True))
         return result
 
     def cancel_account_error(self, _account):
         """Reset Account error status and send new available presence"""
         _account.error = None
         self.component.send_stanzas(self.get_account_presence_available(\
-                _account, _account.default_lang_class))
+                _account.user.jid, _account, _account.default_lang_class,
+                True))
 
 ###############################################################################
 # JCL implementation
