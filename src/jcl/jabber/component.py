@@ -44,6 +44,7 @@ from pyxmpp.jabberd.component import Component
 from pyxmpp.message import Message
 from pyxmpp.presence import Presence
 from pyxmpp.jabber.dataforms import Form
+import pyxmpp.jabber.vcard as vcard
 
 from jcl.error import FieldError
 from jcl.jabber.disco import AccountDiscoGetInfoHandler, \
@@ -61,6 +62,8 @@ from jcl.jabber.presence import AccountPresenceAvailableHandler, \
      RootPresenceUnsubscribeHandler
 from jcl.jabber.register import RootSetRegisterHandler, \
      AccountSetRegisterHandler, AccountTypeSetRegisterHandler
+from jcl.jabber.vcard import DefaultVCardHandler
+
 import jcl.model as model
 from jcl.model import account
 from jcl.model.account import Account, User
@@ -639,6 +642,7 @@ class JCLComponent(Component, object):
         self.set_register_handlers = [[RootSetRegisterHandler(self),
                                        AccountSetRegisterHandler(self),
                                        AccountTypeSetRegisterHandler(self)]]
+        self.vcard_handlers = [[DefaultVCardHandler(self)]]
 
         self.__logger = logging.getLogger("jcl.jabber.JCLComponent")
         self.lang = lang
@@ -729,9 +733,14 @@ class JCLComponent(Component, object):
                                        self.handle_get_gateway)
         self.stream.set_iq_set_handler("query", "jabber:iq:gateway",
                                        self.handle_set_gateway)
+        self.stream.set_iq_get_handler("query", "jabber:iq:last",
+                                       self.handle_get_last)
 
         self.stream.set_iq_set_handler("command", command.COMMAND_NS,
                                        self.handle_command)
+
+        self.stream.set_iq_get_handler("vCard", vcard.VCARD_NS,
+                                       self.handle_vcard)
 
         self.stream.set_presence_handler("available",
                                          self.handle_presence_available)
@@ -850,6 +859,13 @@ class JCLComponent(Component, object):
         if send_result:
             self.send_stanzas(result)
         return result
+
+    def handle_get_last(self, info_query):
+        """
+        Handle IQ-get "jabber:iq:last" requests.
+        """
+        # TODO
+        return 1
 
     def handle_get_gateway(self, info_query):
         """Handle IQ-get "jabber:iq:gateway" requests.
@@ -1054,6 +1070,14 @@ class JCLComponent(Component, object):
             self.__logger.error("Error in command " + str(command_node) +
                                 " with " + str(info_query) + ":",
                                 exc_info=True)
+        return 1
+
+    def handle_vcard(self, info_query):
+        """
+        Handle VCard request
+        """
+        self.__logger.debug("VCard request")
+        self.apply_registered_behavior(self.vcard_handlers, info_query)
         return 1
 
     ###########################################################################

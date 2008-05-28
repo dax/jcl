@@ -35,6 +35,7 @@ from pyxmpp.iq import Iq
 from pyxmpp.presence import Presence
 from pyxmpp.message import Message
 from pyxmpp.jabber.dataforms import Form
+import pyxmpp.jabber.vcard as vcard
 
 import jcl.tests
 from jcl.jabber import Handler
@@ -67,11 +68,13 @@ class MockStream(object):
         self.sent.append(iq)
 
     def set_iq_set_handler(self, iq_type, ns, handler):
-        if not iq_type in ["query", "command"]:
+        if not iq_type in ["query", "command", "vCard"]:
             raise Exception("IQ type unknown: " + iq_type)
         if not ns in ["jabber:iq:version",
                       "jabber:iq:register",
                       "jabber:iq:gateway",
+                      "jabber:iq:last",
+                      vcard.VCARD_NS,
                       "http://jabber.org/protocol/disco#items",
                       "http://jabber.org/protocol/disco#info",
                       "http://jabber.org/protocol/commands"]:
@@ -503,6 +506,8 @@ class JCLComponent_TestCase(JCLTestCase):
         self.assertEquals(len(self.comp.stream.sent), 0)
         self.assertEquals(disco_info.get_identities()[0].get_name(), self.comp.name)
         self.assertTrue(disco_info.has_feature("jabber:iq:version"))
+        self.assertTrue(disco_info.has_feature(vcard.VCARD_NS))
+        self.assertTrue(disco_info.has_feature("jabber:iq:last"))
         self.assertTrue(disco_info.has_feature("jabber:iq:register"))
 
     def test_disco_get_info_multiple_account_type(self):
@@ -518,6 +523,8 @@ class JCLComponent_TestCase(JCLTestCase):
         self.assertEquals(disco_info.get_identities()[0].get_name(),
                           self.comp.name)
         self.assertTrue(disco_info.has_feature("jabber:iq:version"))
+        self.assertTrue(disco_info.has_feature(vcard.VCARD_NS))
+        self.assertTrue(disco_info.has_feature("jabber:iq:last"))
         self.assertFalse(disco_info.has_feature("jabber:iq:register"))
 
     def test_disco_get_info_node(self):
@@ -529,6 +536,8 @@ class JCLComponent_TestCase(JCLTestCase):
         disco_info = self.comp.disco_get_info("node_test", info_query)
         self.assertEquals(disco_info.get_node(), "node_test")
         self.assertEquals(len(self.comp.stream.sent), 0)
+        self.assertTrue(disco_info.has_feature(vcard.VCARD_NS))
+        self.assertTrue(disco_info.has_feature("jabber:iq:last"))
         self.assertTrue(disco_info.has_feature("jabber:iq:register"))
 
     def test_disco_get_info_long_node(self):
@@ -542,6 +551,8 @@ class JCLComponent_TestCase(JCLTestCase):
                                               info_query)
         self.assertEquals(disco_info.get_node(), "node_type/node_test")
         self.assertEquals(len(self.comp.stream.sent), 0)
+        self.assertTrue(disco_info.has_feature(vcard.VCARD_NS))
+        self.assertTrue(disco_info.has_feature("jabber:iq:last"))
         self.assertTrue(disco_info.has_feature("jabber:iq:register"))
 
     def test_disco_get_info_root_unknown_node(self):

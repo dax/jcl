@@ -38,19 +38,30 @@ def is_xml_equal(xml_ref, xml_test, strict=False,
     __logger.info("Testing xml node equality:\n--\n" + str(xml_ref) + "\n--\n"
                   + str(xml_test) + "\n--\n")
     if (xml_ref is None) ^ (xml_test is None):
-        if strict or xml_test is None:
+        if xml_test is None:
             __logger.error("xml_test (" + str(xml_test) + ") or xml_ref ("
                            + str(xml_ref) + ") is None")
             return False
+        elif strict:
+            # libxml2 parser set content to None for empty node but
+            # pyxmpp parser set content to an empty string
+            if xml_test.type == "text" and xml_test.content == "":
+                return True
+            else:
+                __logger.error("xml_test (" + str(xml_test) + ") or xml_ref ("
+                               + str(xml_ref) + ") is None")
+                return False
         else:
             return True
     if (xml_ref is None) and (xml_test is None):
         return True
     if isinstance(xml_ref, types.StringType) \
             or isinstance(xml_ref, types.UnicodeType):
+        libxml2.pedanticParserDefault(True)
         xml_ref = libxml2.parseDoc(xml_ref).children
     if isinstance(xml_test, types.StringType) \
             or isinstance(xml_test, types.UnicodeType):
+        libxml2.pedanticParserDefault(True)
         xml_test = libxml2.parseDoc(xml_test).children
 
     def check_equality(test_func, ref, test, strict):
@@ -100,14 +111,14 @@ def is_xml_equal(xml_ref, xml_test, strict=False,
                 return False
             for attr in ref.properties:
                 if ref.prop(attr.name) != test.prop(attr.name):
-                    __logger.error("XML node attributs are different: " 
+                    __logger.error("XML node attributs are different: "
                                    + str(attr)
                                    + " != " + str(test.prop(attr.name)))
                     return False
             if strict_attribut:
                 for attr in test.properties:
                     if ref.prop(attr.name) != test.prop(attr.name):
-                        __logger.error("XML node attributs are different: " 
+                        __logger.error("XML node attributs are different: "
                                        + str(attr)
                                        + " != " + str(ref.prop(attr.name)))
                         return False

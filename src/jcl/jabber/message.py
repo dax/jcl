@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 ##
 ## message.py
 ## Login : David Rousselie <dax@happycoders.org>

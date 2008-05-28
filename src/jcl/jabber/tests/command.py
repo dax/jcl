@@ -3217,7 +3217,7 @@ class JCLCommandManagerShutdownCommand_TestCase(JCLCommandManagerTestCase):
         self.assertTrue(self.comp.running)
         threads = threading.enumerate()
         self.assertEquals(len(threads), 2)
-        threading.Event().wait(1)
+        threading.Event().wait(2)
         threads = threading.enumerate()
         self.assertEquals(len(threads), 1)
         self.assertFalse(self.comp.restart)

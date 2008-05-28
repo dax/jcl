@@ -24,6 +24,7 @@ import logging
 
 from pyxmpp.jid import JID
 from pyxmpp.jabber.disco import DiscoInfo, DiscoItems, DiscoItem, DiscoIdentity
+import pyxmpp.jabber.vcard as vcard
 
 import jcl.jabber as jabber
 
@@ -56,6 +57,8 @@ class RootDiscoGetInfoHandler(DiscoHandler):
         disco_info.add_feature("jabber:iq:version")
         disco_info.add_feature("http://jabber.org/protocol/disco#info")
         disco_info.add_feature("http://jabber.org/protocol/disco#items")
+        disco_info.add_feature(vcard.VCARD_NS)
+        disco_info.add_feature("jabber:iq:last")
         if not self.component.account_manager.has_multiple_account_type:
             disco_info.add_feature("jabber:iq:register")
         DiscoIdentity(disco_info, self.component.name,
@@ -75,6 +78,8 @@ class AccountDiscoGetInfoHandler(DiscoHandler):
         """Implement discovery get_info on an account node"""
         self.__logger.debug("account_disco_get_info")
         disco_info = DiscoInfo(node)
+        disco_info.add_feature(vcard.VCARD_NS)
+        disco_info.add_feature("jabber:iq:last")
         disco_info.add_feature("jabber:iq:register")
         return [disco_info]
 
