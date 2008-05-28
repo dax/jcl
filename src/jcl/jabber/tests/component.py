@@ -418,27 +418,27 @@ class JCLComponent_TestCase(JCLTestCase):
         self.assertTrue(isinstance(presence, Presence))
         self.assertEquals(presence.get_from(), "jcl.test.com")
         self.assertEquals(presence.get_to(), "test1@test.com")
-        self.assertEquals(presence.get_node().prop("type"), "probe")
+        self.assertEquals(presence.get_node().prop("type"), None)
         presence = self.comp.stream.sent[1]
         self.assertTrue(isinstance(presence, Presence))
         self.assertEquals(presence.get_from(), "jcl.test.com")
         self.assertEquals(presence.get_to(), "test2@test.com")
-        self.assertEquals(presence.get_node().prop("type"), "probe")
+        self.assertEquals(presence.get_node().prop("type"), None)
         presence = self.comp.stream.sent[2]
         self.assertTrue(isinstance(presence, Presence))
         self.assertEquals(presence.get_from(), "account11@jcl.test.com")
         self.assertEquals(presence.get_to(), "test1@test.com")
-        self.assertEquals(presence.get_node().prop("type"), "probe")
+        self.assertEquals(presence.get_node().prop("type"), None)
         presence = self.comp.stream.sent[3]
         self.assertTrue(isinstance(presence, Presence))
         self.assertEquals(presence.get_from(), "account12@jcl.test.com")
         self.assertEquals(presence.get_to(), "test1@test.com")
-        self.assertEquals(presence.get_node().prop("type"), "probe")
+        self.assertEquals(presence.get_node().prop("type"), None)
         presence = self.comp.stream.sent[4]
         self.assertTrue(isinstance(presence, Presence))
         self.assertEquals(presence.get_from(), "account2@jcl.test.com")
         self.assertEquals(presence.get_to(), "test2@test.com")
-        self.assertEquals(presence.get_node().prop("type"), "probe")
+        self.assertEquals(presence.get_node().prop("type"), None)
 
     ###########################################################################
     # 'signal_handler' tests
