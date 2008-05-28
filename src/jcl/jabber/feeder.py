@@ -67,20 +67,14 @@ class FeederComponent(JCLComponent):
                               command_manager_class=command_manager_class)
         # Define default feeder and sender, can be override
         self.handler = FeederHandler(Feeder(self), Sender(self))
-        self.check_interval = 1
-
         self.__logger = logging.getLogger("jcl.jabber.FeederComponent")
 
     def handle_tick(self):
         """Implement main feed/send behavior"""
-        model.db_connect()
         self.handler.handle(\
             None, self.lang.get_default_lang_class(),
             self.handler.filter(None,
                                 self.lang.get_default_lang_class()))
-        model.db_disconnect()
-
-
 
 class Feeder(object):
     """Abstract feeder class"""
@@ -90,7 +84,6 @@ class Feeder(object):
     def feed(self, _account):
         """Feed data for given account"""
         raise NotImplementedError
-
 
 class Sender(object):
     """Abstract sender class"""
