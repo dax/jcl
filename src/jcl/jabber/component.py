@@ -408,11 +408,11 @@ class AccountManager(object):
         """Send presence probe to all registered accounts"""
         result = [self.get_presence(self.component.jid,
                                     user.jid,
-                                    "available")
+                                    "probe")
                   for user in account.get_all_users()]
-        result += [self.get_account_presence_available(\
-                _account.user.jid, _account,
-                _account.default_lang_class)[0]
+        result += [self.get_presence(_account.jid,
+                                     _account.user.jid,
+                                     "probe")
                    for _account in account.get_all_accounts()]
         return result
 
