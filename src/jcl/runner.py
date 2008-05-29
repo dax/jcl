@@ -237,6 +237,7 @@ class JCLRunner(object):
                                      lang=Lang(self.language),
                                      config=self.config,
                                      config_file=self.config_file)
+            component.version = self.component_version
             return component.run()
         self._run(run_func)
 

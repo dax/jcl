@@ -70,8 +70,6 @@ from jcl.model import account
 from jcl.model.account import Account, User
 from jcl.lang import Lang
 
-VERSION = "0.1"
-
 class AccountManager(object):
     """Implement component account behavior"""
 
@@ -619,7 +617,7 @@ class JCLComponent(Component, object):
         self.spool_dir = "."
         self.config = config
         self.config_file = config_file
-        self.version = VERSION
+        self.version = "0.0"
         self.time_unit = 60
         self.queue = Queue(100)
         self.account_manager = account_manager_class(self)
