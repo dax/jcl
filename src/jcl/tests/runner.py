@@ -206,7 +206,7 @@ class JCLRunner_TestCase(unittest.TestCase):
         self.has_run_func = False
         def run_func(component_self):
             self.has_run_func = True
-            return False
+            return (False, 0)
 
         self.runner.pid_file = "/tmp/jcl.pid"
         db_path = tempfile.mktemp("db", "jcltest", DB_DIR)
@@ -234,7 +234,7 @@ class JCLRunner_TestCase(unittest.TestCase):
         db_url = "sqlite://" + db_path
         self.runner.db_url = db_url
         def do_nothing():
-            pass
+            return (False, 0)
         self.runner._run(do_nothing)
         model.db_connect()
         # dropTable should succeed because tables should exist
@@ -254,9 +254,9 @@ class JCLRunner_TestCase(unittest.TestCase):
         self.i = 0
         def restart(self):
             self.i += 1
-            yield True
+            yield (True, 0)
             self.i += 1
-            yield False
+            yield (False, 0)
             self.i += 1
         restart_generator = restart(self)
         self.runner._run(lambda : restart_generator.next())

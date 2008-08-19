@@ -36,6 +36,7 @@ import re
 import traceback
 import string
 import time
+import socket
 
 from Queue import Queue
 
@@ -665,10 +666,10 @@ class JCLComponent(Component, object):
         Call Component main loop
         Clean up when shutting down JCLcomponent
         """
+        self.connect()
         self.spool_dir += "/" + unicode(self.jid)
         self.running = True
         self.last_activity = int(time.time())
-        self.connect()
         timer_thread = threading.Thread(target=self.time_handler,
                                         name="TimerThread")
         timer_thread.start()
@@ -679,17 +680,20 @@ class JCLComponent(Component, object):
                 self.stream.loop_iter(JCLComponent.timeout)
                 if self.queue.qsize():
                     raise self.queue.get(0)
+        except socket.error, e:
+            self.__logger.info("Connection failed, restarting.")
+            return (True, 5)
         finally:
             self.running = False
+            timer_thread.join(JCLComponent.timeout)
+            self.wait_event.set()
             if self.stream and not self.stream.eof \
                    and self.stream.socket is not None:
                 presences = self.account_manager.get_presence_all("unavailable")
                 self.send_stanzas(presences)
-            self.wait_event.set()
-            timer_thread.join(JCLComponent.timeout)
-            self.disconnect()
-            self.__logger.debug("Exitting normally")
-        return self._restart
+                self.disconnect()
+        self.__logger.debug("Exitting normally")
+        return (self._restart, 0)
 
     def _get_restart(self):
         return self._restart

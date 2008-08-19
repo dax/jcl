@@ -25,6 +25,7 @@ import os
 import sys
 from ConfigParser import ConfigParser
 from getopt import gnu_getopt
+import threading
 
 from jcl.lang import Lang
 from jcl.jabber.component import JCLComponent
@@ -94,6 +95,7 @@ class JCLRunner(object):
                          lambda arg: self.print_help())]
         self.logger = logging.getLogger()
         self.__debug = False
+        self.wait_event = threading.Event()
 
     def set_attr(self, attr, value):
         setattr(self, attr, value)
@@ -222,7 +224,8 @@ class JCLRunner(object):
                                   self.component_version + " is starting ...")
                 restart = True
                 while restart:
-                    restart = run_func()
+                    (restart, time_to_wait) = run_func()
+                    self.wait_event.wait(time_to_wait)
                 self.logger.debug(self.component_name + " is exiting")
             finally:
                 if os.path.exists(self.pid_file):
