@@ -787,7 +787,7 @@ class JCLComponent(Component, object):
     def send_stanzas(self, stanzas):
         """Send given stanza list"""
         self.__logger.debug("Sending responses: " + str(stanzas))
-        if stanzas is not None:
+        if stanzas is not None and self.stream is not None:
             for stanza in stanzas:
                 self.stream.send(stanza)
 
@@ -892,7 +892,7 @@ class JCLComponent(Component, object):
         query = info_query.new_query("jabber:iq:gateway")
         query.newTextChild(query.ns(), "desc", lang_class.get_gateway_desc)
         query.newTextChild(query.ns(), "prompt", lang_class.get_gateway_prompt)
-        self.stream.send(info_query)
+        self.send_stanzas([info_query])
         return 1
 
     def handle_set_gateway(self, info_query):
@@ -910,7 +910,7 @@ class JCLComponent(Component, object):
         query.newTextChild(query.ns(), "jid", jid)
         # XEP-0100 - section 6: should be <jid> but PSI only work with <prompt>
         query.newTextChild(query.ns(), "prompt", jid)
-        self.stream.send(info_query)
+        self.send_stanzas([info_query])
         return 1
 
     def disco_get_info(self, node, info_query):
@@ -955,7 +955,7 @@ class JCLComponent(Component, object):
         query = info_query.new_query("jabber:iq:version")
         query.newTextChild(query.ns(), "name", self.name)
         query.newTextChild(query.ns(), "version", self.version)
-        self.stream.send(info_query)
+        self.send_stanzas([info_query])
         return 1
 
     def handle_get_register(self, info_query):
@@ -1053,7 +1053,7 @@ class JCLComponent(Component, object):
         presence = Presence(from_jid=stanza.get_to(),
                             to_jid=stanza.get_from(),
                             stanza_type="unavailable")
-        self.stream.send(presence)
+        self.send_stanzas([presence])
         return 1
 
     def handle_message(self, message):

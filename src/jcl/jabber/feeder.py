@@ -109,8 +109,9 @@ class MessageSender(Sender):
         """Implement abstract method from Sender class and send
         data as Jabber message.
         """
-        self.component.stream.send(self.create_message(to_account,
-                                                       data))
+        if self.component.stream is not None:
+            self.component.stream.send(self.create_message(to_account,
+                                                           data))
 
 class HeadlineSender(MessageSender):
     """Send data as Jabber Headline"""

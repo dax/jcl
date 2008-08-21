@@ -187,6 +187,14 @@ class MessageSender_TestCase(JCLTestCase):
         self.assertEquals(message.get_type(), self.message_type)
         model.db_disconnect()
 
+    def test_send_closed_connection(self):
+        self.comp.stream = None
+        model.db_connect()
+        account11 = Account(user=User(jid="user1@test.com"),
+                            name="account11",
+                            jid="account11@jcl.test.com")
+        self.sender.send(account11, ("subject", "Body message"))
+
 class HeadlineSender_TestCase(MessageSender_TestCase):
     def setUp(self):
         MessageSender_TestCase.setUp(self)

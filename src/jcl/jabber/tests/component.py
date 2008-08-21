@@ -2689,6 +2689,10 @@ class JCLComponent_TestCase(JCLTestCase):
         self.comp.send_stanzas(None)
         self.assertEquals(len(self.comp.stream.sent), 0)
 
+    def test_send_stanzas_closed_connection(self):
+        self.comp.stream = None
+        self.comp.send_stanzas([Message()])
+
     def test_get_motd(self):
         config_file = tempfile.mktemp(".conf", "jcltest", jcl.tests.DB_DIR)
         self.comp.config_file = config_file
