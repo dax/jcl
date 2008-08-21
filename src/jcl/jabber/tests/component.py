@@ -2952,7 +2952,7 @@ class JCLComponent_run_TestCase(JCLComponent_TestCase):
     def test_run_restart(self):
         """Test main loop execution with restart"""
         def do_nothing():
-            self.comp.running = False
+            self.comp.stream.eof = True
             return
         self.comp.handle_tick = do_nothing
         self.comp.time_unit = 1
@@ -2961,12 +2961,11 @@ class JCLComponent_run_TestCase(JCLComponent_TestCase):
         self.comp.stream_class = MockStreamNoConnect
         self.comp.restart = True
         (result, time_to_wait) = self.comp.run()
-        self.assertEquals(time_to_wait, 0)
+        self.assertEquals(time_to_wait, 5)
         self.assertTrue(result)
         self.assertTrue(self.comp.stream.connection_started)
         threads = threading.enumerate()
         self.assertEquals(len(threads), 1)
-        self.assertTrue(self.comp.stream.connection_stopped)
         if self.comp.queue.qsize():
             raise self.comp.queue.get(0)
 
@@ -3012,7 +3011,7 @@ class JCLComponent_run_TestCase(JCLComponent_TestCase):
         self.assertEquals(len(threads), 1)
         self.assertFalse(self.comp.stream.connection_stopped)
 
-    def test_run_unhandled_error(self):
+    def test_run_unhandled_error(self): # TODO : why it works ?
         """Test main loop unhandled error from a component handler"""
         def do_nothing():
             return

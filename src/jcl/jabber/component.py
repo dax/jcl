@@ -673,7 +673,8 @@ class JCLComponent(Component, object):
         timer_thread = threading.Thread(target=self.time_handler,
                                         name="TimerThread")
         timer_thread.start()
-        wait_before_restart = 0
+        wait_before_restart = 5
+        self._restart = True
         try:
             try:
                 while (self.running and self.stream
@@ -686,10 +687,11 @@ class JCLComponent(Component, object):
                 self.__logger.info("Connection failed, restarting.")
                 return (True, 5)
         finally:
-            if self.running:
-                self._restart = True
-                wait_before_restart = 5
-            self.running = False
+            if not self.running:
+                self._restart = False
+                wait_before_restart = 0
+            else:
+                self.running = False
             timer_thread.join(JCLComponent.timeout)
             self.wait_event.set()
             if self.stream and not self.stream.eof \
