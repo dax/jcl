@@ -674,15 +674,16 @@ class JCLComponent(Component, object):
                                         name="TimerThread")
         timer_thread.start()
         try:
-            while (self.running and self.stream
-                   and not self.stream.eof
-                   and self.stream.socket is not None):
-                self.stream.loop_iter(JCLComponent.timeout)
-                if self.queue.qsize():
-                    raise self.queue.get(0)
-        except socket.error, e:
-            self.__logger.info("Connection failed, restarting.")
-            return (True, 5)
+            try:
+                while (self.running and self.stream
+                       and not self.stream.eof
+                       and self.stream.socket is not None):
+                    self.stream.loop_iter(JCLComponent.timeout)
+                    if self.queue.qsize():
+                        raise self.queue.get(0)
+            except socket.error, e:
+                self.__logger.info("Connection failed, restarting.")
+                return (True, 5)
         finally:
             self.running = False
             timer_thread.join(JCLComponent.timeout)
