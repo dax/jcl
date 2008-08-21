@@ -2967,7 +2967,7 @@ class JCLComponent_run_TestCase(JCLComponent_TestCase):
             raise self.comp.queue.get(0)
 
     def test_run_connection_failed(self):
-        """Test when connection to Jabber server failed"""
+        """Test when connection to Jabber server fails"""
         class MockStreamLoopFailed(MockStream):
             def connect(self):
                 self.connection_started = True
@@ -2978,6 +2978,26 @@ class JCLComponent_run_TestCase(JCLComponent_TestCase):
         # Do not loop, handle_tick is virtual
         self.comp.stream = MockStreamLoopFailed()
         self.comp.stream_class = MockStreamLoopFailed
+        self.comp.restart = False
+        (result, time_to_wait) = self.comp.run()
+        self.assertEquals(time_to_wait, 5)
+        self.assertTrue(result)
+        self.assertFalse(self.comp.running)
+        self.assertTrue(self.comp.stream.connection_started)
+        threads = threading.enumerate()
+        self.assertEquals(len(threads), 1)
+        self.assertFalse(self.comp.stream.connection_stopped)
+
+    def test_run_connection_closed(self):
+        """Test when connection to Jabber server is closed"""
+        def do_nothing():
+            self.comp.stream.eof = True
+            return
+        self.comp.handle_tick = do_nothing
+        self.comp.time_unit = 1
+        # Do not loop, handle_tick is virtual
+        self.comp.stream = MockStreamNoConnect()
+        self.comp.stream_class = MockStreamNoConnect
         self.comp.restart = False
         (result, time_to_wait) = self.comp.run()
         self.assertEquals(time_to_wait, 5)
