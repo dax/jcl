@@ -666,17 +666,18 @@ class JCLComponent(Component, object):
         Call Component main loop
         Clean up when shutting down JCLcomponent
         """
-        self.connect()
-        self.spool_dir += "/" + unicode(self.jid)
-        self.running = True
-        self.last_activity = int(time.time())
-        timer_thread = threading.Thread(target=self.time_handler,
-                                        name="TimerThread")
-        timer_thread.start()
         wait_before_restart = 5
         self._restart = True
+        timer_thread = None
+        self.running = True
         try:
             try:
+                self.connect()
+                self.spool_dir += "/" + unicode(self.jid)
+                self.last_activity = int(time.time())
+                timer_thread = threading.Thread(target=self.time_handler,
+                                                name="TimerThread")
+                timer_thread.start()
                 while (self.running and self.stream
                        and not self.stream.eof
                        and self.stream.socket is not None):
@@ -692,8 +693,9 @@ class JCLComponent(Component, object):
                 wait_before_restart = 0
             else:
                 self.running = False
-            timer_thread.join(JCLComponent.timeout)
-            self.wait_event.set()
+            if timer_thread is not None:
+                self.wait_event.set()
+                timer_thread.join(JCLComponent.timeout)
             if self.stream and not self.stream.eof \
                    and self.stream.socket is not None:
                 presences = self.account_manager.get_presence_all("unavailable")

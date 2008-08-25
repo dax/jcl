@@ -110,7 +110,7 @@ class MockStream(object):
         self.connection_stopped = True
 
     def loop_iter(self, timeout):
-        time.sleep(timeout)
+        return
 
     def close(self):
         pass
@@ -165,6 +165,11 @@ class JCLComponent_TestCase(JCLTestCase):
     ###########################################################################
     # Utility methods
     ###########################################################################
+    def _handle_tick_test_time_handler(self):
+        self.max_tick_count -= 1
+        if self.max_tick_count == 0:
+            self.comp.running = False
+
     def setUp(self):
         JCLTestCase.setUp(self, tables=[Account, LegacyJID, ExampleAccount,
                                         Example2Account, User])
@@ -174,8 +179,10 @@ class JCLComponent_TestCase(JCLTestCase):
                                  "5347",
                                  None)
         self.max_tick_count = 1
+        self.comp.time_unit = 0
         self.saved_time_handler = None
 
+class JCLComponent_All_TestCase(JCLComponent_TestCase):
     ###########################################################################
     # Constructor tests
     ###########################################################################
@@ -228,11 +235,6 @@ class JCLComponent_TestCase(JCLTestCase):
     ###########################################################################
     # 'time_handler' tests
     ###########################################################################
-    def _handle_tick_test_time_handler(self):
-        self.max_tick_count -= 1
-        if self.max_tick_count == 0:
-            self.comp.running = False
-
     def test_time_handler(self):
         self.comp.time_unit = 1
         self.max_tick_count = 1
@@ -2931,12 +2933,10 @@ class JCLComponent_run_TestCase(JCLComponent_TestCase):
 
     def test_run(self):
         """Test basic main loop execution"""
-        def do_nothing():
+        def end_run():
             self.comp.running = False
             return
-        self.comp.handle_tick = do_nothing
-        self.comp.time_unit = 1
-        # Do not loop, handle_tick is virtual
+        self.comp.handle_tick = end_run
         self.comp.stream = MockStreamNoConnect()
         self.comp.stream_class = MockStreamNoConnect
         (result, time_to_wait) = self.comp.run()
@@ -2951,12 +2951,10 @@ class JCLComponent_run_TestCase(JCLComponent_TestCase):
 
     def test_run_restart(self):
         """Test main loop execution with restart"""
-        def do_nothing():
+        def end_stream():
             self.comp.stream.eof = True
             return
-        self.comp.handle_tick = do_nothing
-        self.comp.time_unit = 1
-        # Do not loop, handle_tick is virtual
+        self.comp.handle_tick = end_stream
         self.comp.stream = MockStreamNoConnect()
         self.comp.stream_class = MockStreamNoConnect
         self.comp.restart = True
@@ -2972,12 +2970,9 @@ class JCLComponent_run_TestCase(JCLComponent_TestCase):
     def test_run_connection_failed(self):
         """Test when connection to Jabber server fails"""
         class MockStreamLoopFailed(MockStream):
-            def connect(self):
-                self.connection_started = True
             def loop_iter(self, timeout):
                 self.socket = None
                 raise socket.error
-        self.comp.time_unit = 1
         # Do not loop, handle_tick is virtual
         self.comp.stream = MockStreamLoopFailed()
         self.comp.stream_class = MockStreamLoopFailed
@@ -2991,14 +2986,29 @@ class JCLComponent_run_TestCase(JCLComponent_TestCase):
         self.assertEquals(len(threads), 1)
         self.assertFalse(self.comp.stream.connection_stopped)
 
+    def test_run_startconnection_socketerror(self):
+        """Test when connection to Jabber server fails when starting"""
+        class MockStreamConnectFail(MockStream):
+            def connect(self):
+                self.socket = None
+                raise socket.error
+        # Do not loop, handle_tick is virtual
+        self.comp.stream = MockStreamConnectFail()
+        self.comp.stream_class = MockStreamConnectFail
+        self.comp.restart = False
+        (result, time_to_wait) = self.comp.run()
+        self.assertEquals(time_to_wait, 5)
+        self.assertTrue(result)
+        self.assertFalse(self.comp.running)
+        threads = threading.enumerate()
+        self.assertEquals(len(threads), 1)
+
     def test_run_connection_closed(self):
         """Test when connection to Jabber server is closed"""
-        def do_nothing():
+        def end_stream():
             self.comp.stream.eof = True
             return
-        self.comp.handle_tick = do_nothing
-        self.comp.time_unit = 1
-        # Do not loop, handle_tick is virtual
+        self.comp.handle_tick = end_stream
         self.comp.stream = MockStreamNoConnect()
         self.comp.stream_class = MockStreamNoConnect
         self.comp.restart = False
@@ -3011,11 +3021,10 @@ class JCLComponent_run_TestCase(JCLComponent_TestCase):
         self.assertEquals(len(threads), 1)
         self.assertFalse(self.comp.stream.connection_stopped)
 
-    def test_run_unhandled_error(self): # TODO : why it works ?
+    def test_run_unhandled_error(self):
         """Test main loop unhandled error from a component handler"""
         def do_nothing():
             return
-        self.comp.time_unit = 1
         self.comp.stream = MockStreamRaiseException()
         self.comp.stream_class = MockStreamRaiseException
         self.comp.handle_tick = do_nothing
@@ -3030,7 +3039,6 @@ class JCLComponent_run_TestCase(JCLComponent_TestCase):
 
     def test_run_ni_handle_tick(self):
         """Test JCLComponent 'NotImplemented' error from handle_tick method"""
-        self.comp.time_unit = 1
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
         try:
@@ -3046,7 +3054,6 @@ class JCLComponent_run_TestCase(JCLComponent_TestCase):
         """Test main loop send offline presence when exiting"""
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
-        self.comp.time_unit = 1
         self.max_tick_count = 1
         self.comp.handle_tick = self._handle_tick_test_time_handler
         model.db_connect()
@@ -3286,7 +3293,7 @@ class AccountManager_TestCase(JCLTestCase):
 
 def suite():
     test_suite = unittest.TestSuite()
-    test_suite.addTest(unittest.makeSuite(JCLComponent_TestCase, 'test'))
+    test_suite.addTest(unittest.makeSuite(JCLComponent_All_TestCase, 'test'))
     test_suite.addTest(unittest.makeSuite(JCLComponent_run_TestCase, 'test'))
     test_suite.addTest(unittest.makeSuite(Handler_TestCase, 'test'))
     test_suite.addTest(unittest.makeSuite(AccountManager_TestCase, 'test'))

@@ -537,6 +537,7 @@ class JCLCommandManagerTestCase(JCLTestCase):
                                  "5347",
                                  self.config,
                                  self.config_file)
+        self.comp.time_unit = 0
         self.comp.set_admins(["admin@test.com"])
         self.command_manager = JCLCommandManager(self.comp,
                                                  self.comp.account_manager)
@@ -2954,6 +2955,8 @@ class JCLCommandManagerRestartCommand_TestCase(JCLCommandManagerTestCase):
         self.account22.status = "xa"
         self.command_node.setProp("node",
                                   "http://jabber.org/protocol/admin#restart")
+        self.wait_event = threading.Event()
+        self.command_manager.sleep = lambda delay: self.wait_event.wait(2)
 
     def _common_execute_restart(self):
         result = self.command_manager.apply_command_action(\
@@ -3017,7 +3020,8 @@ class JCLCommandManagerRestartCommand_TestCase(JCLCommandManagerTestCase):
         self.assertTrue(self.comp.running)
         threads = threading.enumerate()
         self.assertEquals(len(threads), 2)
-        threading.Event().wait(2)
+        self.wait_event.set()
+        self.command_manager.restart_thread.join(1)
         threads = threading.enumerate()
         self.assertEquals(len(threads), 1)
         self.assertTrue(self.comp.restart)
@@ -3068,7 +3072,8 @@ class JCLCommandManagerRestartCommand_TestCase(JCLCommandManagerTestCase):
         self.assertTrue(self.comp.running)
         threads = threading.enumerate()
         self.assertEquals(len(threads), 2)
-        threading.Event().wait(2)
+        self.wait_event.set()
+        self.command_manager.restart_thread.join(1)
         threads = threading.enumerate()
         self.assertEquals(len(threads), 1)
         self.assertTrue(self.comp.restart)
@@ -3103,6 +3108,8 @@ class JCLCommandManagerShutdownCommand_TestCase(JCLCommandManagerTestCase):
         self.account22.status = "xa"
         self.command_node.setProp("node",
                                   "http://jabber.org/protocol/admin#shutdown")
+        self.wait_event = threading.Event()
+        self.command_manager.sleep = lambda delay: self.wait_event.wait(2)
 
     def _common_execute_shutdown(self):
         result = self.command_manager.apply_command_action(\
@@ -3166,7 +3173,8 @@ class JCLCommandManagerShutdownCommand_TestCase(JCLCommandManagerTestCase):
         self.assertTrue(self.comp.running)
         threads = threading.enumerate()
         self.assertEquals(len(threads), 2)
-        threading.Event().wait(2)
+        self.wait_event.set()
+        self.command_manager.shutdown_thread.join(1)
         threads = threading.enumerate()
         self.assertEquals(len(threads), 1)
         self.assertFalse(self.comp.restart)
@@ -3217,7 +3225,8 @@ class JCLCommandManagerShutdownCommand_TestCase(JCLCommandManagerTestCase):
         self.assertTrue(self.comp.running)
         threads = threading.enumerate()
         self.assertEquals(len(threads), 2)
-        threading.Event().wait(2)
+        self.wait_event.set()
+        self.command_manager.shutdown_thread.join(1)
         threads = threading.enumerate()
         self.assertEquals(len(threads), 1)
         self.assertFalse(self.comp.restart)

@@ -59,18 +59,21 @@ class FeederComponent_TestCase(JCLComponent_TestCase):
                                     "5347",
                                     None,
                                     None)
+        self.comp.time_unit = 0
 
     def test_run(self):
-        self.comp.time_unit = 1
+        def end_run():
+            self.comp.running = False
+            return
+        self.comp.handle_tick = end_run
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
         run_thread = threading.Thread(target=self.comp.run,
                                       name="run_thread")
         run_thread.start()
-        time.sleep(1)
-        self.comp.running = False
+        self.comp.wait_event.wait(JCLComponent.timeout)
+        run_thread.join(JCLComponent.timeout)
         self.assertTrue(self.comp.stream.connection_started)
-        time.sleep(JCLComponent.timeout + 1)
         threads = threading.enumerate()
         self.assertEquals(len(threads), 1)
         self.assertTrue(self.comp.stream.connection_stopped)

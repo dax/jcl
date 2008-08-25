@@ -355,7 +355,8 @@ class JCLCommandManager(CommandManager):
         self.commands["http://jabber.org/protocol/admin#shutdown"] = \
             (True, root_node_re)
         self.commands["jcl#get-last-error"] = (False, account_node_re)
-
+        self.restart_thread = None
+        self.shutdown_thread = None
         #self.commands["http://jabber.org/protocol/admin#get-user-password"] = True
         #self.commands["http://jabber.org/protocol/admin#change-user-password"] = True
 
@@ -1140,6 +1141,10 @@ class JCLCommandManager(CommandManager):
     ###########################################################################
     # restart command
     ###########################################################################
+    def sleep(self, delay):
+        """Sleep for the number of second specified in delay"""
+        threading.Event().wait(delay)
+
     def execute_restart_1(self, info_query, session_context,
                           command_node, lang_class):
         self.add_actions(command_node, [ACTION_COMPLETE])
@@ -1191,11 +1196,12 @@ class JCLCommandManager(CommandManager):
                                           body=announcement))
         command_node.setProp("status", STATUS_COMPLETED)
         def delayed_restart(self, delay):
-            threading.Event().wait(delay)
+            self.sleep(delay)
             self.component.restart = True
-        restart_thread = threading.Thread(target=lambda : delayed_restart(self, delay),
-                                          name="TimerThread")
-        restart_thread.start()
+        self.restart_thread = threading.Thread(\
+            target=lambda : delayed_restart(self, delay),
+            name="TimerThread")
+        self.restart_thread.start()
         return (None, result)
 
     ###########################################################################
@@ -1252,12 +1258,12 @@ class JCLCommandManager(CommandManager):
                                           body=announcement))
         command_node.setProp("status", STATUS_COMPLETED)
         def delayed_shutdown(self, delay):
-            threading.Event().wait(delay)
+            self.sleep(delay)
             self.component.running = False
-        shutdown_thread = threading.Thread(\
+        self.shutdown_thread = threading.Thread(\
             target=lambda : delayed_shutdown(self, delay),
             name="TimerThread")
-        shutdown_thread.start()
+        self.shutdown_thread.start()
         return (None, result)
 
     def execute_get_last_error_1(self, info_query, session_context,
