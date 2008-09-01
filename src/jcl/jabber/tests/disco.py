@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 ##
 ## disco.py
 ## Login : David Rousselie <dax@happycoders.org>

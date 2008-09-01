@@ -89,7 +89,9 @@ class Lang:
         update_account_message_subject = u"Updated account '%s'"
         update_account_message_body = u"Updated account"
 
-        mandatory_field = u"%s is required"
+        field_error = u"Error with '%s' field: %s"
+        mandatory_field = u"required field"
+        not_well_formed_field = u"not well formed field"
 
         field_chat_action = u"Action when state is 'Free For Chat'"
         field_online_action = u"Action when state is 'Online'"
@@ -265,6 +267,7 @@ class Lang:
         update_account_message_body = u"Compte mis à jour"
 
         mandatory_field = u"%s est requis"
+        not_well_formed_field = u"Le champs %s n'est pas acceptable"
 
         field_chat_action = u"Action lorsque l'état est 'Free For Chat'"
         field_online_action = u"Action lorsque l'état est 'Online'"

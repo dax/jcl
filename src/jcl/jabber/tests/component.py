@@ -1327,7 +1327,7 @@ class JCLComponent_handle_set_register_TestCase(JCLComponent_TestCase):
         self.assertEquals(stanza_error.get_condition().name,
                           "not-acceptable")
         self.assertEquals(stanza_error.get_text(),
-                          Lang.en.mandatory_field % ("name"))
+                          Lang.en.field_error % ("name", Lang.en.mandatory_field))
 
     def test_handle_set_register_new_field_mandatory(self):
         self.comp.stream = MockStream()
@@ -1358,7 +1358,7 @@ class JCLComponent_handle_set_register_TestCase(JCLComponent_TestCase):
         self.assertEquals(stanza_error.get_condition().name,
                           "not-acceptable")
         self.assertEquals(stanza_error.get_text(),
-                          Lang.en.mandatory_field % ("login"))
+                          Lang.en.field_error % ("login", Lang.en.mandatory_field))
 
     def test_handle_set_register_update_not_existing(self):
         self.comp.stream = MockStream()

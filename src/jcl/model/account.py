@@ -34,7 +34,7 @@ from sqlobject.joins import MultipleJoin
 from sqlobject.sqlbuilder import AND
 
 from jcl.lang import Lang
-from jcl.error import FieldError
+from jcl.error import MandatoryFieldError
 import jcl.model as model
 
 OFFLINE = "offline"
@@ -58,7 +58,7 @@ def mandatory_field(field_name, field_value):
     """Used as default function for field that must be specified
     and cannot have an empty value"""
     if field_value is None or str(field_value) == "":
-        raise FieldError(field_name, "Field required")
+        raise MandatoryFieldError(field_name)
     return field_value
 
 class User(InheritableSQLObject):

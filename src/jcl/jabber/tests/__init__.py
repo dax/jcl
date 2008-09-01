@@ -6,7 +6,7 @@ import unittest
 import jcl.jabber as jabber
 
 from jcl.jabber.tests import component, feeder, command, message, presence, \
-    disco, vcard
+    disco, vcard, register
 
 class HandlerType1:
     pass
@@ -39,6 +39,7 @@ def suite():
     test_suite.addTest(presence.suite())
     test_suite.addTest(disco.suite())
     test_suite.addTest(vcard.suite())
+    test_suite.addTest(register.suite())
     return test_suite
 
 if __name__ == '__main__':

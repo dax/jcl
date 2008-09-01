@@ -91,7 +91,9 @@ class Language_TestCase(unittest.TestCase):
         self.assertNotEquals(self.lang_class.update_account_message_subject % (""), None)
         self.assertNotEquals(self.lang_class.update_account_message_body, None)
 
-        self.assertNotEquals(self.lang_class.mandatory_field % (""), None)
+        self.assertNotEquals(self.lang_class.field_error % ("", ""), None)
+        self.assertNotEquals(self.lang_class.mandatory_field, None)
+        self.assertNotEquals(self.lang_class.not_well_formed_field, None)
 
         self.assertNotEquals(self.lang_class.field_chat_action, None)
         self.assertNotEquals(self.lang_class.field_online_action, None)
