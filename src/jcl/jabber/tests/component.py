@@ -162,9 +162,6 @@ class HandlerMock(object):
         return [(stanza, lang_class, data)]
 
 class JCLComponent_TestCase(JCLTestCase):
-    ###########################################################################
-    # Utility methods
-    ###########################################################################
     def _handle_tick_test_time_handler(self):
         self.max_tick_count -= 1
         if self.max_tick_count == 0:
@@ -182,18 +179,17 @@ class JCLComponent_TestCase(JCLTestCase):
         self.comp.time_unit = 0
         self.saved_time_handler = None
 
-class JCLComponent_All_TestCase(JCLComponent_TestCase):
-    ###########################################################################
-    # Constructor tests
-    ###########################################################################
+class JCLComponent_constructor_TestCase(JCLComponent_TestCase):
+    """Constructor tests"""
+
     def test_constructor(self):
         model.db_connect()
         self.assertTrue(Account._connection.tableExists("account"))
         model.db_disconnect()
 
-    ###########################################################################
-    # apply_registered_behavior tests
-    ###########################################################################
+class JCLComponent_apply_registered_behavior_TestCase(JCLComponent_TestCase):
+    """apply_registered_behavior tests"""
+
     def test_apply_registered_behavior(self):
         self.comp.stream = MockStreamNoConnect()
         self.comp.stream_class = MockStreamNoConnect
@@ -232,9 +228,9 @@ class JCLComponent_All_TestCase(JCLComponent_TestCase):
         self.assertEquals(len(handler1.handled), 1)
         self.assertEquals(len(handler2.handled), 0)
 
-    ###########################################################################
-    # 'time_handler' tests
-    ###########################################################################
+class JCLComponent_time_handler_TestCase(JCLComponent_TestCase):
+    """time_handler' tests"""
+
     def test_time_handler(self):
         self.comp.time_unit = 1
         self.max_tick_count = 1
@@ -245,9 +241,9 @@ class JCLComponent_All_TestCase(JCLComponent_TestCase):
         self.assertEquals(self.max_tick_count, 0)
         self.assertFalse(self.comp.running)
 
-    ###########################################################################
-    # 'authenticated handler' tests
-    ###########################################################################
+class JCLComponent_authenticated_handler_TestCase(JCLComponent_TestCase):
+    """authenticated handler' tests"""
+
     def test_authenticated_handler(self):
         self.comp.stream = MockStream()
         self.comp.authenticated()
@@ -295,17 +291,17 @@ class JCLComponent_All_TestCase(JCLComponent_TestCase):
         self.assertEquals(presence.get_to(), "test2@test.com")
         self.assertEquals(presence.get_node().prop("type"), "probe")
 
-    ###########################################################################
-    # 'signal_handler' tests
-    ###########################################################################
+class JCLComponent_signal_handler_TestCase(JCLComponent_TestCase):
+    """signal_handler' tests"""
+
     def test_signal_handler(self):
         self.comp.running = True
         self.comp.signal_handler(42, None)
         self.assertFalse(self.comp.running)
 
-    ###########################################################################
-    # 'handle_get_gateway' tests
-    ###########################################################################
+class JCLComponent_handle_get_gateway_TestCase(JCLComponent_TestCase):
+    """handle_get_gateway' tests"""
+
     def test_handle_get_gateway(self):
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
@@ -326,9 +322,9 @@ class JCLComponent_All_TestCase(JCLComponent_TestCase):
         self.assertEquals(len(prompt_nodes), 1)
         self.assertEquals(prompt_nodes[0].content, Lang.en.get_gateway_prompt)
 
-    ###########################################################################
-    # 'handle_set_gateway' tests
-    ###########################################################################
+class JCLComponent_handle_set_gateway_TestCase(JCLComponent_TestCase):
+    """handle_set_gateway' tests"""
+
     def test_handle_set_gateway(self):
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
@@ -347,9 +343,9 @@ class JCLComponent_All_TestCase(JCLComponent_TestCase):
         self.assertEquals(len(jid_nodes), 1)
         self.assertEquals(jid_nodes[0].content, "user%test.com@jcl.test.com")
 
-    ###########################################################################
-    # 'disco_get_info' tests
-    ###########################################################################
+class JCLComponent_disco_get_info_TestCase(JCLComponent_TestCase):
+    """disco_get_info' tests"""
+
     def test_disco_get_info(self):
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
@@ -439,9 +435,9 @@ class JCLComponent_All_TestCase(JCLComponent_TestCase):
         self.assertEquals(disco_info.get_identities()[0].get_name(),
                           Lang.en.command_get_disabled_users_num)
 
-    ###########################################################################
-    # 'disco_get_items' tests
-    ###########################################################################
+class JCLComponent_disco_get_items_TestCase(JCLComponent_TestCase):
+    """disco_get_items' tests"""
+
     def test_disco_get_items_1type_no_node(self):
         """get_items on main entity. Must list accounts"""
         self.comp.stream = MockStream()
@@ -641,9 +637,9 @@ class JCLComponent_All_TestCase(JCLComponent_TestCase):
                           "http://jabber.org/protocol/commands")
         self.assertEquals(len(disco_items.get_items()), 22)
 
-    ###########################################################################
-    # 'handle_get_version' tests
-    ###########################################################################
+class JCLComponent_handle_get_version_TestCase(JCLComponent_TestCase):
+    """handle_get_version' tests"""
+
     def test_handle_get_version(self):
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
@@ -662,9 +658,9 @@ class JCLComponent_All_TestCase(JCLComponent_TestCase):
         self.assertEquals(len(version_nodes), 1)
         self.assertEquals(version_nodes[0].content, self.comp.version)
 
-    ###########################################################################
-    # 'handle_get_register' tests
-    ###########################################################################
+class JCLComponent_handle_get_register_TestCase(JCLComponent_TestCase):
+    """handle_get_register' tests"""
+
     def test_handle_get_register_new(self):
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
@@ -959,9 +955,9 @@ class JCLComponent_All_TestCase(JCLComponent_TestCase):
         self.assertEquals(fields[1].prop("var"), "test_new_int")
         self.assertEquals(fields[1].prop("label"), "test_new_int")
 
-    ###########################################################################
-    # 'handle_set_register' tests
-    ###########################################################################
+class JCLComponent_handle_set_register_TestCase(JCLComponent_TestCase):
+    """handle_set_register' tests"""
+
     def test_handle_set_register_new(self):
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
@@ -1567,6 +1563,7 @@ class JCLComponent_All_TestCase(JCLComponent_TestCase):
         self.assertEquals(presence.get_from(), "jcl.test.com")
         self.assertEquals(presence.get_to(), "user1@test.com")
 
+class JCLComponent_handle_presence_available_TestCase(JCLComponent_TestCase):
     def test_handle_presence_available_to_component(self):
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
@@ -1900,6 +1897,7 @@ class JCLComponent_All_TestCase(JCLComponent_TestCase):
         self.assertEqual(password_message.get_body(), \
                          Lang.en.ask_password_body % ("account11"))
 
+class JCLComponent_handle_presence_unavailable_TestCase(JCLComponent_TestCase):
     def test_handle_presence_unavailable_to_component(self):
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
@@ -2164,6 +2162,7 @@ class JCLComponent_All_TestCase(JCLComponent_TestCase):
         presence_sent = self.comp.stream.sent
         self.assertEqual(len(presence_sent), 0)
 
+class JCLComponent_handle_presence_subscribe_TestCase(JCLComponent_TestCase):
     def test_handle_presence_subscribe_to_component(self):
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
@@ -2311,12 +2310,14 @@ class JCLComponent_All_TestCase(JCLComponent_TestCase):
         self.assertTrue(type(sent[1]), Presence)
         self.assertEquals(sent[1].get_type(), "subscribed")
 
+class JCLComponent_handle_presence_subscribed_TestCase(JCLComponent_TestCase):
     def test_handle_presence_subscribed(self):
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
         self.comp.handle_presence_subscribed(None)
         self.assertEqual(len(self.comp.stream.sent), 0)
 
+class JCLComponent_handle_presence_unsubscribe_TestCase(JCLComponent_TestCase):
     def test_handle_presence_unsubscribe_to_account(self):
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
@@ -2547,6 +2548,7 @@ class JCLComponent_All_TestCase(JCLComponent_TestCase):
                           3)
         model.db_disconnect()
 
+class JCLComponent_handle_presence_unsubscribed_TestCase(JCLComponent_TestCase):
     def test_handle_presence_unsubscribed(self):
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
@@ -2577,6 +2579,7 @@ class JCLComponent_All_TestCase(JCLComponent_TestCase):
             presence_sent[0].xpath_eval("@type")[0].get_content(), \
             "unavailable")
 
+class JCLComponent_handle_message_TestCase(JCLComponent_TestCase):
     def test_handle_message_password(self):
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
@@ -2635,9 +2638,11 @@ class JCLComponent_All_TestCase(JCLComponent_TestCase):
         self.assertEqual(messages_sent[0].get_body(), \
             "Password will be kept during your Jabber session")
 
+class JCLComponent_handle_tick_TestCase(JCLComponent_TestCase):
     def test_handle_tick(self):
         self.assertRaises(NotImplementedError, self.comp.handle_tick)
 
+class JCLComponent_send_error_TestCase(JCLComponent_TestCase):
     def test_send_error_first(self):
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
@@ -2675,6 +2680,7 @@ class JCLComponent_All_TestCase(JCLComponent_TestCase):
         self.assertEqual(_account.error, "test exception")
         self.assertEqual(len(self.comp.stream.sent), 0)
 
+class JCLComponent_send_stanzas_TestCase(JCLComponent_TestCase):
     def test_send_stanzas(self):
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
@@ -2695,6 +2701,7 @@ class JCLComponent_All_TestCase(JCLComponent_TestCase):
         self.comp.stream = None
         self.comp.send_stanzas([Message()])
 
+class JCLComponent_get_motd_TestCase(JCLComponent_TestCase):
     def test_get_motd(self):
         config_file = tempfile.mktemp(".conf", "jcltest", jcl.tests.DB_DIR)
         self.comp.config_file = config_file
@@ -2717,6 +2724,7 @@ class JCLComponent_All_TestCase(JCLComponent_TestCase):
         self.assertEquals(motd, None)
         os.unlink(config_file)
 
+class JCLComponent_set_motd_TestCase(JCLComponent_TestCase):
     def test_set_new_motd(self):
         config_file = tempfile.mktemp(".conf", "jcltest", jcl.tests.DB_DIR)
         self.comp.config_file = config_file
@@ -2740,6 +2748,7 @@ class JCLComponent_All_TestCase(JCLComponent_TestCase):
         self.assertEquals(self.comp.config.get("component", "motd"), "test new motd")
         os.unlink(config_file)
 
+class JCLComponent_del_motd_TestCase(JCLComponent_TestCase):
     def test_del_motd(self):
         config_file = tempfile.mktemp(".conf", "jcltest", jcl.tests.DB_DIR)
         self.comp.config_file = config_file
@@ -2752,6 +2761,7 @@ class JCLComponent_All_TestCase(JCLComponent_TestCase):
         self.assertFalse(self.comp.config.has_option("component", "motd"))
         os.unlink(config_file)
 
+class JCLComponent_get_welcome_message_TestCase(JCLComponent_TestCase):
     def test_get_welcome_message(self):
         config_file = tempfile.mktemp(".conf", "jcltest", jcl.tests.DB_DIR)
         self.comp.config_file = config_file
@@ -2774,6 +2784,7 @@ class JCLComponent_All_TestCase(JCLComponent_TestCase):
         self.assertEquals(motd, None)
         os.unlink(config_file)
 
+class JCLComponent_set_welcome_message_TestCase(JCLComponent_TestCase):
     def test_set_new_welcome_message(self):
         config_file = tempfile.mktemp(".conf", "jcltest", jcl.tests.DB_DIR)
         self.comp.config_file = config_file
@@ -2801,6 +2812,7 @@ class JCLComponent_All_TestCase(JCLComponent_TestCase):
                           "New Welcome Message")
         os.unlink(config_file)
 
+class JCLComponent_del_welcome_message_TestCase(JCLComponent_TestCase):
     def test_del_welcome_message(self):
         config_file = tempfile.mktemp(".conf", "jcltest", jcl.tests.DB_DIR)
         self.comp.config_file = config_file
@@ -2814,6 +2826,7 @@ class JCLComponent_All_TestCase(JCLComponent_TestCase):
                                                      "welcome_message"))
         os.unlink(config_file)
 
+class JCLComponent_get_admins_TestCase(JCLComponent_TestCase):
     def test_get_admins(self):
         config_file = tempfile.mktemp(".conf", "jcltest", jcl.tests.DB_DIR)
         self.comp.config_file = config_file
@@ -2838,6 +2851,7 @@ class JCLComponent_All_TestCase(JCLComponent_TestCase):
         self.assertEquals(admins, [])
         os.unlink(config_file)
 
+class JCLComponent_set_admins_TestCase(JCLComponent_TestCase):
     def test_set_new_admins(self):
         config_file = tempfile.mktemp(".conf", "jcltest", jcl.tests.DB_DIR)
         self.comp.config_file = config_file
@@ -2866,9 +2880,9 @@ class JCLComponent_All_TestCase(JCLComponent_TestCase):
                           "admin3@test.com,admin4@test.com")
         os.unlink(config_file)
 
-    ###########################################################################
-    # 'handle_command' tests
-    ###########################################################################
+class JCLComponent_handle_command_TestCase(JCLComponent_TestCase):
+    """handle_command' tests"""
+
     def test_handle_command_execute_list(self):
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
@@ -2913,10 +2927,10 @@ class JCLComponent_All_TestCase(JCLComponent_TestCase):
         self.assertEquals(fields[1].children.name, "value")
         self.assertEquals(fields[1].children.content, "1")
 
-###########################################################################
-# 'run' tests
-###########################################################################
+
 class JCLComponent_run_TestCase(JCLComponent_TestCase):
+    """run' tests"""
+    
     def __comp_run(self):
         try:
             self.comp.run()
@@ -3293,7 +3307,37 @@ class AccountManager_TestCase(JCLTestCase):
 
 def suite():
     test_suite = unittest.TestSuite()
-    test_suite.addTest(unittest.makeSuite(JCLComponent_All_TestCase, 'test'))
+    test_suite.addTest(unittest.makeSuite(JCLComponent_constructor_TestCase, 'test'))
+    test_suite.addTest(unittest.makeSuite(JCLComponent_apply_registered_behavior_TestCase, 'test'))
+    test_suite.addTest(unittest.makeSuite(JCLComponent_time_handler_TestCase, 'test'))
+    test_suite.addTest(unittest.makeSuite(JCLComponent_authenticated_handler_TestCase, 'test'))
+    test_suite.addTest(unittest.makeSuite(JCLComponent_signal_handler_TestCase, 'test'))
+    test_suite.addTest(unittest.makeSuite(JCLComponent_handle_get_gateway_TestCase, 'test'))
+    test_suite.addTest(unittest.makeSuite(JCLComponent_handle_set_gateway_TestCase, 'test'))
+    test_suite.addTest(unittest.makeSuite(JCLComponent_disco_get_info_TestCase, 'test'))
+    test_suite.addTest(unittest.makeSuite(JCLComponent_disco_get_items_TestCase, 'test'))
+    test_suite.addTest(unittest.makeSuite(JCLComponent_handle_get_version_TestCase, 'test'))
+    test_suite.addTest(unittest.makeSuite(JCLComponent_handle_get_register_TestCase, 'test'))
+    test_suite.addTest(unittest.makeSuite(JCLComponent_handle_set_register_TestCase, 'test'))
+    test_suite.addTest(unittest.makeSuite(JCLComponent_handle_presence_available_TestCase, 'test'))
+    test_suite.addTest(unittest.makeSuite(JCLComponent_handle_presence_unavailable_TestCase, 'test'))
+    test_suite.addTest(unittest.makeSuite(JCLComponent_handle_presence_subscribe_TestCase, 'test'))
+    test_suite.addTest(unittest.makeSuite(JCLComponent_handle_presence_subscribed_TestCase, 'test'))
+    test_suite.addTest(unittest.makeSuite(JCLComponent_handle_presence_unsubscribe_TestCase, 'test'))
+    test_suite.addTest(unittest.makeSuite(JCLComponent_handle_presence_unsubscribed_TestCase, 'test'))
+    test_suite.addTest(unittest.makeSuite(JCLComponent_handle_message_TestCase, 'test'))
+    test_suite.addTest(unittest.makeSuite(JCLComponent_handle_tick_TestCase, 'test'))
+    test_suite.addTest(unittest.makeSuite(JCLComponent_send_error_TestCase, 'test'))
+    test_suite.addTest(unittest.makeSuite(JCLComponent_send_stanzas_TestCase, 'test'))
+    test_suite.addTest(unittest.makeSuite(JCLComponent_get_motd_TestCase, 'test'))
+    test_suite.addTest(unittest.makeSuite(JCLComponent_set_motd_TestCase, 'test'))
+    test_suite.addTest(unittest.makeSuite(JCLComponent_del_motd_TestCase, 'test'))
+    test_suite.addTest(unittest.makeSuite(JCLComponent_get_welcome_message_TestCase, 'test'))
+    test_suite.addTest(unittest.makeSuite(JCLComponent_set_welcome_message_TestCase, 'test'))
+    test_suite.addTest(unittest.makeSuite(JCLComponent_del_welcome_message_TestCase, 'test'))
+    test_suite.addTest(unittest.makeSuite(JCLComponent_get_admins_TestCase, 'test'))
+    test_suite.addTest(unittest.makeSuite(JCLComponent_set_admins_TestCase, 'test'))
+    test_suite.addTest(unittest.makeSuite(JCLComponent_handle_command_TestCase, 'test'))
     test_suite.addTest(unittest.makeSuite(JCLComponent_run_TestCase, 'test'))
     test_suite.addTest(unittest.makeSuite(Handler_TestCase, 'test'))
     test_suite.addTest(unittest.makeSuite(AccountManager_TestCase, 'test'))
