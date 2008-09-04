@@ -688,6 +688,8 @@ class JCLComponent(Component, object):
                 self.__logger.info("Connection failed, restarting.")
                 return (True, 5)
         finally:
+            signal.signal(signal.SIGINT, signal.default_int_handler)
+            signal.signal(signal.SIGTERM, signal.default_int_handler)
             if not self.running:
                 self._restart = False
                 wait_before_restart = 0
