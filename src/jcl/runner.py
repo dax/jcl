@@ -32,6 +32,8 @@ from jcl.jabber.component import JCLComponent
 import jcl.model as model
 from jcl.model.account import Account, PresenceAccount, User, LegacyJID
 
+LOG_FORMATTER = logging.Formatter(fmt="[%(levelname)s] %(asctime)s (%(pathname)s:%(lineno)d): %(message)s")
+
 class JCLRunner(object):
 
     def __init__(self, component_name, component_version):
@@ -169,9 +171,13 @@ class JCLRunner(object):
         self.__apply_configfile(commandline_args, cleanopts)
         self.__apply_commandline_args(commandline_args, cleanopts)
         if self.log_stdout:
-            self.logger.addHandler(logging.StreamHandler())
+            handler = logging.StreamHandler()
+            handler.setFormatter(LOG_FORMATTER)
+            logging.Logger.root.addHandler(handler)
         if self.log_file is not None:
-            self.logger.addHandler(logging.FileHandler(self.log_file))
+            handler = logging.FileHandler(self.log_file)
+            handler.setFormatter(LOG_FORMATTER)
+            logging.Logger.root.addHandler(handler)
 
     def _get_help(self):
         help = self.component_name + " v" + self.component_version + " help:\n"
