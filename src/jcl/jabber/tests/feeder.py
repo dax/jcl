@@ -68,6 +68,7 @@ class FeederComponent_TestCase(JCLComponent_TestCase):
         self.comp.handle_tick = end_run
         self.comp.stream = MockStream()
         self.comp.stream_class = MockStream
+        self.comp.disable_signals()
         run_thread = threading.Thread(target=self.comp.run,
                                       name="run_thread")
         run_thread.start()

@@ -655,8 +655,8 @@ class JCLComponent(Component, object):
         self._restart = False
         self.last_activity = int(time.time())
 
-        signal.signal(signal.SIGINT, self.signal_handler)
-        signal.signal(signal.SIGTERM, self.signal_handler)
+        self.signals_enabled = False
+        self.enable_signals()
 
     def run(self):
         """
@@ -688,8 +688,7 @@ class JCLComponent(Component, object):
                 self.__logger.info("Connection failed, restarting.")
                 return (True, 5)
         finally:
-            signal.signal(signal.SIGINT, signal.default_int_handler)
-            signal.signal(signal.SIGTERM, signal.default_int_handler)
+            self.disable_signals()
             if not self.running:
                 self._restart = False
                 wait_before_restart = 0
@@ -705,6 +704,20 @@ class JCLComponent(Component, object):
                 self.disconnect()
         self.__logger.debug("Exitting normally")
         return (self._restart, wait_before_restart)
+
+    def enable_signals(self):
+        """Enable signals"""
+        if not self.signals_enabled:
+            self.signals_enabled = True
+            signal.signal(signal.SIGINT, signal.default_int_handler)
+            signal.signal(signal.SIGTERM, signal.default_int_handler)
+
+    def disable_signals(self):
+        """Enable signals"""
+        if self.signals_enabled:
+            self.signals_enabled = False
+            signal.signal(signal.SIGINT, signal.default_int_handler)
+            signal.signal(signal.SIGTERM, signal.default_int_handler)
 
     def _get_restart(self):
         return self._restart
