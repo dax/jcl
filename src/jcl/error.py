@@ -29,21 +29,23 @@ from jcl.lang import Lang
 class FieldError(Exception):
     """Error raised when error exists on Jabber Data Form fields"""
 
-    def __init__(self, field, message="", message_property=None, lang_class=Lang.en):
+    def __init__(self, field,
+                 message_property=None, lang_class=Lang.en,
+                 detailed_message=None):
         Exception.__init__(self)
         self.field = field
         self.lang_class = lang_class
         self.message_property = message_property
-        self.message = message
+        self.detailed_message = detailed_message
 
     def __str__(self):
-        if self.message_property is None \
-                or not hasattr(self.lang_class, self.message_property):
-            return self.lang_class.field_error % (str(self.field), self.message)
-        else:
-            return self.lang_class.field_error % \
-                (str(self.field),
-                 str(getattr(self.lang_class, self.message_property)))
+        full_message = ""
+        if self.detailed_message is not None:
+            full_message = self.detailed_message
+        elif self.message_property is not None \
+                and hasattr(self.lang_class, self.message_property):
+            full_message = str(getattr(self.lang_class, self.message_property))
+        return self.lang_class.field_error % (str(self.field), full_message)
 
 class MandatoryFieldError(FieldError):
     """Error raised when a mandatory field in a Form is not supplied"""
@@ -54,5 +56,7 @@ class MandatoryFieldError(FieldError):
 class NotWellFormedFieldError(FieldError):
     """Error raised when a supplied field in a Form is not well formed"""
 
-    def __init__ (self, field):
-        FieldError.__init__(self, field, message_property="not_well_formed_field")
+    def __init__ (self, field, detailed_message=None):
+        FieldError.__init__(self, field,
+                            message_property="not_well_formed_field",
+                            detailed_message=detailed_message)

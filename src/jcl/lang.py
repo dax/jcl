@@ -92,6 +92,7 @@ class Lang:
         field_error = u"Error with '%s' field: %s"
         mandatory_field = u"required field"
         not_well_formed_field = u"not well formed field"
+        arobase_in_name_forbidden = u"'@' is not allowed in account's name"
 
         field_chat_action = u"Action when state is 'Free For Chat'"
         field_online_action = u"Action when state is 'Online'"
@@ -266,8 +267,10 @@ class Lang:
                                          u"à jour"
         update_account_message_body = u"Compte mis à jour"
 
+        field_error = u"Erreur dans le champs '%s': %s"
         mandatory_field = u"%s est requis"
         not_well_formed_field = u"Le champs %s n'est pas acceptable"
+        arobase_in_name_forbidden = u"Le nom du compte ne peux contenir le charactère '@'"
 
         field_chat_action = u"Action lorsque l'état est 'Free For Chat'"
         field_online_action = u"Action lorsque l'état est 'Online'"

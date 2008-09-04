@@ -70,7 +70,8 @@ class SetRegisterHandler(object):
                 info_query, lang_class)
         if not self.field_name_regexp.match(form["name"].value):
             return self.handle_error(\
-                    NotWellFormedFieldError("name"),
+                    NotWellFormedFieldError("name",
+                                            lang_class.arobase_in_name_forbidden),
                     info_query, lang_class)
         return None
 
