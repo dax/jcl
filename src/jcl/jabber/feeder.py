@@ -143,5 +143,6 @@ class FeederHandler(Handler):
         for _account in data:
             if _account.enabled:
                 for data in self.feeder.feed(_account):
-                    self.sender.send(_account, data)
+                    if self.sender is not None:
+                        self.sender.send(_account, data)
         return []

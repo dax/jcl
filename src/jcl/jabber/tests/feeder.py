@@ -23,7 +23,6 @@
 
 import unittest
 import threading
-import time
 
 from sqlobject import *
 
@@ -252,7 +251,6 @@ class FeederHandler_TestCase(JCLTestCase):
         self.tick_handlers = [FeederHandler(FeederMock(), SenderMock())]
 
     def test_filter(self):
-        model.db_connect()
         account12 = ExampleAccount(user=User(jid="user2@test.com"),
                                    name="account12",
                                    jid="account12@jcl.test.com")
@@ -268,10 +266,8 @@ class FeederHandler_TestCase(JCLTestCase):
             else:
                 self.assertEquals(_account.name, "account11")
         self.assertEquals(i, 2)
-        model.db_disconnect()
 
     def test_handle(self):
-        model.db_connect()
         account11 = ExampleAccount(user=User(jid="user1@test.com"),
                                    name="account11",
                                    jid="account11@jcl.test.com")
@@ -283,10 +279,8 @@ class FeederHandler_TestCase(JCLTestCase):
         self.assertEquals(len(sent), 2)
         self.assertEquals(sent[0], (account11, ("subject", "body")))
         self.assertEquals(sent[1], (account12, ("subject", "body")))
-        model.db_disconnect()
 
     def test_handle_disabled_account(self):
-        model.db_connect()
         account11 = ExampleAccount(user=User(jid="user1@test.com"),
                                    name="account11",
                                    jid="account11@jcl.test.com")
@@ -298,7 +292,24 @@ class FeederHandler_TestCase(JCLTestCase):
         sent = self.tick_handlers[0].sender.sent
         self.assertEquals(len(sent), 1)
         self.assertEquals(sent[0], (account12, ("subject", "body")))
-        model.db_disconnect()
+
+    def test_handle_no_sender(self):
+        self.tick_handlers[0].sender = None
+        class FeederIncMock(object):
+            def __init__ (self):
+                self.called = 0
+            def feed(self, _account):
+                self.called = self.called + 1
+                return [self.called]
+        self.tick_handlers[0].feeder = FeederIncMock()
+        account11 = ExampleAccount(user=User(jid="user1@test.com"),
+                                   name="account11",
+                                   jid="account11@jcl.test.com")
+        account12 = ExampleAccount(user=User(jid="user2@test.com"),
+                                   name="account12",
+                                   jid="account12@jcl.test.com")
+        accounts = self.tick_handlers[0].handle(None, None, [account11, account12])
+        self.assertEquals(self.tick_handlers[0].feeder.called, 2)
 
 def suite():
     test_suite = unittest.TestSuite()
