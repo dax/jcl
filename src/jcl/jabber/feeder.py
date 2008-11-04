@@ -31,8 +31,6 @@ import logging
 from jcl.jabber import Handler
 from jcl.jabber.component import JCLComponent, AccountManager
 from jcl.lang import Lang
-import jcl.model as model
-from jcl.model import account
 from jcl.jabber.command import JCLCommandManager
 
 from pyxmpp.message import Message
@@ -66,15 +64,16 @@ class FeederComponent(JCLComponent):
                               account_manager_class=account_manager_class,
                               command_manager_class=command_manager_class)
         # Define default feeder and sender, can be override
-        self.handler = FeederHandler(Feeder(self), Sender(self))
+        self.tick_handlers = [FeederHandler(Feeder(self), Sender(self))]
         self.__logger = logging.getLogger("jcl.jabber.FeederComponent")
 
     def handle_tick(self):
         """Implement main feed/send behavior"""
-        self.handler.handle(\
-            None, self.lang.get_default_lang_class(),
-            self.handler.filter(None,
-                                self.lang.get_default_lang_class()))
+        for handler in self.tick_handlers:
+            handler.handle(\
+                None, self.lang.get_default_lang_class(),
+                handler.filter(None,
+                               self.lang.get_default_lang_class()))
 
 class Feeder(object):
     """Abstract feeder class"""
@@ -135,14 +134,6 @@ class FeederHandler(Handler):
         """DefaultFeederHandler constructor"""
         self.feeder = feeder
         self.sender = sender
-
-    def filter(self, stanza, lang_class):
-        """
-        Filter account to be processed by the handler
-        return all accounts.
-        """
-        accounts = account.get_all_accounts()
-        return accounts
 
     def handle(self, stanza, lang_class, data):
         """

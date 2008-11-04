@@ -27,20 +27,16 @@ JCL base component
 
 __revision__ = "$Id: component.py,v 1.3 2005/09/18 20:24:07 dax Exp $"
 
-import sys
-
 import threading
 import logging
 import signal
 import re
-import traceback
-import string
 import time
 import socket
+import string
 
 from Queue import Queue
 
-import pyxmpp.error as error
 from pyxmpp.jid import JID
 from pyxmpp.jabberd.component import Component
 from pyxmpp.message import Message

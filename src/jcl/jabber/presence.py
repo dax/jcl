@@ -152,7 +152,7 @@ class AccountPresenceSubscribeHandler(Handler):
     filter = jabber.get_account_filter
 
     def handle(self, stanza, lang_class, data):
-        """Handle \"subscribe\" iq sent to an account JID"""
+        """Handle 'subscribe' iq sent to an account JID"""
         return [stanza.make_accept_response()]
 
 class RootPresenceSubscribeHandler(AccountPresenceSubscribeHandler):
@@ -161,7 +161,7 @@ class RootPresenceSubscribeHandler(AccountPresenceSubscribeHandler):
     filter = jabber.get_accounts_root_filter
 
     def handle(self, stanza, lang_class, data):
-        """Handle \"subscribe\" iq sent to component JID"""
+        """Handle 'subscribe' iq sent to component JID"""
         if list(data) != []:
             return AccountPresenceSubscribeHandler.handle(self, stanza,
                                                           lang_class, None)
@@ -174,7 +174,7 @@ class AccountPresenceUnsubscribeHandler(Handler):
     filter = jabber.get_account_filter
 
     def handle(self, stanza, lang_class, data):
-        """Handle \"unsubscribe\" iq sent to account JID"""
+        """Handle 'unsubscribe' iq sent to account JID"""
         from_jid = stanza.get_from()
         _account = data
         return self.component.account_manager.remove_account(_account, from_jid)
@@ -185,7 +185,7 @@ class RootPresenceUnsubscribeHandler(Handler):
     filter = jabber.get_accounts_root_filter
 
     def handle(self, stanza, lang_class, data):
-        """Handle \"unsubscribe\" iq sent to account JID"""
+        """Handle 'unsubscribe' iq sent to account JID"""
         from_jid = stanza.get_from()
         _account = data
         return self.component.account_manager.remove_all_accounts(from_jid)

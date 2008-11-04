@@ -60,7 +60,7 @@ def mandatory_field(field_name, field_value):
     if field_value is None or str(field_value) == "":
         raise MandatoryFieldError(field_name)
     return field_value
-
+    
 class User(InheritableSQLObject):
     _connection = model.hub
 
