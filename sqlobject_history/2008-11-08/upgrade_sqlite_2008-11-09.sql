@@ -24,7 +24,7 @@ CREATE TABLE account (
     user_id INT CONSTRAINT user_id_exists REFERENCES user_table(id) ,
     child_name VARCHAR (255)
 );
-INSERT INTO account SELECT * FROM account;
+INSERT INTO account SELECT * FROM account_backup;
 DROP TABLE account_backup;
 commit;
 
