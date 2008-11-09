@@ -62,6 +62,9 @@ def mandatory_field(field_name, field_value):
     return field_value
     
 class User(InheritableSQLObject):
+    class sqlmeta:
+        table = "user_table"
+
     _connection = model.hub
 
     jid = StringCol()
