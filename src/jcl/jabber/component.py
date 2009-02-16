@@ -862,7 +862,7 @@ class JCLComponent(Component, object):
                         data = apply_filter_func(handler.filter, stanza, lang_class)
                     else:
                         data = handler.filter(stanza, lang_class)
-                    if data is not None and data != False:
+                    if data is not None and data != False and data != "":
                         self.__logger.debug("Applying handler " + repr(handler))
                         if apply_handle_func is not None:
                             handler_result = apply_handle_func(handler.handle,

@@ -22,6 +22,8 @@
 ##
 
 import unittest
+import logging
+import sys
 
 import threading
 import time
@@ -213,6 +215,45 @@ class JCLComponent_apply_registered_behavior_TestCase(JCLComponent_TestCase):
         self.assertEquals(len(result), 2)
         self.assertEquals(result[0][0], message)
         self.assertEquals(result[1][0], message)
+
+    def test_apply_one_registered_behavior_return_none(self):
+        self.comp.stream = MockStreamNoConnect()
+        self.comp.stream_class = MockStreamNoConnect
+        message = Message(from_jid="user1@test.com",
+                          to_jid="account11@jcl.test.com")
+        handler1 = HandlerMock()
+	handler1.filter = lambda stanza, lang_class: None
+        handler2 = HandlerMock()
+        result = self.comp.apply_registered_behavior([[handler1], [handler2]],
+                                                     message)
+        self.assertEquals(len(result), 1)
+        self.assertEquals(result[0][0], message)
+
+    def test_apply_one_registered_behavior_return_false(self):
+        self.comp.stream = MockStreamNoConnect()
+        self.comp.stream_class = MockStreamNoConnect
+        message = Message(from_jid="user1@test.com",
+                          to_jid="account11@jcl.test.com")
+        handler1 = HandlerMock()
+	handler1.filter = lambda stanza, lang_class: False
+        handler2 = HandlerMock()
+        result = self.comp.apply_registered_behavior([[handler1], [handler2]],
+                                                     message)
+        self.assertEquals(len(result), 1)
+        self.assertEquals(result[0][0], message)
+
+    def test_apply_one_registered_behavior_return_empty_str(self):
+        self.comp.stream = MockStreamNoConnect()
+        self.comp.stream_class = MockStreamNoConnect
+        message = Message(from_jid="user1@test.com",
+                          to_jid="account11@jcl.test.com")
+        handler1 = HandlerMock()
+	handler1.filter = lambda stanza, lang_class: ""
+        handler2 = HandlerMock()
+        result = self.comp.apply_registered_behavior([[handler1], [handler2]],
+                                                     message)
+        self.assertEquals(len(result), 1)
+        self.assertEquals(result[0][0], message)
 
     def test_apply_one_registered_behavior(self):
         self.comp.stream = MockStreamNoConnect()
@@ -2930,7 +2971,7 @@ class JCLComponent_handle_command_TestCase(JCLComponent_TestCase):
 
 class JCLComponent_run_TestCase(JCLComponent_TestCase):
     """run' tests"""
-    
+
     def __comp_run(self):
         try:
             self.comp.run()
@@ -3344,4 +3385,8 @@ def suite():
     return test_suite
 
 if __name__ == '__main__':
+    logger = logging.getLogger()
+    logger.addHandler(logging.StreamHandler())
+    if '-v' in sys.argv:
+        logger.setLevel(logging.INFO)
     unittest.main(defaultTest='suite')
