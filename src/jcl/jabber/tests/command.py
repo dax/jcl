@@ -1062,7 +1062,6 @@ class JCLCommandManagerAddUserCommand_TestCase(JCLCommandManagerTestCase):
         other_session_id = self.check_step_1(result, "admin@test.com",
                                              is_admin=True)
         self.assertEquals(other_session_id, session_id)
-
     def test_execute_add_user_cancel(self):
         """
         Test cancel 'add-user' ad-hoc command .

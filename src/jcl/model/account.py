@@ -60,7 +60,7 @@ def mandatory_field(field_name, field_value):
     if field_value is None or str(field_value) == "":
         raise MandatoryFieldError(field_name)
     return field_value
-    
+
 class User(InheritableSQLObject):
     class sqlmeta:
         table = "user_table"
@@ -98,7 +98,7 @@ class Account(InheritableSQLObject):
     legacy_jids = MultipleJoin('LegacyJID')
     enabled = BoolCol(default=True)
     lastlogin = DateTimeCol(default=datetime.datetime.today())
-    user = ForeignKey("User")
+    user = ForeignKey("User", dbName="user_table_id")
 
 ## Use these attributs to support volatile password
 ##    login = StringCol(default = "")
