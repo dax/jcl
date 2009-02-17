@@ -1,4 +1,4 @@
--- Exported definition from 2008-11-09T13:58:34
+-- Exported definition from 2009-02-17T13:58:34
 -- Class jcl.model.account.User
 -- Database: sqlite
 CREATE TABLE user_table (

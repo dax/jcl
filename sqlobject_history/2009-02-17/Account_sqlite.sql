@@ -1,4 +1,4 @@
--- Exported definition from 2008-11-09T13:58:34
+-- Exported definition from 2009-02-17T13:58:34
 -- Class jcl.model.account.Account
 -- Database: sqlite
 CREATE TABLE account (
@@ -9,6 +9,6 @@ CREATE TABLE account (
     error TEXT,
     enabled BOOLEAN,
     lastlogin TIMESTAMP,
-    user_id INT CONSTRAINT user_id_exists REFERENCES user_table(id) ,
+    user_table_id INT CONSTRAINT user_table_id_exists REFERENCES user_table(id),
     child_name VARCHAR (255)
 );
