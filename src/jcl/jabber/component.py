@@ -448,12 +448,12 @@ class AccountManager(object):
         elif account_class_name is None:
             self.__logger.error("account_type and account_class_name are None")
             return None
-        self.__logger.debug("Looking for " + account_class_name)
+        self.__logger.debug("Looking for " + account_class_name + " class")
         for _account_class in self.account_classes:
             if _account_class.__name__.lower() == account_class_name.lower():
-                self.__logger.debug(account_class_name + " found")
+                self.__logger.debug(account_class_name + " class found")
                 return _account_class
-        self.__logger.debug(account_class_name + " not found")
+        self.__logger.debug(account_class_name + " class not found")
         return None
 
     def generate_registration_form(self, lang_class, _account_class, bare_from_jid):
@@ -709,7 +709,7 @@ class JCLComponent(Component, object):
             signal.signal(signal.SIGTERM, signal.default_int_handler)
 
     def disable_signals(self):
-        """Enable signals"""
+        """Disable signals"""
         if self.signals_enabled:
             self.signals_enabled = False
             signal.signal(signal.SIGINT, signal.default_int_handler)
