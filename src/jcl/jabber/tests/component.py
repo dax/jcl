@@ -54,13 +54,16 @@ import jcl.jabber.command as command
 from jcl.model.tests.account import ExampleAccount, Example2Account
 from jcl.tests import JCLTestCase
 
+logger = logging.getLogger()
+
 class MockStream(object):
     def __init__(self,
                  jid="",
                  secret="",
                  server="",
                  port=1,
-                 keepalive=None):
+                 keepalive=None,
+                 owner=None):
         self.sent = []
         self.connection_started = False
         self.connection_stopped = False
@@ -222,7 +225,7 @@ class JCLComponent_apply_registered_behavior_TestCase(JCLComponent_TestCase):
         message = Message(from_jid="user1@test.com",
                           to_jid="account11@jcl.test.com")
         handler1 = HandlerMock()
-	handler1.filter = lambda stanza, lang_class: None
+        handler1.filter = lambda stanza, lang_class: None
         handler2 = HandlerMock()
         result = self.comp.apply_registered_behavior([[handler1], [handler2]],
                                                      message)
@@ -235,7 +238,7 @@ class JCLComponent_apply_registered_behavior_TestCase(JCLComponent_TestCase):
         message = Message(from_jid="user1@test.com",
                           to_jid="account11@jcl.test.com")
         handler1 = HandlerMock()
-	handler1.filter = lambda stanza, lang_class: False
+        handler1.filter = lambda stanza, lang_class: False
         handler2 = HandlerMock()
         result = self.comp.apply_registered_behavior([[handler1], [handler2]],
                                                      message)
@@ -248,7 +251,7 @@ class JCLComponent_apply_registered_behavior_TestCase(JCLComponent_TestCase):
         message = Message(from_jid="user1@test.com",
                           to_jid="account11@jcl.test.com")
         handler1 = HandlerMock()
-	handler1.filter = lambda stanza, lang_class: ""
+        handler1.filter = lambda stanza, lang_class: ""
         handler2 = HandlerMock()
         result = self.comp.apply_registered_behavior([[handler1], [handler2]],
                                                      message)
@@ -2970,7 +2973,7 @@ class JCLComponent_handle_command_TestCase(JCLComponent_TestCase):
 
 
 class JCLComponent_run_TestCase(JCLComponent_TestCase):
-    """run' tests"""
+    """run tests"""
 
     def __comp_run(self):
         try:
@@ -3032,6 +3035,7 @@ class JCLComponent_run_TestCase(JCLComponent_TestCase):
         self.comp.stream = MockStreamLoopFailed()
         self.comp.stream_class = MockStreamLoopFailed
         self.comp.restart = False
+        self.comp.time_unit = 10
         (result, time_to_wait) = self.comp.run()
         self.assertEquals(time_to_wait, 5)
         self.assertTrue(result)
@@ -3040,6 +3044,8 @@ class JCLComponent_run_TestCase(JCLComponent_TestCase):
         threads = threading.enumerate()
         self.assertEquals(len(threads), 1)
         self.assertFalse(self.comp.stream.connection_stopped)
+        if self.comp.queue.qsize():
+            raise self.comp.queue.get(0)
 
     def test_run_startconnection_socketerror(self):
         """Test when connection to Jabber server fails when starting"""
@@ -3057,6 +3063,8 @@ class JCLComponent_run_TestCase(JCLComponent_TestCase):
         self.assertFalse(self.comp.running)
         threads = threading.enumerate()
         self.assertEquals(len(threads), 1)
+        if self.comp.queue.qsize():
+            raise self.comp.queue.get(0)
 
     def test_run_connection_closed(self):
         """Test when connection to Jabber server is closed"""
@@ -3075,6 +3083,8 @@ class JCLComponent_run_TestCase(JCLComponent_TestCase):
         threads = threading.enumerate()
         self.assertEquals(len(threads), 1)
         self.assertFalse(self.comp.stream.connection_stopped)
+        if self.comp.queue.qsize():
+            raise self.comp.queue.get(0)
 
     def test_run_unhandled_error(self):
         """Test main loop unhandled error from a component handler"""
@@ -3089,6 +3099,8 @@ class JCLComponent_run_TestCase(JCLComponent_TestCase):
             threads = threading.enumerate()
             self.assertEquals(len(threads), 1)
             self.assertTrue(self.comp.stream.connection_stopped)
+            if self.comp.queue.qsize():
+                raise self.comp.queue.get(0)
             return
         self.fail("No exception caught")
 
@@ -3102,6 +3114,8 @@ class JCLComponent_run_TestCase(JCLComponent_TestCase):
             threads = threading.enumerate()
             self.assertEquals(len(threads), 1)
             self.assertTrue(self.comp.stream.connection_stopped)
+            if self.comp.queue.qsize():
+                raise self.comp.queue.get(0)
             return
         self.fail("No exception caught")
 
@@ -3385,8 +3399,7 @@ def suite():
     return test_suite
 
 if __name__ == '__main__':
-    logger = logging.getLogger()
     logger.addHandler(logging.StreamHandler())
     if '-v' in sys.argv:
-        logger.setLevel(logging.INFO)
+        logger.setLevel(logging.DEBUG)
     unittest.main(defaultTest='suite')

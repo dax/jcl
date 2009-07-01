@@ -33,6 +33,7 @@ from pyxmpp.jabber.dataforms import Form
 from pyxmpp.iq import Iq
 from pyxmpp.jabber.disco import DiscoItems
 from pyxmpp.jabber.dataforms import Field
+import pyxmpp.xmlextra
 
 import jcl.tests
 from jcl.lang import Lang
@@ -44,6 +45,8 @@ import jcl.model.account as account
 from jcl.model.account import Account, PresenceAccount, LegacyJID, User
 from jcl.model.tests.account import ExampleAccount, Example2Account
 from jcl.tests import JCLTestCase
+
+PYXMPP_NS = pyxmpp.xmlextra.COMMON_NS
 
 class FieldNoType_TestCase(unittest.TestCase):
     def test_complete_xml_element(self):
@@ -444,7 +447,7 @@ class CommandManager_TestCase(unittest.TestCase):
         self.assertTrue(jcl.tests.is_xml_equal(\
                 u"<iq from='" + unicode(self.command_manager.component.jid)
                 + "' to='user@test.com' type='error' "
-                + "xmlns='http://pyxmpp.jabberstudio.org/xmlns/common'>"
+                + "xmlns='" + PYXMPP_NS + "'>"
                 + "<command xmlns='http://jabber.org/protocol/commands'"
                 + "node='command1' />"
                 + "<error type='cancel'><feature-not-implemented "
@@ -475,7 +478,7 @@ class CommandManager_TestCase(unittest.TestCase):
         self.assertTrue(jcl.tests.is_xml_equal(\
                 u"<iq from='" + unicode(self.command_manager.component.jid)
                 + "' to='user@test.com' type='error' "
-                + "xmlns='http://pyxmpp.jabberstudio.org/xmlns/common'>"
+                + "xmlns='" + PYXMPP_NS + "'>"
                 + "<command xmlns='http://jabber.org/protocol/commands'"
                 + "node='command1' />"
                 + "<error type='cancel'><service-unavailable "
@@ -859,14 +862,14 @@ class JCLCommandManagerAddUserCommand_TestCase(JCLCommandManagerTestCase):
         result_iq = result[1].xmlnode
         self.assertTrue(jcl.tests.is_xml_equal(\
                 u"<presence from='" + unicode(self.comp.jid) + "' "
-                + "xmlns=\"http://pyxmpp.jabberstudio.org/xmlns/common\" "
+                + "xmlns=\"" + PYXMPP_NS + "\" "
                 + "to='" + new_jid + "' "
                 + "type='subscribe' />",
                 result_iq, True, test_sibling=False))
         result_iq = result[2].xmlnode
         self.assertTrue(jcl.tests.is_xml_equal(\
                 u"<message from='" + unicode(self.comp.jid) + "' "
-                + "xmlns=\"http://pyxmpp.jabberstudio.org/xmlns/common\" "
+                + "xmlns=\"" + PYXMPP_NS + "\" "
                 + "to='" + new_jid + "'>"
                 + "<subject>" + _account.get_new_message_subject(Lang.en)
                 + "</subject>"
@@ -876,7 +879,7 @@ class JCLCommandManagerAddUserCommand_TestCase(JCLCommandManagerTestCase):
         result_iq = result[3].xmlnode
         self.assertTrue(jcl.tests.is_xml_equal(\
                 u"<presence from='account1@" + unicode(self.comp.jid) + "' "
-                + "xmlns=\"http://pyxmpp.jabberstudio.org/xmlns/common\" "
+                + "xmlns=\"" + PYXMPP_NS + "\" "
                 + "to='" + new_jid + "' type='subscribe' />",
                 result_iq, True, test_sibling=False))
         context_session = self.command_manager.sessions[session_id][1]
@@ -1203,28 +1206,28 @@ class JCLCommandManagerDeleteUserCommand_TestCase(JCLCommandManagerTestCase):
         result_iq = result[1].xmlnode
         self.assertTrue(jcl.tests.is_xml_equal(\
                 u"<presence from='account11@" + unicode(self.comp.jid) + "' "
-                + "xmlns=\"http://pyxmpp.jabberstudio.org/xmlns/common\" "
+                + "xmlns=\"" + PYXMPP_NS + "\" "
                 + "to='test1@test.com' "
                 + "type='unsubscribe' />",
                 result_iq, True, test_sibling=False))
         result_iq = result[2].xmlnode
         self.assertTrue(jcl.tests.is_xml_equal(\
                 u"<presence from='account11@" + unicode(self.comp.jid) + "' "
-                + "xmlns=\"http://pyxmpp.jabberstudio.org/xmlns/common\" "
+                + "xmlns=\"" + PYXMPP_NS + "\" "
                 + "to='test1@test.com' "
                 + "type='unsubscribed' />",
                 result_iq, True, test_sibling=False))
         result_iq = result[3].xmlnode
         self.assertTrue(jcl.tests.is_xml_equal(\
                 u"<presence from='account11@" + unicode(self.comp.jid) + "' "
-                + "xmlns=\"http://pyxmpp.jabberstudio.org/xmlns/common\" "
+                + "xmlns=\"" + PYXMPP_NS + "\" "
                 + "to='test2@test.com' "
                 + "type='unsubscribe' />",
                 result_iq, True, test_sibling=False))
         result_iq = result[4].xmlnode
         self.assertTrue(jcl.tests.is_xml_equal(\
                 u"<presence from='account11@" + unicode(self.comp.jid) + "' "
-                + "xmlns=\"http://pyxmpp.jabberstudio.org/xmlns/common\" "
+                + "xmlns=\"" + PYXMPP_NS + "\" "
                 + "to='test2@test.com' "
                 + "type='unsubscribed' />",
                 result_iq, True, test_sibling=False))
@@ -1540,14 +1543,14 @@ class JCLCommandManagerEndUserSessionCommand_TestCase(JCLCommandManagerTestCase)
         result_iq = result[1].xmlnode
         self.assertTrue(jcl.tests.is_xml_equal(\
                 u"<presence from='account11@" + unicode(self.comp.jid) + "' "
-                + "xmlns=\"http://pyxmpp.jabberstudio.org/xmlns/common\" "
+                + "xmlns=\"" + PYXMPP_NS + "\" "
                 + "to='test1@test.com' "
                 + "type='unavailable' />",
                 result_iq, True, test_sibling=False))
         result_iq = result[2].xmlnode
         self.assertTrue(jcl.tests.is_xml_equal(\
                 u"<presence from='account11@" + unicode(self.comp.jid) + "' "
-                + "xmlns=\"http://pyxmpp.jabberstudio.org/xmlns/common\" "
+                + "xmlns=\"" + PYXMPP_NS + "\" "
                 + "to='test2@test.com' "
                 + "type='unavailable' />",
                 result_iq, True, test_sibling=False))
@@ -2527,14 +2530,14 @@ class JCLCommandManagerAnnounceCommand_TestCase(JCLCommandManagerTestCase):
         result_iq = result[1].xmlnode
         self.assertTrue(jcl.tests.is_xml_equal(\
                 u"<message from='" + unicode(self.comp.jid) + "' "
-                + "xmlns=\"http://pyxmpp.jabberstudio.org/xmlns/common\" "
+                + "xmlns=\"" + PYXMPP_NS + "\" "
                 + "to='test1@test.com'>"
                 + "<body>test announce</body></message>",
                 result_iq, True, test_sibling=False))
         result_iq = result[2].xmlnode
         self.assertTrue(jcl.tests.is_xml_equal(\
                 u"<message from='" + unicode(self.comp.jid) + "' "
-                + "xmlns=\"http://pyxmpp.jabberstudio.org/xmlns/common\" "
+                + "xmlns=\"" + PYXMPP_NS + "\" "
                 + "to='test2@test.com'>"
                 + "<body>test announce</body></message>",
                 result_iq, True, test_sibling=False))
@@ -2628,7 +2631,7 @@ class JCLCommandManagerSetMOTDCommand_TestCase(JCLCommandManagerTestCase):
         result_iq = result[1].xmlnode
         self.assertTrue(jcl.tests.is_xml_equal(\
                 u"<message from='" + unicode(self.comp.jid) + "' "
-                + "xmlns=\"http://pyxmpp.jabberstudio.org/xmlns/common\" "
+                + "xmlns=\"" + PYXMPP_NS + "\" "
                 + "to='test1@test.com'>"
                 + "<body>Message Of The Day</body></message>",
                 result_iq, True, test_sibling=False))
@@ -2705,7 +2708,7 @@ class JCLCommandManagerEditMOTDCommand_TestCase(JCLCommandManagerTestCase):
         result_iq = result[1].xmlnode
         self.assertTrue(jcl.tests.is_xml_equal(\
                 u"<message from='" + unicode(self.comp.jid) + "' "
-                + "xmlns=\"http://pyxmpp.jabberstudio.org/xmlns/common\" "
+                + "xmlns=\"" + PYXMPP_NS + "\" "
                 + "to='test1@test.com'>"
                 + "<body>Message Of The Day</body></message>",
                 result_iq, True, test_sibling=False))
@@ -3037,14 +3040,14 @@ class JCLCommandManagerRestartCommand_TestCase(JCLCommandManagerTestCase):
         result_iq = result[1].xmlnode
         self.assertTrue(jcl.tests.is_xml_equal(\
                 u"<message from='" + unicode(self.comp.jid) + "' "
-                + "xmlns=\"http://pyxmpp.jabberstudio.org/xmlns/common\" "
+                + "xmlns=\"" + PYXMPP_NS + "\" "
                 + "to='test1@test.com'>"
                 + "<body>service will be restarted in 1 second</body></message>",
                 result_iq, True, test_sibling=False))
         result_iq = result[2].xmlnode
         self.assertTrue(jcl.tests.is_xml_equal(\
                 u"<message from='" + unicode(self.comp.jid) + "' "
-                + "xmlns=\"http://pyxmpp.jabberstudio.org/xmlns/common\" "
+                + "xmlns=\"" + PYXMPP_NS + "\" "
                 + "to='test2@test.com'>"
                 + "<body>service will be restarted in 1 second</body></message>",
                 result_iq, True, test_sibling=False))
@@ -3190,14 +3193,14 @@ class JCLCommandManagerShutdownCommand_TestCase(JCLCommandManagerTestCase):
         result_iq = result[1].xmlnode
         self.assertTrue(jcl.tests.is_xml_equal(\
                 u"<message from='" + unicode(self.comp.jid) + "' "
-                + "xmlns=\"http://pyxmpp.jabberstudio.org/xmlns/common\" "
+                + "xmlns=\"" + PYXMPP_NS + "\" "
                 + "to='test1@test.com'>"
                 + "<body>service will be shutdown in 1 second</body></message>",
                 result_iq, True, test_sibling=False))
         result_iq = result[2].xmlnode
         self.assertTrue(jcl.tests.is_xml_equal(\
                 u"<message from='" + unicode(self.comp.jid) + "' "
-                + "xmlns=\"http://pyxmpp.jabberstudio.org/xmlns/common\" "
+                + "xmlns=\"" + PYXMPP_NS + "\" "
                 + "to='test2@test.com'>"
                 + "<body>service will be shutdown in 1 second</body></message>",
                 result_iq, True, test_sibling=False))

@@ -406,7 +406,7 @@ class JCLCommandManager(CommandManager):
                         label = _account.name + " (" + account_type \
                             + ")"
                     field.add_option(label=label,
-                                     values=[_account.name + "/" + user_jid])
+                                     value=_account.name + "/" + user_jid)
 
     def add_form_select_accounts(self, session_context,
                                  command_node, lang_class,
@@ -461,7 +461,7 @@ class JCLCommandManager(CommandManager):
                                                 label=lang_class.field_max_items)
         for value in ["25", "50", "75", "100", "150", "200"]:
             max_items_field.add_option(label=value,
-                                       values=[value])
+                                       value=value)
         result_form.as_xml(command_node)
         return (result_form, [])
 
@@ -545,7 +545,7 @@ class JCLCommandManager(CommandManager):
         for (account_type, type_label) in \
                 self.component.account_manager.list_account_types(lang_class):
             field.add_option(label=type_label,
-                             values=[account_type])
+                             value=account_type)
         if self.component.is_admin(info_query.get_from()):
             result_form.add_field(name="user_jid",
                                   field_type="jid-single",
@@ -1159,19 +1159,19 @@ class JCLCommandManager(CommandManager):
                                             label=lang_class.field_restart_delay,
                                             required=True)
         delay_field.add_option(label=lang_class.field_30_sec,
-                               values=["30"])
+                               value="30")
         delay_field.add_option(label=lang_class.field_60_sec,
-                               values=["60"])
+                               value="60")
         delay_field.add_option(label=lang_class.field_90_sec,
-                               values=["90"])
+                               value="90")
         delay_field.add_option(label=lang_class.field_120_sec,
-                               values=["120"])
+                               value="120")
         delay_field.add_option(label=lang_class.field_180_sec,
-                               values=["180"])
+                               value="180")
         delay_field.add_option(label=lang_class.field_240_sec,
-                               values=["240"])
+                               value="240")
         delay_field.add_option(label=lang_class.field_300_sec,
-                               values=["300"])
+                               value="300")
         result_form.add_field(name="announcement",
                               field_type="text-multi",
                               label=lang_class.field_announcement)
@@ -1221,19 +1221,19 @@ class JCLCommandManager(CommandManager):
                                             label=lang_class.field_shutdown_delay,
                                             required=True)
         delay_field.add_option(label=lang_class.field_30_sec,
-                               values=["30"])
+                               value="30")
         delay_field.add_option(label=lang_class.field_60_sec,
-                               values=["60"])
+                               value="60")
         delay_field.add_option(label=lang_class.field_90_sec,
-                               values=["90"])
+                               value="90")
         delay_field.add_option(label=lang_class.field_120_sec,
-                               values=["120"])
+                               value="120")
         delay_field.add_option(label=lang_class.field_180_sec,
-                               values=["180"])
+                               value="180")
         delay_field.add_option(label=lang_class.field_240_sec,
-                               values=["240"])
+                               value="240")
         delay_field.add_option(label=lang_class.field_300_sec,
-                               values=["300"])
+                               value="300")
         result_form.add_field(name="announcement",
                               field_type="text-multi",
                               label=lang_class.field_announcement)

@@ -496,7 +496,7 @@ class AccountManager(object):
                         else:
                             label = option_value
                         field.add_option(label=label,
-                                         values=[option_value])
+                                         value=option_value)
                 try:
                     post_func(None, default_func, bare_from_jid)
                 except:
@@ -661,6 +661,9 @@ class JCLComponent(Component, object):
         Start timer thread
         Call Component main loop
         Clean up when shutting down JCLcomponent
+
+	Return a boolean set to True if the component need to be restarted
+	and a delay to wait before restarting
         """
         wait_before_restart = 5
         self._restart = True
@@ -737,8 +740,9 @@ class JCLComponent(Component, object):
                    and not self.stream.eof
                    and self.stream.socket is not None):
                 self.wait_event.wait(self.time_unit)
-                self.handle_tick()
-                self.__logger.debug(".")
+		if not self.wait_event.is_set():
+		    self.handle_tick()
+		    self.__logger.debug(".")
         except Exception, exception:
             self.__logger.error("Error in timer thread:", exc_info=True)
             self.queue.put(exception)
