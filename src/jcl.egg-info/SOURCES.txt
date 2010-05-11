@@ -17,5 +17,6 @@ src/jcl/jabber/feeder.py
 src/jcl/jabber/message.py
 src/jcl/jabber/presence.py
 src/jcl/jabber/register.py
+src/jcl/jabber/vcard.py
 src/jcl/model/__init__.py
 src/jcl/model/account.py
