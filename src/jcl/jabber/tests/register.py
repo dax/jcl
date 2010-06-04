@@ -56,7 +56,7 @@ class SetRegisterHandler_TestCase(JCLTestCase):
         result = self.handler.handle(iq_set, Lang.en, None, x_data)
         self.assertEquals(result, None)
 
-    def test_handle_invalid_name(self):
+    def test_handle_invalid_name_with_invalid_char(self):
         """Test with invalid supplied name"""
         iq_set = Iq(stanza_type="set",
                     from_jid="user1@test.com/res",
@@ -64,6 +64,23 @@ class SetRegisterHandler_TestCase(JCLTestCase):
         x_data = Form("submit")
         x_data.add_field(name="name",
                          value="wrong@name",
+                         field_type="text-single")
+        result = self.handler.handle(iq_set, Lang.en, None, x_data)
+        self.assertEquals(len(result), 1)
+        self.assertEquals(result[0].xmlnode.prop("type"), "error")
+        error = result[0].get_error()
+        self.assertEquals(error.get_condition().name, "not-acceptable")
+        self.assertEquals(error.get_text(), Lang.en.field_error \
+                              % ("name", Lang.en.arobase_in_name_forbidden))
+
+    def test_handle_invalid_name_with_whitespace(self):
+        """Test with invalid supplied name"""
+        iq_set = Iq(stanza_type="set",
+                    from_jid="user1@test.com/res",
+                    to_jid="jcl.test.com")
+        x_data = Form("submit")
+        x_data.add_field(name="name",
+                         value="wrong name",
                          field_type="text-single")
         result = self.handler.handle(iq_set, Lang.en, None, x_data)
         self.assertEquals(len(result), 1)

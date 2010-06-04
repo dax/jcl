@@ -27,6 +27,7 @@
 __revision__ = "$Id: account.py,v 1.3 2005/09/18 20:24:07 dax Exp $"
 
 import datetime
+import re
 
 from sqlobject.inheritance import InheritableSQLObject
 from sqlobject.col import StringCol, IntCol, BoolCol, ForeignKey, DateTimeCol
@@ -34,7 +35,7 @@ from sqlobject.joins import MultipleJoin
 from sqlobject.sqlbuilder import AND
 
 from jcl.lang import Lang
-from jcl.error import MandatoryFieldError
+from jcl.error import FieldError, MandatoryFieldError
 import jcl.model as model
 
 OFFLINE = "offline"
@@ -59,6 +60,16 @@ def mandatory_field(field_name, field_value):
     and cannot have an empty value"""
     if field_value is None or str(field_value) == "":
         raise MandatoryFieldError(field_name)
+    return field_value
+
+def no_whitespace_field(field_name, field_value):
+    """ Check that `field_value` does not contain any whitespace character
+    Arguments:
+    - `field_name`: Field name
+    - `field_value`: Field value to check
+    """
+    if re.compile("\s").search(field_value) is not None:
+        raise FieldError(field_name, message_property="no_whitespace_in_field")
     return field_value
 
 class User(InheritableSQLObject):

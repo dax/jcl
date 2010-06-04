@@ -38,7 +38,7 @@ class SetRegisterHandler(object):
         self.component = component
         self.account_manager = component.account_manager
         self.__logger = logging.getLogger("jcl.jabber.SetRegisterHandler")
-        self.field_name_regexp = re.compile("^[^@]+$")
+        self.field_name_regexp = re.compile("^[^@\s]+$")
 
     def filter(self, info_query, lang_class, x_data):
         """Filter requests to be handled"""
