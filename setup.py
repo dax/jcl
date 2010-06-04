@@ -23,7 +23,7 @@
 from setuptools import setup, find_packages
 
 setup(name='jcl',
-      version='0.1b2',
+      version='0.1b3',
       description='Jabber Component Library',
       author='David Rousselie',
       author_email='dax@happycoders.org',

@@ -1,0 +1,79 @@
+Description: Upstream changes introduced in version 0.1b3
+ This patch has been created by dpkg-source during the package build.
+ Here's the last changelog entry, hopefully it gives details on why
+ those changes were made:
+ .
+ jcl (0.1b3) unstable; urgency=low
+ .
+   * JCL v0.1 beta 3
+ .
+ The person named in the Author field signed this changelog entry.
+Author: David Rousselie <dax@happycoders.org>
+
+---
+The information above should follow the Patch Tagging Guidelines, please
+checkout http://dep.debian.net/deps/dep3/ to learn about the format. Here
+are templates for supplementary fields that you might want to add:
+
+Origin: <vendor|upstream|other>, <url of original patch>
+Bug: <url in upstream bugtracker>
+Bug-Debian: http://bugs.debian.org/<bugnumber>
+Forwarded: <no|not-needed|url proving that it has been forwarded>
+Reviewed-By: <name and email of someone who approved the patch>
+Last-Update: <YYYY-MM-DD>
+
+--- jcl-0.1b3.orig/Makefile
++++ jcl-0.1b3/Makefile
+@@ -2,7 +2,7 @@ PYTHON=`which python`
+ DESTDIR=/
+ BUILDIR=$(CURDIR)/debian/jcl
+ PROJECT=jcl
+-VERSION=0.1b2
++VERSION=0.1b3
+ 
+ all:
+ 	@echo "make source - Create source package"
+@@ -23,7 +23,7 @@ buildrpm:
+ builddeb:
+ 	$(PYTHON) setup.py sdist $(COMPILE) --dist-dir=../
+ 	rename -f 's/$(PROJECT)-(.*)\.tar\.gz/$(PROJECT)_$$1\.orig\.tar\.gz/' ../*
+-	dpkg-buildpackage -i -I -rfakeroot
++	dpkg-buildpackage -us -uc -i -I -rfakeroot
+ 
+ clean:
+ 	$(PYTHON) setup.py clean
+--- jcl-0.1b3.orig/src/jcl/jabber/tests/register.py
++++ jcl-0.1b3/src/jcl/jabber/tests/register.py
+@@ -56,7 +56,7 @@ class SetRegisterHandler_TestCase(JCLTes
+         result = self.handler.handle(iq_set, Lang.en, None, x_data)
+         self.assertEquals(result, None)
+ 
+-    def test_handle_invalid_name(self):
++    def test_handle_invalid_name_with_invalid_char(self):
+         """Test with invalid supplied name"""
+         iq_set = Iq(stanza_type="set",
+                     from_jid="user1@test.com/res",
+@@ -73,6 +73,23 @@ class SetRegisterHandler_TestCase(JCLTes
+         self.assertEquals(error.get_text(), Lang.en.field_error \
+                               % ("name", Lang.en.arobase_in_name_forbidden))
+ 
++    def test_handle_invalid_name_with_whitespace(self):
++        """Test with invalid supplied name"""
++        iq_set = Iq(stanza_type="set",
++                    from_jid="user1@test.com/res",
++                    to_jid="jcl.test.com")
++        x_data = Form("submit")
++        x_data.add_field(name="name",
++                         value="wrong name",
++                         field_type="text-single")
++        result = self.handler.handle(iq_set, Lang.en, None, x_data)
++        self.assertEquals(len(result), 1)
++        self.assertEquals(result[0].xmlnode.prop("type"), "error")
++        error = result[0].get_error()
++        self.assertEquals(error.get_condition().name, "not-acceptable")
++        self.assertEquals(error.get_text(), Lang.en.field_error \
++                              % ("name", Lang.en.arobase_in_name_forbidden))
++
+     def test_handle_invalid_empty_name(self):
+         """Test with empty supplied name"""
+         iq_set = Iq(stanza_type="set",
