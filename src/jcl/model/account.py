@@ -49,6 +49,17 @@ def default_post_func(field_value, default_func, bare_from_jid):
         return default_func(bare_from_jid)
     return field_value
 
+def boolean_post_func(field_value, default_func, bare_from_jid):
+    """Return a boolean for boolean field"""
+    if field_value is None or str(field_value) == "":
+        return default_func(bare_from_jid)
+    if isinstance(field_value, str) or isinstance(field_value, unicode):
+        field_value = field_value.lower()
+        bool_value = (field_value == "true" or field_value == "1")
+    else:
+        bool_value = field_value
+    return bool_value
+
 def int_post_func(field_value, default_func, bare_from_jid):
     """Return an integer from integer field value"""
     if field_value is None or str(field_value) == "":

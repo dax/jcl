@@ -137,6 +137,42 @@ class AccountModule_TestCase(JCLTestCase):
                                               "user1@jcl.test.com")
         self.assertEquals(result, "test")
 
+    def test_boolean_post_func_with_1_str(self):
+        result = account.boolean_post_func("1", None, "user1@jcl.test.com")
+        self.assertEquals(result, True)
+
+    def test_boolean_post_func_with_True_str(self):
+        result = account.boolean_post_func("True", None, "user1@jcl.test.com")
+        self.assertEquals(result, True)
+
+    def test_boolean_post_func_with_False_str(self):
+        result = account.boolean_post_func("False", None, "user1@jcl.test.com")
+        self.assertEquals(result, False)
+
+    def test_boolean_post_func_with_1_unicode(self):
+        result = account.boolean_post_func(u"1", None, "user1@jcl.test.com")
+        self.assertEquals(result, True)
+
+    def test_boolean_post_func_with_True_unicode(self):
+        result = account.boolean_post_func(u"true", None, "user1@jcl.test.com")
+        self.assertEquals(result, True)
+
+    def test_boolean_post_func_with_False_unicode(self):
+        result = account.boolean_post_func(u"False", None, "user1@jcl.test.com")
+        self.assertEquals(result, False)
+
+    def test_boolean_post_func_with_1(self):
+        result = account.boolean_post_func(1, None, "user1@jcl.test.com")
+        self.assertEquals(result, False)
+
+    def test_boolean_post_func_with_True(self):
+        result = account.boolean_post_func(True, None, "user1@jcl.test.com")
+        self.assertEquals(result, True)
+
+    def test_boolean_post_func_with_False(self):
+        result = account.boolean_post_func(False, None, "user1@jcl.test.com")
+        self.assertEquals(result, False)
+
     def test_int_post_func(self):
         result = account.int_post_func("42", None, "user1@jcl.test.com")
         self.assertEquals(result, 42)

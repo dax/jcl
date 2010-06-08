@@ -258,7 +258,7 @@ class AccountManager(object):
                        lang_class,
                        x_data):
         """Update account"""
-        self.__logger.debug("Updating account " + account_name)
+        self.__logger.debug("Updating account " + str(account_name))
         bare_from_jid = unicode(from_jid.bare())
         _account = account.get_account(bare_from_jid,
                                        account_name)
@@ -341,7 +341,7 @@ class AccountManager(object):
                                             presence))
         for _account in account.get_all_accounts():
             result.extend(getattr(self, "get_account_presence_" +
-                                  presence)(_account.user.jid, _account))
+                                  str(presence))(_account.user.jid, _account))
         return result
 
     def get_root_presence(self, to_jid, presence_type,
@@ -418,8 +418,8 @@ class AccountManager(object):
         if account_class is None:
             account_class = self.account_classes[0]
         if account_type is not None and account_type != "":
-            resource = "/" + account_type
-            account_type = account_type + "/"
+            resource = "/" + str(account_type)
+            account_type = str(account_type) + "/"
         else:
             resource = ""
         model.db_connect()
@@ -432,7 +432,7 @@ class AccountManager(object):
     def list_account_types(self, lang_class):
         """List account supported types"""
         for account_type in self.account_types:
-            type_label_attr = "type_" + account_type.lower() + "_name"
+            type_label_attr = "type_" + str(account_type).lower() + "_name"
             if hasattr(lang_class, type_label_attr):
                 type_label = getattr(lang_class, type_label_attr)
             else:
@@ -519,7 +519,7 @@ class AccountManager(object):
 
     def get_account_jid(self, name):
         """Compose account jid from account name"""
-        return name + u"@" + unicode(self.component.jid)
+        return unicode(name) + u"@" + unicode(self.component.jid)
 
     def ask_password(self, to_jid, _account, lang_class):
         """Send a Jabber message to ask for account password
@@ -1079,7 +1079,7 @@ class JCLComponent(Component, object):
         """Handle new message
         Handle password response message
         """
-        self.__logger.debug("MESSAGE: " + message.get_body())
+        self.__logger.debug("MESSAGE: " + str(message.get_body()))
         self.apply_registered_behavior(self.msg_handlers, message)
         return 1
 
