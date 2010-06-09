@@ -161,8 +161,8 @@ class AccountModule_TestCase(JCLTestCase):
         result = account.boolean_post_func(u"False", None, "user1@jcl.test.com")
         self.assertEquals(result, False)
 
-    def test_boolean_post_func_with_1(self):
-        result = account.boolean_post_func(1, None, "user1@jcl.test.com")
+    def test_boolean_post_func_with_0_str(self):
+        result = account.boolean_post_func("0", None, "user1@jcl.test.com")
         self.assertEquals(result, False)
 
     def test_boolean_post_func_with_True(self):
@@ -254,6 +254,9 @@ class AccountModule_TestCase(JCLTestCase):
         self.assertEquals(_account.name, "account11")
 
 class InheritableAccount_TestCase(JCLTestCase):
+    def setUp(self):
+        JCLTestCase.setUp(self, tables=[Account])
+        self.account_class = Account
 
     def test_get_register_fields(self):
         """
