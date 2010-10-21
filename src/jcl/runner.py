@@ -21,6 +21,8 @@
 ##
 
 import logging
+import logging.handlers
+
 import os
 import sys
 from ConfigParser import ConfigParser
@@ -175,7 +177,7 @@ class JCLRunner(object):
             handler.setFormatter(LOG_FORMATTER)
             logging.Logger.root.addHandler(handler)
         if self.log_file is not None:
-            handler = logging.FileHandler(self.log_file)
+            handler = logging.handlers.WatchedFileHandler(self.log_file)
             handler.setFormatter(LOG_FORMATTER)
             logging.Logger.root.addHandler(handler)
 
