@@ -94,7 +94,8 @@ class Language_TestCase(unittest.TestCase):
         self.assertNotEquals(self.lang_class.field_error % ("", ""), None)
         self.assertNotEquals(self.lang_class.mandatory_field, None)
         self.assertNotEquals(self.lang_class.not_well_formed_field, None)
-        self.assertNotEquals(self.lang_class.arobase_in_name_forbidden, None)
+        self.assertNotEquals(self.lang_class.forbidden_char_in_name, None)
+        self.assertNotEquals(self.lang_class.not_a_number, None)
 
         self.assertNotEquals(self.lang_class.field_chat_action, None)
         self.assertNotEquals(self.lang_class.field_online_action, None)

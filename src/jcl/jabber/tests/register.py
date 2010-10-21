@@ -71,7 +71,7 @@ class SetRegisterHandler_TestCase(JCLTestCase):
         error = result[0].get_error()
         self.assertEquals(error.get_condition().name, "not-acceptable")
         self.assertEquals(error.get_text(), Lang.en.field_error \
-                              % ("name", Lang.en.arobase_in_name_forbidden))
+                              % ("name", Lang.en.forbidden_char_in_name))
 
     def test_handle_invalid_name_with_whitespace(self):
         """Test with invalid supplied name"""
@@ -88,7 +88,7 @@ class SetRegisterHandler_TestCase(JCLTestCase):
         error = result[0].get_error()
         self.assertEquals(error.get_condition().name, "not-acceptable")
         self.assertEquals(error.get_text(), Lang.en.field_error \
-                              % ("name", Lang.en.arobase_in_name_forbidden))
+                              % ("name", Lang.en.forbidden_char_in_name))
 
     def test_handle_invalid_empty_name(self):
         """Test with empty supplied name"""

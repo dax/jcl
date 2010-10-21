@@ -27,6 +27,7 @@ import traceback
 import re
 
 import pyxmpp.error as error
+import pyxmpp.jid
 
 from jcl.error import FieldError, MandatoryFieldError, NotWellFormedFieldError
 import jcl.jabber as jabber
@@ -68,10 +69,10 @@ class SetRegisterHandler(object):
             return self.handle_error(\
                 MandatoryFieldError("name"),
                 info_query, lang_class)
-        if not self.field_name_regexp.match(form["name"].value):
+        if pyxmpp.jid.node_invalid_re.search(form["name"].value):
             return self.handle_error(\
                     NotWellFormedFieldError("name",
-                                            lang_class.arobase_in_name_forbidden),
+                                            lang_class.forbidden_char_in_name),
                     info_query, lang_class)
         return None
 

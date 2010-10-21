@@ -92,7 +92,8 @@ class Lang:
         field_error = u"Error with '%s' field: %s"
         mandatory_field = u"required field"
         not_well_formed_field = u"not well formed field"
-        arobase_in_name_forbidden = u"'@' is not allowed in account's name"
+        forbidden_char_in_name = u"Account's name contains an invalid character"
+        not_a_number = u"field must be a number"
 
         field_chat_action = u"Action when state is 'Free For Chat'"
         field_online_action = u"Action when state is 'Online'"
@@ -270,7 +271,8 @@ class Lang:
         field_error = u"Erreur dans le champs '%s': %s"
         mandatory_field = u"%s est requis"
         not_well_formed_field = u"Le champs %s n'est pas acceptable"
-        arobase_in_name_forbidden = u"Le nom du compte ne peux contenir le charactère '@'"
+        forbidden_char_in_name = u"Le nom du compte contient un charactère invalide"
+        not_a_number = u"Le champs doit être un nombre"
 
         field_chat_action = u"Action lorsque l'état est 'Free For Chat'"
         field_online_action = u"Action lorsque l'état est 'Online'"

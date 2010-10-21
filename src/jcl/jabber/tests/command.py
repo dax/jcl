@@ -248,6 +248,20 @@ class CommandManager_TestCase(unittest.TestCase):
                                                            "execute")
         self.assertEquals(result, [])
 
+    def test_complete_admin_command_action_as_admin(self):
+        self.command_manager.commands["command1"] = (True,
+                                                     command.root_node_re)
+        self.command_manager.apply_execute_command = \
+            lambda iq, command_name: []
+        self.command_manager.component = MockComponent()
+        info_query = Iq(stanza_type="set",
+                        from_jid="admin@test.com",
+                        to_jid="jcl.test.com")
+        result = self.command_manager.apply_command_action(info_query,
+                                                           "command1",
+                                                           "complete")
+        self.assertEquals(result, [])
+
     def test_apply_admin_command_action_as_admin_fulljid(self):
         self.command_manager.commands["command1"] = (True,
                                                      command.root_node_re)

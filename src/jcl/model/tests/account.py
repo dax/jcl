@@ -182,10 +182,15 @@ class AccountModule_TestCase(JCLTestCase):
                                           "user1@jcl.test.com")
         self.assertEquals(result, 42)
 
-    def test_int_post_func_default_value(self):
+    def test_int_post_func_default_value2(self):
         result = account.int_post_func(None, lambda bare_from_jid: 42, \
                                           "user1@jcl.test.com")
         self.assertEquals(result, 42)
+
+    def test_int_post_func_invalid_value(self):
+        self.assertRaises(FieldError,
+                          account.int_post_func,
+                          "notanint", None, "user1@jcl.test.com")
 
     def test_mandatory_field_empty(self):
         self.assertRaises(FieldError,

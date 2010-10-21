@@ -28,6 +28,7 @@ __revision__ = "$Id: account.py,v 1.3 2005/09/18 20:24:07 dax Exp $"
 
 import datetime
 import re
+import exceptions
 
 from sqlobject.inheritance import InheritableSQLObject
 from sqlobject.col import StringCol, IntCol, BoolCol, ForeignKey, DateTimeCol
@@ -64,7 +65,10 @@ def int_post_func(field_value, default_func, bare_from_jid):
     """Return an integer from integer field value"""
     if field_value is None or str(field_value) == "":
         return int(default_func(bare_from_jid))
-    return int(field_value)
+    try:
+        return int(field_value)
+    except exceptions.ValueError:
+        raise FieldError("TODO", message_property="not_a_number")
 
 def mandatory_field(field_name, field_value):
     """Used as default function for field that must be specified

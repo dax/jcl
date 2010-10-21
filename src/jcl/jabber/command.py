@@ -40,6 +40,7 @@ from jcl.model.account import Account, User
 COMMAND_NS = "http://jabber.org/protocol/commands"
 
 ACTION_COMPLETE = "complete"
+ACTION_EXECUTE = "execute"
 ACTION_NEXT = "next"
 ACTION_PREVIOUS = "prev"
 ACTION_CANCEL = "cancel"
@@ -156,6 +157,9 @@ class CommandManager(object):
             self.__logger.error("Command " + str(command_name) + " not found")
             return [info_query.make_error_response(\
                 "feature-not-implemented")]
+
+    def apply_complete_command(self, info_query, short_command_name):
+        return self.apply_execute_command(info_query, short_command_name)
 
     def apply_execute_command(self, info_query, short_command_name):
         return self.execute_multi_step_command(\

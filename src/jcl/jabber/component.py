@@ -898,8 +898,8 @@ class JCLComponent(Component, object):
         Handle IQ-get "jabber:iq:last" requests.
         """
         self.__logger.debug("IQ:Last request")
-        self.apply_registered_behavior(self.iqlast_handlers, info_query)
-        return 1
+        return self.apply_registered_behavior(self.iqlast_handlers, info_query,
+                                              send_result=False)
 
     def handle_get_gateway(self, info_query):
         """Handle IQ-get "jabber:iq:gateway" requests.
@@ -911,8 +911,7 @@ class JCLComponent(Component, object):
         query = info_query.new_query("jabber:iq:gateway")
         query.newTextChild(query.ns(), "desc", lang_class.get_gateway_desc)
         query.newTextChild(query.ns(), "prompt", lang_class.get_gateway_prompt)
-        self.send_stanzas([info_query])
-        return 1
+        return [info_query]
 
     def handle_set_gateway(self, info_query):
         """
@@ -929,8 +928,7 @@ class JCLComponent(Component, object):
         query.newTextChild(query.ns(), "jid", jid)
         # XEP-0100 - section 6: should be <jid> but PSI only work with <prompt>
         query.newTextChild(query.ns(), "prompt", jid)
-        self.send_stanzas([info_query])
-        return 1
+        return [info_query]
 
     def disco_get_info(self, node, info_query):
         """
@@ -974,15 +972,14 @@ class JCLComponent(Component, object):
         query = info_query.new_query("jabber:iq:version")
         query.newTextChild(query.ns(), "name", self.name)
         query.newTextChild(query.ns(), "version", self.version)
-        self.send_stanzas([info_query])
-        return 1
+        return [info_query]
 
     def handle_get_register(self, info_query):
         """Send back register form to user
         see node structure in disco_get_items()
         """
         self.__logger.debug("GET_REGISTER")
-        self.apply_behavior(\
+        return self.apply_behavior(\
             info_query,
             lambda name, from_jid, account_type, lang_class: \
                 self.account_manager.account_get_register(info_query,
@@ -997,25 +994,21 @@ class JCLComponent(Component, object):
             lambda name, from_jid, account_type, lang_class: \
                 self.account_manager.root_get_register(info_query,
                                                        lang_class),
-            send_result=True)
+            send_result=False)
 
     def handle_set_register(self, info_query):
         """Handle user registration response
         """
         self.__logger.debug("SET_REGISTER")
-        lang_class = \
-            self.lang.get_lang_class_from_node(info_query.get_node())
         from_jid = info_query.get_from()
         remove = info_query.xpath_eval("r:query/r:remove",
-                                       {"r" : "jabber:iq:register"})
+                                       {"r": "jabber:iq:register"})
         if remove:
-            result = self.account_manager.remove_all_accounts(from_jid)
-            self.send_stanzas(result)
-            return 1
+            return self.account_manager.remove_all_accounts(from_jid)
 
         x_node = info_query.xpath_eval("jir:query/jxd:x",
-                                       {"jir" : "jabber:iq:register",
-                                        "jxd" : "jabber:x:data"})[0]
+                                       {"jir": "jabber:iq:register",
+                                        "jxd": "jabber:x:data"})[0]
         x_data = Form(x_node)
         return self.apply_registered_behavior(\
             self.set_register_handlers,
@@ -1023,65 +1016,61 @@ class JCLComponent(Component, object):
             apply_filter_func=lambda filter_func, stanza, lang_class: \
                 filter_func(stanza, lang_class, x_data),
             apply_handle_func=lambda handle_func, stanza, lang_class, data, result: \
-                handle_func(stanza, lang_class, data, x_data))
+                handle_func(stanza, lang_class, data, x_data),
+            send_result=False)
 
     def handle_presence_available(self, stanza):
         """Handle presence availability
         if presence sent to the component ('if not name'), presence is sent to
-        all accounts for current user. Otherwise, send presence from current account.
+        all accounts for current user. Otherwise, send presence from current
+        account.
         """
-        result = self.apply_registered_behavior(self.presence_available_handlers,
-                                                stanza)
-        return result
-
+        self.__logger.debug("PRESENCE_AVAILABLE")
+        return self.apply_registered_behavior(self.presence_available_handlers,
+                                              stanza, send_result=False)
 
     def handle_presence_unavailable(self, stanza):
         """Handle presence unavailability
         """
         self.__logger.debug("PRESENCE_UNAVAILABLE")
-        result = self.apply_registered_behavior(self.presence_unavailable_handlers,
-                                                stanza)
-        return result
+        return self.apply_registered_behavior(self.presence_unavailable_handlers,
+                                              stanza, send_result=False)
 
     def handle_presence_subscribe(self, stanza):
         """Handle subscribe presence from user
         """
         self.__logger.debug("PRESENCE_SUBSCRIBE")
-        result = self.apply_registered_behavior(self.presence_subscribe_handlers,
-                                                stanza)
-        return result
+        return self.apply_registered_behavior(self.presence_subscribe_handlers,
+                                              stanza, send_result=False)
 
     def handle_presence_subscribed(self, stanza):
         """Handle subscribed presence from user
         """
         self.__logger.debug("PRESENCE_SUBSCRIBED")
-        return 1
+        return []
 
     def handle_presence_unsubscribe(self, stanza):
         """Handle unsubscribe presence from user
         """
         self.__logger.debug("PRESENCE_UNSUBSCRIBE")
-        result = self.apply_registered_behavior(self.presence_unsubscribe_handlers,
-                                                stanza)
-        return result
+        return self.apply_registered_behavior(self.presence_unsubscribe_handlers,
+                                              stanza, send_result=False)
 
     def handle_presence_unsubscribed(self, stanza):
         """Handle unsubscribed presence from user
         """
         self.__logger.debug("PRESENCE_UNSUBSCRIBED")
-        presence = Presence(from_jid=stanza.get_to(),
-                            to_jid=stanza.get_from(),
-                            stanza_type="unavailable")
-        self.send_stanzas([presence])
-        return 1
+        return [Presence(from_jid=stanza.get_to(),
+                         to_jid=stanza.get_from(),
+                         stanza_type="unavailable")]
 
     def handle_message(self, message):
         """Handle new message
         Handle password response message
         """
         self.__logger.debug("MESSAGE: " + str(message.get_body()))
-        self.apply_registered_behavior(self.msg_handlers, message)
-        return 1
+        return self.apply_registered_behavior(self.msg_handlers, message,
+                                              send_result=False)
 
     def handle_command(self, info_query):
         """
@@ -1096,23 +1085,22 @@ class JCLComponent(Component, object):
         if action is None:
             action = "execute"
         try:
-            result = command.command_manager.apply_command_action(info_query,
-                                                                  command_node,
-                                                                  action)
-            self.send_stanzas(result)
+            return command.command_manager.apply_command_action(info_query,
+                                                                command_node,
+                                                                action)
         except:
             self.__logger.error("Error in command " + str(command_node) +
                                 " with " + str(info_query) + ":",
                                 exc_info=True)
-        return 1
+            return []
 
     def handle_vcard(self, info_query):
         """
         Handle VCard request
         """
         self.__logger.debug("VCard request")
-        self.apply_registered_behavior(self.vcard_handlers, info_query)
-        return 1
+        return self.apply_registered_behavior(self.vcard_handlers, info_query,
+                                              send_result=False)
 
     ###########################################################################
     # Utils
