@@ -1,3 +1,10 @@
+jcl (0.1rc2) unstable; urgency=low
+
+  * JCL v0.1 RC2
+  * Fix add_user ad-hoc command to refuse whitespace in account name
+
+ -- David Rousselie <dax@happycoders.org>  Sat, 08 Oct 2011 12:56:43 +0200
+
 jcl (0.1rc1) unstable; urgency=low
 
   * JCL v0.1 RC1

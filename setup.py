@@ -23,7 +23,7 @@
 from setuptools import setup, find_packages
 
 setup(name='jcl',
-      version='0.1b3',
+      version='0.1rc2',
       description='Jabber Component Library',
       author='David Rousselie',
       author_email='dax@happycoders.org',
@@ -46,4 +46,4 @@ setup(name='jcl',
                                              "tests.*",
                                              "tests"]),
       test_suite='jcl.tests.suite',
-      install_requires=['SQLObject>=0.8', 'pyxmpp>=1.0.1', 'pysqlite>=2.0'])
+      install_requires=['FormEncode', 'SQLObject>=0.8', 'pyxmpp>=1.0.1', 'pysqlite>=2.0'])

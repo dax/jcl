@@ -34,6 +34,7 @@ from pyxmpp.jabber.dataforms import Form, Field
 from pyxmpp.message import Message
 
 from jcl.jabber.disco import DiscoHandler, RootDiscoGetInfoHandler
+from jcl.jabber.register import SetRegisterHandler
 from jcl.model import account
 from jcl.model.account import Account, User
 
@@ -579,13 +580,18 @@ class JCLCommandManager(CommandManager):
                                        {"c": "http://jabber.org/protocol/commands",
                                         "jxd" : "jabber:x:data"})[0]
         x_data = Form(x_node)
-        to_send = self.component.account_manager.create_account_from_type(\
-            account_name=session_context["name"][0],
-            from_jid=JID(session_context["user_jid"][0]),
-            account_type=session_context["account_type"][0],
-            lang_class=lang_class,
-            x_data=x_data)
-        command_node.setProp("status", STATUS_COMPLETED)
+        errors = SetRegisterHandler(self.component).validate_form(\
+            x_data, info_query, lang_class)
+        if errors is not None:
+            raise CommandError("bad-request")
+        else:
+            to_send = self.component.account_manager.create_account_from_type(\
+                account_name=session_context["name"][0],
+                from_jid=JID(session_context["user_jid"][0]),
+                account_type=session_context["account_type"][0],
+                lang_class=lang_class,
+                x_data=x_data)
+            command_node.setProp("status", STATUS_COMPLETED)
         return (None, to_send)
 
     ###########################################################################

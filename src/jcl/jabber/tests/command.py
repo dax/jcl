@@ -1020,6 +1020,63 @@ class JCLCommandManagerAddUserCommand_TestCase(JCLCommandManagerTestCase):
         self.check_step_3(result, session_id,
                           "test4@test.com", "test4@test.com")
 
+    def test_execute_add_user_invalid_name(self):
+        """
+        test 'add-user' ad-hoc command with an invalid name (with spaces).
+        """
+        self.info_query.set_from("test4@test.com")
+        result = self.command_manager.apply_command_action(\
+            self.info_query,
+            "http://jabber.org/protocol/admin#add-user",
+            "execute")
+        session_id = self.check_step_1(result, "test4@test.com")
+
+        # Second step
+        info_query = prepare_submit(\
+            node="http://jabber.org/protocol/admin#add-user",
+            session_id=session_id,
+            from_jid="test4@test.com",
+            fields=[Field(field_type="list-single",
+                          name="account_type",
+                          value="Example")])
+        result = self.command_manager.apply_command_action(\
+            info_query,
+            "http://jabber.org/protocol/admin#add-user",
+            "next")
+        context_session = self.check_step_2(result, session_id,
+                                            "test4@test.com", "test4@test.com")
+
+        # Third step
+        info_query = prepare_submit(\
+            node="http://jabber.org/protocol/admin#add-user",
+            session_id=session_id,
+            from_jid="test4@test.com",
+            fields=[Field(field_type="text-single",
+                          name="name",
+                          value="account 1"),
+                    Field(field_type="text-single",
+                          name="login",
+                          value="login1"),
+                    Field(field_type="text-private",
+                          name="password",
+                          value="pass1"),
+                    Field(field_type="boolean",
+                          name="store_password",
+                          value="1"),
+                    Field(field_type="list-single",
+                          name="test_enum",
+                          value="choice2"),
+                    Field(field_type="text-single",
+                          name="test_int",
+                          value="42")],
+            action="complete")
+        result = self.command_manager.apply_command_action(\
+            info_query,
+            "http://jabber.org/protocol/admin#add-user",
+            "execute")
+        self.assertEquals(result[0].get_type(), "error")
+        self.assertEquals(result[0].get_error().get_type(), "modify")
+
     def test_execute_add_user_prev(self):
         """
         test 'add-user' ad-hoc command with an admin user. Test 'prev' action.
@@ -1079,6 +1136,8 @@ class JCLCommandManagerAddUserCommand_TestCase(JCLCommandManagerTestCase):
         other_session_id = self.check_step_1(result, "admin@test.com",
                                              is_admin=True)
         self.assertEquals(other_session_id, session_id)
+
+
     def test_execute_add_user_cancel(self):
         """
         Test cancel 'add-user' ad-hoc command .
