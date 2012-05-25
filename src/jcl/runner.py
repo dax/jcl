@@ -208,9 +208,9 @@ class JCLRunner(object):
     debug = property(get_debug, set_debug)
 
     def setup_db(self):
+        User.createTable(ifNotExists=True)
         Account.createTable(ifNotExists=True)
         PresenceAccount.createTable(ifNotExists=True)
-        User.createTable(ifNotExists=True)
         LegacyJID.createTable(ifNotExists=True)
 
     def setup_pidfile(self):
